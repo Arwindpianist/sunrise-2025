@@ -81,7 +81,7 @@ export async function GET(request: Request) {
     const contacts = contactsData.connections
       ?.filter((contact: any) => contact.emailAddresses && contact.emailAddresses.length > 0)
       .map((contact: any) => ({
-        user_id: session.user.id, // Use the actual user ID from session
+        user_id: session.user.id,
         first_name: contact.names?.[0]?.givenName || 'Unknown',
         last_name: contact.names?.[0]?.familyName || '',
         email: contact.emailAddresses[0].value,
