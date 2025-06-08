@@ -3,19 +3,21 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Calendar, Users, Mail, Coins, Clock, CheckCircle } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
   const { supabase, user } = useSupabase()
   const [mounted, setMounted] = useState(false)
   const [stats, setStats] = useState({
-    contacts: 0,
-    events: 0,
+    totalEvents: 0,
+    totalContacts: 0,
+    totalEmails: 0,
     balance: 0,
   })
+  const [recentEvents, setRecentEvents] = useState<any[]>([])
 
   useEffect(() => {
     setMounted(true)
@@ -26,43 +28,62 @@ export default function DashboardPage() {
       router.push('/login')
     } else {
       fetchStats()
+      fetchRecentEvents()
     }
   }, [user, router])
 
   const fetchStats = async () => {
     try {
-      // Get contacts count
-      const { count: contactsCount, error: contactsError } = await supabase
-        .from('contacts')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user?.id)
-
-      if (contactsError) throw contactsError
-
-      // Get events count
-      const { count: eventsCount, error: eventsError } = await supabase
+      // Fetch total events
+      const { count: eventsCount } = await supabase
         .from('events')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user?.id)
 
-      if (eventsError) throw eventsError
+      // Fetch total contacts
+      const { count: contactsCount } = await supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
 
-      // Get user balance
-      const { data: balanceData, error: balanceError } = await supabase
+      // Fetch total emails sent
+      const { count: emailsCount } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
+        .eq('type', 'email')
+
+      // Fetch user balance
+      const { data: balanceData } = await supabase
         .from('user_balances')
         .select('balance')
         .eq('user_id', user?.id)
         .single()
 
-      if (balanceError && balanceError.code !== 'PGRST116') throw balanceError
-
       setStats({
-        contacts: contactsCount || 0,
-        events: eventsCount || 0,
+        totalEvents: eventsCount || 0,
+        totalContacts: contactsCount || 0,
+        totalEmails: emailsCount || 0,
         balance: balanceData?.balance || 0,
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
+    }
+  }
+
+  const fetchRecentEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (error) throw error
+      setRecentEvents(data || [])
+    } catch (error) {
+      console.error('Error fetching recent events:', error)
     }
   }
 
@@ -71,77 +92,140 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid gap-8 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Contacts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <p className="text-4xl font-bold">{stats.contacts}</p>
-              <Link href="/dashboard/contacts">
-                <Button variant="link" className="mt-2">
-                  View Contacts
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
+      <div className="container mx-auto py-8">
+        <div className="grid gap-8 md:grid-cols-4">
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-5 w-5 text-orange-500" />
+                Total Events
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                {stats.totalEvents}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <p className="text-4xl font-bold">{stats.events}</p>
-              <Link href="/dashboard/events">
-                <Button variant="link" className="mt-2">
-                  View Events
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5 text-orange-500" />
+                Total Contacts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                {stats.totalContacts}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Credits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <p className="text-4xl font-bold">${(stats.balance * 0.01).toFixed(2)}</p>
-              <p className="text-muted-foreground">{stats.balance} credits</p>
-              <Link href="/dashboard/balance">
-                <Button variant="link" className="mt-2">
-                  Manage Balance
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Mail className="h-5 w-5 text-orange-500" />
+                Emails Sent
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                {stats.totalEmails}
+              </p>
+            </CardContent>
+          </Card>
 
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Link href="/dashboard/contacts/create">
-                <Button className="w-full">Add New Contact</Button>
-              </Link>
-              <Link href="/dashboard/events/create">
-                <Button className="w-full">Create New Event</Button>
-              </Link>
-              <Link href="/dashboard/balance">
-                <Button className="w-full">Purchase Credits</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Coins className="h-5 w-5 text-orange-500" />
+                Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                RM{(stats.balance * 0.05).toFixed(2)}
+              </p>
+              <p className="text-sm text-muted-foreground">{stats.balance} credits</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-8 mt-8 md:grid-cols-2">
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-orange-500" />
+                Recent Events
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
+                  >
+                    <div>
+                      <p className="font-medium">{event.name}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(event.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                      onClick={() => router.push(`/dashboard/events/${event.id}`)}
+                    >
+                      View
+                    </Button>
+                  </div>
+                ))}
+                {recentEvents.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">
+                    No events yet. Create your first event to get started!
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-orange-500" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                <Button
+                  className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                  onClick={() => router.push('/dashboard/events/new')}
+                >
+                  Create New Event
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50"
+                  onClick={() => router.push('/dashboard/contacts')}
+                >
+                  Manage Contacts
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50"
+                  onClick={() => router.push('/dashboard/balance')}
+                >
+                  View Balance
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
