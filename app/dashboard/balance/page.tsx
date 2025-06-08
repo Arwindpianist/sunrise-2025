@@ -7,15 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { loadStripe } from '@stripe/stripe-js'
+import { Coins, TrendingUp, Clock, CheckCircle } from "lucide-react"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 const CREDIT_PACKAGES = [
-  { id: '100', credits: 100, price: 0.99, popular: false },
-  { id: '500', credits: 500, price: 4.99, popular: true },
-  { id: '1000', credits: 1000, price: 9.99, popular: false },
-  { id: '5000', credits: 5000, price: 49.99, popular: false },
+  { id: '100', credits: 100, price: 4.90, popular: false },
+  { id: '500', credits: 500, price: 19.90, popular: true },
+  { id: '1000', credits: 1000, price: 39.90, popular: false },
+  { id: '5000', credits: 5000, price: 199.90, popular: false },
 ]
+
+const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email
 
 export default function BalancePage() {
   const router = useRouter()
@@ -121,84 +124,112 @@ export default function BalancePage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <p className="text-4xl font-bold">${(userBalance * 0.01).toFixed(2)}</p>
-              <p className="text-muted-foreground">{userBalance} credits</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
+      <div className="container mx-auto py-8">
+        <div className="grid gap-8 md:grid-cols-2">
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-orange-500" />
+                Your Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                  RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)}
+                </p>
+                <p className="text-muted-foreground">{userBalance} credits</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Each email costs {PRICE_PER_EMAIL} credits
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex justify-between items-center p-4 bg-muted rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(transaction.created_at).toLocaleDateString()}
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-orange-500" />
+                Recent Transactions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {transactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
+                  >
+                    <div>
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(transaction.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <p className={`font-bold flex items-center gap-1 ${
+                      transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount} credits
+                      <CheckCircle className="h-4 w-4" />
                     </p>
                   </div>
-                  <p className={`font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.amount > 0 ? '+' : ''}{transaction.amount} credits
-                  </p>
-                </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mt-8 bg-white/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-orange-500" />
+              Purchase Credits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              {CREDIT_PACKAGES.map((pkg) => (
+                <Card
+                  key={pkg.id}
+                  className={`relative bg-white/50 backdrop-blur-sm ${
+                    pkg.popular ? 'border-2 border-orange-500 shadow-lg scale-105' : ''
+                  }`}
+                >
+                  {pkg.popular && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs px-2 py-1 rounded-full">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{pkg.credits}</p>
+                      <p className="text-muted-foreground">credits</p>
+                      <p className="text-xl font-bold mt-2 text-orange-500">
+                        RM{pkg.price}
+                      </p>
+                      <Button
+                        className={`w-full mt-4 ${
+                          pkg.popular
+                            ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                            : "bg-gray-800 hover:bg-gray-900"
+                        }`}
+                        onClick={() => handlePurchase(pkg.id)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Processing..." : "Purchase"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Purchase Credits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            {CREDIT_PACKAGES.map((pkg) => (
-              <Card
-                key={pkg.id}
-                className={`relative ${pkg.popular ? 'border-primary' : ''}`}
-              >
-                {pkg.popular && (
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                    <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{pkg.credits}</p>
-                    <p className="text-muted-foreground">credits</p>
-                    <p className="text-xl font-bold mt-2">${pkg.price}</p>
-                    <Button
-                      className="w-full mt-4"
-                      onClick={() => handlePurchase(pkg.id)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Purchase"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 } 
