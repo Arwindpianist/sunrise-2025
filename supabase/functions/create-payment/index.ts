@@ -12,7 +12,10 @@ const corsHeaders = {
 }
 
 const PRICE_PER_EMAIL = 0.01 // $0.01 per email
-const CREDIT_PACKAGES = {
+
+type CreditPackageId = '100' | '500' | '1000' | '5000'
+
+const CREDIT_PACKAGES: Record<CreditPackageId, number> = {
   '100': 0.99,    // 100 credits for $0.99
   '500': 4.99,    // 500 credits for $4.99
   '1000': 9.99,   // 1000 credits for $9.99
@@ -67,10 +70,11 @@ serve(async (req: Request) => {
 
     if (type === 'credits') {
       // Handle credit package purchase
-      if (!CREDIT_PACKAGES[amount]) {
+      const packageId = amount as CreditPackageId
+      if (!CREDIT_PACKAGES[packageId]) {
         throw new Error('Invalid credit package')
       }
-      credits = parseInt(amount)
+      credits = parseInt(packageId)
       description = `Purchase ${credits} email credits`
     } else if (type === 'event') {
       // Handle event email sending
