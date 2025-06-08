@@ -68,7 +68,8 @@ export default function DashboardPage() {
         .from('transactions')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user?.id)
-        .eq('type', 'email')
+        .eq('type', 'usage')
+        .eq('status', 'completed')
 
       // Fetch user balance
       const { data: balanceData } = await supabase
