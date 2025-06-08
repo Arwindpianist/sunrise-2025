@@ -37,7 +37,7 @@ const CREDIT_PACKAGES: Record<CreditPackageId, number> = {
   '5000': 199.90, // 5000 credits for RM 199.90
 }
 
-const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email
+const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
 
 interface PaymentResponse {
   clientSecret: string;
@@ -195,10 +195,10 @@ export default function BalancePage() {
             <CardContent>
               <div className="text-center">
                 <p className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
-                  {userBalance} credits
+                  {userBalance} tokens
                 </p>
                 <p className="text-muted-foreground mt-2">
-                  Each email costs {PRICE_PER_EMAIL} credits
+                  Each email costs 1 token (RM{PRICE_PER_EMAIL.toFixed(2)})
                 </p>
               </div>
             </CardContent>
@@ -257,7 +257,7 @@ export default function BalancePage() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-2xl font-bold">{credits}</p>
-                      <p className="text-muted-foreground">credits</p>
+                      <p className="text-muted-foreground">tokens</p>
                       <p className="text-xl font-bold mt-2 text-orange-500">
                         RM{price.toFixed(2)}
                       </p>
@@ -266,7 +266,7 @@ export default function BalancePage() {
                         onClick={() => handlePurchase(credits)}
                         disabled={isLoading}
                       >
-                        {isLoading ? "Processing..." : "Purchase"}
+                        {isLoading ? "Processing..." : "Purchase Tokens"}
                       </Button>
                     </div>
                   </CardContent>
@@ -282,7 +282,7 @@ export default function BalancePage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Coins className="h-5 w-5 text-orange-500" />
-              {selectedPackage ? `Purchase ${selectedPackage.credits} Credits` : 'Payment'}
+              {selectedPackage ? `Purchase ${selectedPackage.credits} Tokens` : 'Payment'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -291,7 +291,7 @@ export default function BalancePage() {
                 <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                   RM {selectedPackage.price.toFixed(2)}
                 </p>
-                <p className="text-muted-foreground">{selectedPackage.credits} credits</p>
+                <p className="text-muted-foreground">{selectedPackage.credits} tokens</p>
               </div>
             )}
             <form id="payment-form" className="space-y-4">

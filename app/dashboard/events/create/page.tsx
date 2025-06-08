@@ -33,7 +33,7 @@ const RECIPIENT_CATEGORIES = [
 type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
 type SendOption = "now" | "schedule"
 
-const PRICE_PER_EMAIL = 0.01 // $0.01 per email
+const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -402,18 +402,25 @@ export default function CreateEventPage() {
               )}
             </div>
 
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="flex justify-between items-center">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
                 <div>
                   <p className="font-medium">Current Balance</p>
-                  <p className="text-2xl font-bold">${(userBalance * PRICE_PER_EMAIL).toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">{userBalance} credits</p>
+                  <p className="text-sm text-muted-foreground">{userBalance} tokens</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium">Cost for this event</p>
-                  <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">{contactCount} emails</p>
+                <p className="text-2xl font-bold text-orange-500">
+                  RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)}
+                </p>
+              </div>
+
+              <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
+                <div>
+                  <p className="font-medium">Total Cost</p>
+                  <p className="text-sm text-muted-foreground">{contactCount} tokens</p>
                 </div>
+                <p className="text-2xl font-bold text-orange-500">
+                  RM{totalCost.toFixed(2)}
+                </p>
               </div>
             </div>
 
@@ -441,7 +448,7 @@ export default function CreateEventPage() {
           <DialogHeader>
             <DialogTitle>Insufficient Balance</DialogTitle>
             <DialogDescription>
-              You need ${totalCost.toFixed(2)} to send {contactCount} emails. Your current balance is ${(userBalance * PRICE_PER_EMAIL).toFixed(2)}.
+              You need RM{totalCost.toFixed(2)} ({contactCount} tokens) to send {contactCount} emails. Your current balance is RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)} ({userBalance} tokens).
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end space-x-4">
@@ -455,7 +462,7 @@ export default function CreateEventPage() {
               onClick={handlePayment}
               disabled={isLoading}
             >
-              {isLoading ? "Processing..." : "Add Credits"}
+              {isLoading ? "Processing..." : "Add Tokens"}
             </Button>
           </div>
         </DialogContent>
