@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import type { SupabaseClient, User } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/supabase'
 
@@ -20,6 +20,7 @@ export default function SupabaseProvider({
 }) {
   const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClientComponentClient<Database>()
 
   useEffect(() => {
@@ -31,13 +32,17 @@ export default function SupabaseProvider({
       } else {
         setUser(null)
       }
-      router.refresh()
+      
+      // Only refresh if we're on a protected route
+      if (pathname?.startsWith('/dashboard')) {
+        router.refresh()
+      }
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [router, supabase, pathname])
 
   return (
     <Context.Provider value={{ supabase, user }}>
