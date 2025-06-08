@@ -80,6 +80,10 @@ export default function DashboardPage() {
     }
   }
 
+  const handleCreateEvent = () => {
+    router.push("/dashboard/events/create")
+  }
+
   if (!user) {
     return null
   }
@@ -105,12 +109,13 @@ export default function DashboardPage() {
             </h1>
             <p className="text-gray-600">Here's what's happening with your events</p>
           </div>
-          <Link href="/dashboard/events/create">
-            <Button className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 mt-4 md:mt-0">
-              <Plus className="h-4 w-4 mr-2" />
-              New Event
-            </Button>
-          </Link>
+          <Button 
+            onClick={handleCreateEvent}
+            className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 mt-4 md:mt-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Event
+          </Button>
         </div>
 
         {/* Stats Cards */}

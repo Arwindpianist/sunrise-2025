@@ -165,11 +165,15 @@ export default function EventsPage() {
     }
   }
 
+  const handleCreateEvent = () => {
+    router.push("/dashboard/events/create")
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Events</h1>
-        <Button onClick={() => router.push("/dashboard/events/create")}>
+        <Button onClick={handleCreateEvent}>
           <Plus className="mr-2 h-4 w-4" />
           Create Event
         </Button>
@@ -181,7 +185,7 @@ export default function EventsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8">
             <p className="text-muted-foreground mb-4">No events found</p>
-            <Button onClick={() => router.push("/dashboard/events/create")}>
+            <Button onClick={handleCreateEvent}>
               Create your first event
             </Button>
           </CardContent>
