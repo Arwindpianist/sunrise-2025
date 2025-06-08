@@ -81,11 +81,17 @@ serve(async (req: Request) => {
     }
 
     // Get the contacts based on the category
-    const { data: contacts, error: contactsError } = await supabaseClient
+    let contactsQuery = supabaseClient
       .from('contacts')
       .select('*')
       .eq('user_id', event.user_id)
-      .eq('category', category)
+
+    // If category is not 'all', filter by category
+    if (category !== 'all') {
+      contactsQuery = contactsQuery.eq('category', category)
+    }
+
+    const { data: contacts, error: contactsError } = await contactsQuery
 
     if (contactsError) {
       throw contactsError
