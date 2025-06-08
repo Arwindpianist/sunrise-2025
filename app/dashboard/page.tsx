@@ -18,6 +18,7 @@ export default function DashboardPage() {
     balance: 0,
   })
   const [recentEvents, setRecentEvents] = useState<any[]>([])
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -29,8 +30,24 @@ export default function DashboardPage() {
     } else {
       fetchStats()
       fetchRecentEvents()
+      fetchUserProfile()
     }
   }, [user, router])
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user?.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }
 
   const fetchStats = async () => {
     try {
@@ -94,6 +111,19 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       <div className="container mx-auto py-8">
+        <div className="mb-8">
+          <Card className="bg-white/50 backdrop-blur-sm border-none">
+            <CardContent className="pt-6">
+              <h1 className="text-3xl font-bold text-gray-800">
+                Good {getGreeting()}, {userProfile?.first_name} {userProfile?.last_name} 🌅
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Welcome back to your dashboard. Here's an overview of your events and activities.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid gap-8 md:grid-cols-4">
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
@@ -204,7 +234,7 @@ export default function DashboardPage() {
               <div className="grid gap-4">
                 <Button
                   className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                  onClick={() => router.push('/dashboard/events/new')}
+                  onClick={() => router.push('/dashboard/events/create')}
                 >
                   Create New Event
                 </Button>
@@ -229,4 +259,11 @@ export default function DashboardPage() {
       </div>
     </div>
   )
+}
+
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Morning'
+  if (hour < 18) return 'Afternoon'
+  return 'Evening'
 }
