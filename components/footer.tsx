@@ -18,12 +18,12 @@ export default function Footer() {
               <li>
                 <Link href="/features" className="text-gray-600 hover:text-orange-500">
                   Features
-                </Link>
+              </Link>
               </li>
               <li>
                 <Link href="/pricing" className="text-gray-600 hover:text-orange-500">
                   Pricing
-                </Link>
+              </Link>
               </li>
             </ul>
           </div>
@@ -33,12 +33,12 @@ export default function Footer() {
               <li>
                 <Link href="/about" className="text-gray-600 hover:text-orange-500">
                   About
-                </Link>
+              </Link>
               </li>
               <li>
                 <Link href="/contact" className="text-gray-600 hover:text-orange-500">
                   Contact
-                </Link>
+              </Link>
               </li>
             </ul>
           </div>
@@ -48,12 +48,12 @@ export default function Footer() {
               <li>
                 <Link href="/privacy" className="text-gray-600 hover:text-orange-500">
                   Privacy Policy
-                </Link>
+              </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-gray-600 hover:text-orange-500">
                   Terms of Service
-                </Link>
+              </Link>
               </li>
             </ul>
           </div>

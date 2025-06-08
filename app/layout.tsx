@@ -22,9 +22,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SupabaseProvider>
-          <Header />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+        <Header />
+        <main className="min-h-screen">{children}</main>
+        <Footer />
           <Toaster />
         </SupabaseProvider>
       </body>
