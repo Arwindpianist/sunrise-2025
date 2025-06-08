@@ -35,7 +35,7 @@ export default function CreateEventPage() {
     emailSubject: "",
     emailTemplate: "",
     scheduledSendTime: new Date(),
-    recipientCategory: "all" as RecipientCategory,
+    category: "other" as RecipientCategory,
     sendOption: "schedule" as SendOption,
   })
 
@@ -70,7 +70,7 @@ export default function CreateEventPage() {
           email_subject: formData.emailSubject,
           email_template: formData.emailTemplate,
           scheduled_send_time: formData.scheduledSendTime.toISOString(),
-          recipient_category: formData.recipientCategory,
+          category: formData.category,
           status: formData.sendOption === "now" ? "sending" : "scheduled",
         })
         .select()
@@ -85,7 +85,7 @@ export default function CreateEventPage() {
         const { error: sendError } = await supabase.functions.invoke('send-event-emails', {
           body: {
             eventId: event.id,
-            recipientCategory: formData.recipientCategory,
+            category: formData.category,
           }
         })
 
@@ -171,11 +171,11 @@ export default function CreateEventPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="recipientCategory">Recipient Category</Label>
+              <Label htmlFor="category">Recipient Category</Label>
               <select
-                id="recipientCategory"
-                value={formData.recipientCategory}
-                onChange={(e) => handleInputChange("recipientCategory", e.target.value as RecipientCategory)}
+                id="category"
+                value={formData.category}
+                onChange={(e) => handleInputChange("category", e.target.value as RecipientCategory)}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background"
               >
                 {RECIPIENT_CATEGORIES.map((category) => (
