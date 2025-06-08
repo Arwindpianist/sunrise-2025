@@ -166,7 +166,7 @@ serve(async (req: Request) => {
       try {
         // Send email using Resend
         const { data: emailData, error: emailError } = await resend.emails.send({
-          from: 'Sunrise <noreply@sunrise.com>',
+          from: 'Sunrise <noreply@sunrise-2025.arwindpianist.store>',
           to: contact.email,
           subject: event.email_subject,
           html: event.email_template,

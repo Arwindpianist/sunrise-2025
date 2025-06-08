@@ -10,6 +10,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
+import { loadStripe } from '@stripe/stripe-js'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 const RECIPIENT_CATEGORIES = [
   { id: "all", label: "All Contacts" },
@@ -21,6 +32,8 @@ const RECIPIENT_CATEGORIES = [
 
 type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
 type SendOption = "now" | "schedule"
+
+const PRICE_PER_EMAIL = 0.01 // $0.01 per email
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -38,6 +51,9 @@ export default function CreateEventPage() {
     category: "other" as RecipientCategory,
     sendOption: "schedule" as SendOption,
   })
+  const [contactCount, setContactCount] = useState(0)
+  const [userBalance, setUserBalance] = useState(0)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -49,6 +65,48 @@ export default function CreateEventPage() {
     }
   }, [user, router])
 
+  useEffect(() => {
+    if (user) {
+      fetchContactCount()
+      fetchUserBalance()
+    }
+  }, [user, formData.category])
+
+  const fetchContactCount = async () => {
+    try {
+      let query = supabase
+        .from('contacts')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user?.id)
+
+      if (formData.category !== 'all') {
+        query = query.eq('category', formData.category)
+      }
+
+      const { count, error } = await query
+
+      if (error) throw error
+      setContactCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching contact count:', error)
+    }
+  }
+
+  const fetchUserBalance = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', user?.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+      setUserBalance(data?.balance || 0)
+    } catch (error) {
+      console.error('Error fetching user balance:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -56,6 +114,13 @@ export default function CreateEventPage() {
     try {
       if (!user) {
         throw new Error("Not authenticated")
+      }
+
+      // Check if user has enough balance
+      if (formData.sendOption === "now" && userBalance < contactCount) {
+        setShowPaymentDialog(true)
+        setIsLoading(false)
+        return
       }
 
       // Create the event
@@ -102,6 +167,33 @@ export default function CreateEventPage() {
         if (sendError) {
           throw sendError
         }
+
+        // Deduct credits from user balance
+        const { error: balanceError } = await supabase
+          .from('user_balances')
+          .upsert({
+            user_id: user.id,
+            balance: userBalance - contactCount,
+          })
+
+        if (balanceError) {
+          throw balanceError
+        }
+
+        // Create transaction record
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            type: 'usage',
+            amount: -contactCount,
+            description: `Send ${contactCount} event emails for "${formData.title}"`,
+            status: 'completed',
+          })
+
+        if (transactionError) {
+          throw transactionError
+        }
       }
 
       toast({
@@ -128,9 +220,59 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handlePayment = async () => {
+    try {
+      setIsLoading(true)
+
+      // Create payment intent
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("No active session")
+
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: contactCount,
+          type: 'event',
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      })
+
+      if (error) throw error
+
+      // Load Stripe
+      const stripe = await stripePromise
+      if (!stripe) throw new Error("Stripe failed to load")
+
+      // Confirm payment
+      const { error: stripeError } = await stripe.confirmPayment({
+        elements: undefined,
+        clientSecret: data.clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard/events/create?success=true`,
+        },
+      })
+
+      if (stripeError) throw stripeError
+
+    } catch (error: any) {
+      console.error("Payment error:", error)
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to process payment",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+      setShowPaymentDialog(false)
+    }
+  }
+
   if (!user || !mounted) {
     return null
   }
+
+  const totalCost = contactCount * PRICE_PER_EMAIL
 
   return (
     <div className="container mx-auto py-8">
@@ -194,6 +336,9 @@ export default function CreateEventPage() {
                   </option>
                 ))}
               </select>
+              <p className="text-sm text-muted-foreground">
+                {contactCount} contacts in this category
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -257,6 +402,21 @@ export default function CreateEventPage() {
               )}
             </div>
 
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Current Balance</p>
+                  <p className="text-2xl font-bold">${(userBalance * PRICE_PER_EMAIL).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">{userBalance} credits</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">Cost for this event</p>
+                  <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">{contactCount} emails</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-4">
               <Button
                 type="button"
@@ -275,6 +435,31 @@ export default function CreateEventPage() {
           </form>
         </CardContent>
       </Card>
+
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insufficient Balance</DialogTitle>
+            <DialogDescription>
+              You need ${totalCost.toFixed(2)} to send {contactCount} emails. Your current balance is ${(userBalance * PRICE_PER_EMAIL).toFixed(2)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePayment}
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : "Add Credits"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
