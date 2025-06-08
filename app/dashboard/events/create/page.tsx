@@ -9,11 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -114,33 +110,11 @@ export default function CreateEventPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Event Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.eventDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.eventDate ? (
-                      format(formData.eventDate, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.eventDate}
-                    onSelect={(date) => date && handleInputChange("eventDate", date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label>Event Date & Time</Label>
+              <DateTimePicker
+                date={formData.eventDate}
+                onSelect={(date) => handleInputChange("eventDate", date)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -176,32 +150,10 @@ export default function CreateEventPage() {
 
             <div className="space-y-2">
               <Label>Schedule Send Time</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.scheduledSendTime && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.scheduledSendTime ? (
-                      format(formData.scheduledSendTime, "PPP p")
-                    ) : (
-                      <span>Pick a date and time</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.scheduledSendTime}
-                    onSelect={(date) => date && handleInputChange("scheduledSendTime", date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DateTimePicker
+                date={formData.scheduledSendTime}
+                onSelect={(date) => handleInputChange("scheduledSendTime", date)}
+              />
             </div>
 
             <div className="flex justify-end space-x-4">

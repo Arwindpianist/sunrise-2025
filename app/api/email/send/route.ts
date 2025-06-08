@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sunrise-2025.arwindpianist.store"
 
 export const dynamic = "force-dynamic"
 
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
           .replace("{{eventLocation}}", event.location)
 
         const { data: emailData, error: emailError } = await resend.emails.send({
-          from: "Sunrise <noreply@sunrise.com>",
+          from: `Sunrise <${FROM_EMAIL}>`,
           to: contact.email,
           subject: event.email_subject,
           html: emailTemplate,
