@@ -10,6 +10,25 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+
+const RECIPIENT_CATEGORIES = [
+  { id: "all", label: "All Recipients" },
+  { id: "active", label: "Active Recipients" },
+  { id: "inactive", label: "Inactive Recipients" },
+  { id: "new", label: "New Recipients" },
+  { id: "returning", label: "Returning Recipients" },
+] as const
+
+type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
+type SendOption = "now" | "schedule"
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -23,6 +42,8 @@ export default function CreateEventPage() {
     emailSubject: "",
     emailTemplate: "",
     scheduledSendTime: new Date(),
+    recipientCategory: "all" as RecipientCategory,
+    sendOption: "schedule" as SendOption,
   })
 
   useEffect(() => {
@@ -52,7 +73,8 @@ export default function CreateEventPage() {
           email_subject: formData.emailSubject,
           email_template: formData.emailTemplate,
           scheduled_send_time: formData.scheduledSendTime.toISOString(),
-          status: "draft",
+          recipient_category: formData.recipientCategory,
+          status: formData.sendOption === "now" ? "sending" : "scheduled",
         })
         .select()
         .single()
@@ -61,9 +83,25 @@ export default function CreateEventPage() {
         throw eventError
       }
 
+      // If send now is selected, trigger the email sending process
+      if (formData.sendOption === "now") {
+        const { error: sendError } = await supabase.functions.invoke('send-event-emails', {
+          body: {
+            eventId: event.id,
+            recipientCategory: formData.recipientCategory,
+          }
+        })
+
+        if (sendError) {
+          throw sendError
+        }
+      }
+
       toast({
         title: "Success!",
-        description: "Your event has been created.",
+        description: formData.sendOption === "now" 
+          ? "Your event has been created and emails are being sent."
+          : "Your event has been created and scheduled.",
       })
 
       router.push("/dashboard/events")
@@ -136,6 +174,25 @@ export default function CreateEventPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="recipientCategory">Recipient Category</Label>
+              <Select
+                value={formData.recipientCategory}
+                onValueChange={(value) => handleInputChange("recipientCategory", value as RecipientCategory)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select recipient category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RECIPIENT_CATEGORIES.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="emailSubject">Email Subject</Label>
               <Input
                 id="emailSubject"
@@ -156,12 +213,32 @@ export default function CreateEventPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Schedule Send Time</Label>
-              <DateTimePicker
-                date={formData.scheduledSendTime}
-                onSelect={(date) => handleInputChange("scheduledSendTime", date)}
-              />
+            <div className="space-y-4">
+              <Label>Send Options</Label>
+              <RadioGroup
+                value={formData.sendOption}
+                onValueChange={(value) => handleInputChange("sendOption", value as SendOption)}
+                className="flex flex-col space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="now" id="send-now" />
+                  <Label htmlFor="send-now">Send Now</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="schedule" id="schedule" />
+                  <Label htmlFor="schedule">Schedule Send</Label>
+                </div>
+              </RadioGroup>
+
+              {formData.sendOption === "schedule" && (
+                <div className="space-y-2">
+                  <Label>Schedule Send Time</Label>
+                  <DateTimePicker
+                    date={formData.scheduledSendTime}
+                    onSelect={(date) => handleInputChange("scheduledSendTime", date)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end space-x-4">
@@ -174,7 +251,9 @@ export default function CreateEventPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Creating..." : "Create Event"}
+                {isLoading 
+                  ? (formData.sendOption === "now" ? "Sending..." : "Creating...") 
+                  : (formData.sendOption === "now" ? "Create & Send Now" : "Create Event")}
               </Button>
             </div>
           </form>
