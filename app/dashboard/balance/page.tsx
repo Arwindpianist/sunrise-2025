@@ -103,9 +103,46 @@ export default function BalancePage() {
         confirmParams: {
           return_url: `${window.location.origin}/dashboard/balance?success=true`,
         },
+        redirect: 'if_required'
       })
 
-      if (stripeError) throw stripeError
+      if (stripeError) {
+        if (stripeError.type === 'card_error' || stripeError.type === 'validation_error') {
+          throw new Error(stripeError.message)
+        } else {
+          throw new Error('An unexpected error occurred.')
+        }
+      }
+
+      // Check payment status
+      const paymentIntent = await stripe.retrievePaymentIntent(data.clientSecret)
+      
+      if (paymentIntent.paymentIntent?.status === 'succeeded') {
+        toast({
+          title: "Success!",
+          description: "Your payment was successful.",
+        })
+        router.refresh()
+      } else if (paymentIntent.paymentIntent?.status === 'requires_payment_method') {
+        // Payment failed or was cancelled
+        throw new Error('Payment failed. Please try again.')
+      } else if (paymentIntent.paymentIntent?.status === 'requires_confirmation') {
+        // Payment needs confirmation
+        const { error: confirmError } = await stripe.confirmPayment({
+          elements: undefined,
+          clientSecret: data.clientSecret,
+          confirmParams: {
+            return_url: `${window.location.origin}/dashboard/balance?success=true`,
+          },
+        })
+        
+        if (confirmError) {
+          throw new Error(confirmError.message)
+        }
+      } else {
+        // Handle other states
+        throw new Error(`Payment status: ${paymentIntent.paymentIntent?.status}`)
+      }
 
     } catch (error: any) {
       console.error("Payment error:", error)
