@@ -68,7 +68,7 @@ export default function PricingPage() {
     if (user) {
       router.push('/dashboard/balance')
     } else {
-      router.push('/signup')
+      router.push('/register')
     }
   }
 
