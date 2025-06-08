@@ -84,7 +84,7 @@ export default function DashboardPage() {
     return null
   }
 
-  const userName = user.email?.split('@')[0] || 'User'
+  const displayName = summary?.user.full_name || user.email?.split('@')[0] || 'User'
 
   const formatDate = (dateString: string) => {
     try {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Welcome back, {userName}! 🌅
+              Welcome back, {displayName}! 🌅
             </h1>
             <p className="text-gray-600">Here's what's happening with your events</p>
           </div>
