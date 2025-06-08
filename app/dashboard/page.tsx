@@ -115,7 +115,7 @@ export default function DashboardPage() {
           <Card className="bg-white/50 backdrop-blur-sm border-none">
             <CardContent className="pt-6">
               <h1 className="text-3xl font-bold text-gray-800">
-                Good {getGreeting()}, {userProfile?.first_name} {userProfile?.last_name} 🌅
+                Good {getGreeting()}, {userProfile?.first_name || 'there'} {userProfile?.last_name || ''} 🌅
               </h1>
               <p className="text-muted-foreground mt-2">
                 Welcome back to your dashboard. Here's an overview of your events and activities.
