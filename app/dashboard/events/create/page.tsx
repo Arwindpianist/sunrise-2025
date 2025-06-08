@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { DateTimePicker } from "@/components/ui/date-time-picker"
 
 export default function CreateEventPage() {
   const router = useRouter()
-  const { supabase } = useSupabase()
+  const { supabase, user } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
@@ -25,14 +25,18 @@ export default function CreateEventPage() {
     scheduledSendTime: new Date(),
   })
 
+  useEffect(() => {
+    if (!user) {
+      router.push('/login')
+    }
+  }, [user, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
+      if (!user) {
         throw new Error("Not authenticated")
       }
 
@@ -40,7 +44,7 @@ export default function CreateEventPage() {
       const { data: event, error: eventError } = await supabase
         .from("events")
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           title: formData.title,
           description: formData.description,
           event_date: formData.eventDate.toISOString(),
@@ -77,6 +81,10 @@ export default function CreateEventPage() {
 
   const handleInputChange = (field: string, value: string | Date) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  if (!user) {
+    return null
   }
 
   return (
