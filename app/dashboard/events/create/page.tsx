@@ -82,10 +82,20 @@ export default function CreateEventPage() {
 
       // If send now is selected, trigger the email sending process
       if (formData.sendOption === "now") {
+        // Get the session to access the JWT token
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+          throw new Error("No active session")
+        }
+
         const { error: sendError } = await supabase.functions.invoke('send-event-emails', {
           body: {
             eventId: event.id,
             category: formData.category,
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
           }
         })
 

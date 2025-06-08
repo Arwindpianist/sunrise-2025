@@ -35,13 +35,33 @@ interface RequestEvent {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 }
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    })
+  }
+
+  // Handle GET requests for testing
+  if (req.method === 'GET') {
+    return new Response(
+      JSON.stringify({ 
+        status: 'ok',
+        message: 'Function is running',
+        timestamp: new Date().toISOString()
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
   }
 
   try {
@@ -62,8 +82,19 @@ serve(async (req: Request) => {
     // @ts-ignore
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
 
+    if (!resend) {
+      throw new Error('Resend API key not configured')
+    }
+
     // Get the request body
-    const { eventId, category } = await req.json() as RequestEvent
+    let body: RequestEvent
+    try {
+      body = await req.json()
+    } catch (e) {
+      throw new Error('Invalid JSON in request body')
+    }
+
+    const { eventId, category } = body
 
     if (!eventId) {
       throw new Error('Event ID is required')
@@ -77,7 +108,11 @@ serve(async (req: Request) => {
       .single()
 
     if (eventError) {
-      throw eventError
+      throw new Error(`Error fetching event: ${eventError.message}`)
+    }
+
+    if (!event) {
+      throw new Error('Event not found')
     }
 
     // Get the contacts based on the category
@@ -94,7 +129,11 @@ serve(async (req: Request) => {
     const { data: contacts, error: contactsError } = await contactsQuery
 
     if (contactsError) {
-      throw contactsError
+      throw new Error(`Error fetching contacts: ${contactsError.message}`)
+    }
+
+    if (!contacts || contacts.length === 0) {
+      throw new Error('No contacts found for the specified category')
     }
 
     // Create event_contacts entries for each contact
@@ -109,7 +148,7 @@ serve(async (req: Request) => {
       .insert(eventContacts)
 
     if (insertError) {
-      throw insertError
+      throw new Error(`Error creating event contacts: ${insertError.message}`)
     }
 
     // Update event status to 'sending'
@@ -119,7 +158,7 @@ serve(async (req: Request) => {
       .eq('id', eventId)
 
     if (updateError) {
-      throw updateError
+      throw new Error(`Error updating event status: ${updateError.message}`)
     }
 
     // Send emails to each contact using Resend
@@ -205,19 +244,28 @@ serve(async (req: Request) => {
       .eq('id', eventId)
 
     if (finalUpdateError) {
-      throw finalUpdateError
+      throw new Error(`Error updating final event status: ${finalUpdateError.message}`)
     }
 
     return new Response(
-      JSON.stringify({ message: 'Emails sent successfully' }),
+      JSON.stringify({ 
+        message: 'Emails sent successfully',
+        eventId,
+        category,
+        contactsCount: contacts.length
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
   } catch (error: any) {
+    console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
