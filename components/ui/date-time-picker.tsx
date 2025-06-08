@@ -26,10 +26,8 @@ interface DateTimePickerProps {
 }
 
 export function DateTimePicker({ date, onSelect, className }: DateTimePickerProps) {
-  const [selectedDate, setSelectedDate] = React.useState<Date>(date)
-  const [selectedTime, setSelectedTime] = React.useState<string>(
-    format(date, "HH:mm")
-  )
+  const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date(date))
+  const [selectedTime, setSelectedTime] = React.useState<string>(() => format(date, "HH:mm"))
 
   // Generate time options in 30-minute intervals
   const timeOptions = React.useMemo(() => {
@@ -46,10 +44,14 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
   }, [])
 
   React.useEffect(() => {
-    const [hours, minutes] = selectedTime.split(":").map(Number)
-    const newDate = new Date(selectedDate)
-    newDate.setHours(hours, minutes)
-    onSelect(newDate)
+    try {
+      const [hours, minutes] = selectedTime.split(":").map(Number)
+      const newDate = new Date(selectedDate)
+      newDate.setHours(hours, minutes)
+      onSelect(newDate)
+    } catch (error) {
+      console.error("Error updating date:", error)
+    }
   }, [selectedDate, selectedTime, onSelect])
 
   return (
@@ -61,11 +63,11 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
               variant="outline"
               className={cn(
                 "w-full justify-start text-left font-normal",
-                !date && "text-muted-foreground"
+                !selectedDate && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
+              {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
