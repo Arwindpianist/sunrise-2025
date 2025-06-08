@@ -26,6 +26,7 @@ interface DateTimePickerProps {
 }
 
 export function DateTimePicker({ date, onSelect, className }: DateTimePickerProps) {
+  const [mounted, setMounted] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date>(() => new Date(date))
   const [selectedTime, setSelectedTime] = React.useState<string>(() => format(date, "HH:mm"))
 
@@ -44,6 +45,12 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
   }, [])
 
   React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (!mounted) return
+
     try {
       const [hours, minutes] = selectedTime.split(":").map(Number)
       const newDate = new Date(selectedDate)
@@ -52,7 +59,28 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
     } catch (error) {
       console.error("Error updating date:", error)
     }
-  }, [selectedDate, selectedTime, onSelect])
+  }, [selectedDate, selectedTime, onSelect, mounted])
+
+  if (!mounted) {
+    return (
+      <div className={cn("grid gap-2", className)}>
+        <div className="flex flex-col space-y-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start text-left font-normal"
+            disabled
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            Loading...
+          </Button>
+          <div className="flex items-center space-x-2 bg-white rounded-md border p-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="w-[120px] h-9" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn("grid gap-2", className)}>
