@@ -22,9 +22,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SupabaseProvider>
-        <Header />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
           <Toaster />
         </SupabaseProvider>
       </body>

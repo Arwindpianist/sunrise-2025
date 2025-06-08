@@ -19,19 +19,30 @@ export default function SupabaseProvider({
   children: React.ReactNode
 }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClientComponentClient<Database>()
 
   useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeAuth()
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setUser(session.user)
-      } else {
-        setUser(null)
-      }
+      setUser(session?.user ?? null)
       
       // Only refresh if we're on a protected route
       if (pathname?.startsWith('/dashboard')) {
@@ -43,6 +54,10 @@ export default function SupabaseProvider({
       subscription.unsubscribe()
     }
   }, [router, supabase, pathname])
+
+  if (isLoading) {
+    return null // or a loading spinner
+  }
 
   return (
     <Context.Provider value={{ supabase, user }}>
