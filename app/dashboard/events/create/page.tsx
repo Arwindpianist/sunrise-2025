@@ -12,11 +12,11 @@ import { toast } from "@/components/ui/use-toast"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
 
 const RECIPIENT_CATEGORIES = [
-  { id: "all", label: "All Recipients" },
-  { id: "active", label: "Active Recipients" },
-  { id: "inactive", label: "Inactive Recipients" },
-  { id: "new", label: "New Recipients" },
-  { id: "returning", label: "Returning Recipients" },
+  { id: "all", label: "All Contacts" },
+  { id: "family", label: "Family" },
+  { id: "friend", label: "Friend" },
+  { id: "guest", label: "Guest" },
+  { id: "other", label: "Other" },
 ] as const
 
 type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
