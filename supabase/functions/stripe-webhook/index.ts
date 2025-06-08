@@ -9,20 +9,6 @@ const PRICE_PER_EMAIL = 0.01 // $0.01 per email
 
 serve(async (req: Request) => {
   try {
-    const supabaseClient = createClient(
-      // @ts-ignore
-      Deno.env.get('SUPABASE_URL') ?? '',
-      // @ts-ignore
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Initialize Stripe
-    // @ts-ignore
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
-    })
-
     // Get the signature from the headers
     const signature = req.headers.get('stripe-signature')
     if (!signature) {
@@ -39,6 +25,13 @@ serve(async (req: Request) => {
     // Get the raw body
     const body = await req.text()
 
+    // Initialize Stripe
+    // @ts-ignore
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    })
+
     // Verify the event
     const event = stripe.webhooks.constructEvent(
       body,
@@ -46,8 +39,38 @@ serve(async (req: Request) => {
       webhookSecret
     )
 
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      // @ts-ignore
+      Deno.env.get('SUPABASE_URL') ?? '',
+      // @ts-ignore
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     // Handle the event
     switch (event.type) {
+      case 'payment_intent.created': {
+        const paymentIntent = event.data.object
+        const { userId, type, credits } = paymentIntent.metadata
+
+        // Create a transaction record
+        const { error: transactionError } = await supabaseClient
+          .from('transactions')
+          .insert({
+            user_id: userId,
+            type: 'purchase',
+            amount: parseInt(credits),
+            description: `Purchase ${credits} email credits`,
+            stripe_payment_id: paymentIntent.id,
+            status: 'pending',
+          })
+
+        if (transactionError) {
+          throw new Error(`Error creating transaction: ${transactionError.message}`)
+        }
+        break
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object
         const { userId, type, credits } = paymentIntent.metadata
@@ -87,7 +110,6 @@ serve(async (req: Request) => {
         if (upsertError) {
           throw new Error(`Error updating balance: ${upsertError.message}`)
         }
-
         break
       }
 
@@ -103,7 +125,6 @@ serve(async (req: Request) => {
         if (transactionError) {
           throw new Error(`Error updating transaction: ${transactionError.message}`)
         }
-
         break
       }
     }
@@ -116,6 +137,7 @@ serve(async (req: Request) => {
       },
     )
   } catch (error: any) {
+    console.error('Webhook error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

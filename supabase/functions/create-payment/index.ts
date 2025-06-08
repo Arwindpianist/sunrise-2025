@@ -11,15 +11,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const PRICE_PER_EMAIL = 0.01 // $0.01 per email
+const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email
 
 type CreditPackageId = '100' | '500' | '1000' | '5000'
 
 const CREDIT_PACKAGES: Record<CreditPackageId, number> = {
-  '100': 0.99,    // 100 credits for $0.99
-  '500': 4.99,    // 500 credits for $4.99
-  '1000': 9.99,   // 1000 credits for $9.99
-  '5000': 49.99,  // 5000 credits for $49.99
+  '100': 4.90,    // 100 credits for RM 4.90
+  '500': 19.90,   // 500 credits for RM 19.90
+  '1000': 39.90,  // 1000 credits for RM 39.90
+  '5000': 199.90, // 5000 credits for RM 199.90
 }
 
 serve(async (req: Request) => {
@@ -67,6 +67,7 @@ serve(async (req: Request) => {
 
     let credits = 0
     let description = ''
+    let paymentAmount = 0
 
     if (type === 'credits') {
       // Handle credit package purchase
@@ -75,10 +76,12 @@ serve(async (req: Request) => {
         throw new Error('Invalid credit package')
       }
       credits = parseInt(packageId)
+      paymentAmount = CREDIT_PACKAGES[packageId]
       description = `Purchase ${credits} email credits`
     } else if (type === 'event') {
       // Handle event email sending
       credits = amount
+      paymentAmount = credits * PRICE_PER_EMAIL
       description = `Send ${credits} event emails`
     } else {
       throw new Error('Invalid payment type')
@@ -86,12 +89,16 @@ serve(async (req: Request) => {
 
     // Create a payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(credits * PRICE_PER_EMAIL * 100), // Convert to cents
-      currency: 'usd',
+      amount: Math.round(paymentAmount * 100), // Convert to cents
+      currency: 'myr',
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'always'
+      },
       metadata: {
         userId: user.id,
         type,
-        credits,
+        credits: credits.toString(),
       },
       description,
     })
@@ -124,6 +131,7 @@ serve(async (req: Request) => {
       },
     )
   } catch (error: any) {
+    console.error('Payment creation error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
