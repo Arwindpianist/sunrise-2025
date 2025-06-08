@@ -10,14 +10,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 const RECIPIENT_CATEGORIES = [
   { id: "all", label: "All Recipients" },
@@ -180,21 +172,18 @@ export default function CreateEventPage() {
 
             <div className="space-y-2">
               <Label htmlFor="recipientCategory">Recipient Category</Label>
-              <Select
+              <select
+                id="recipientCategory"
                 value={formData.recipientCategory}
-                onValueChange={(value: RecipientCategory) => handleInputChange("recipientCategory", value)}
+                onChange={(e) => handleInputChange("recipientCategory", e.target.value as RecipientCategory)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select recipient category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RECIPIENT_CATEGORIES.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {RECIPIENT_CATEGORIES.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -220,20 +209,32 @@ export default function CreateEventPage() {
 
             <div className="space-y-4">
               <Label>Send Options</Label>
-              <RadioGroup
-                value={formData.sendOption}
-                onValueChange={(value: SendOption) => handleInputChange("sendOption", value)}
-                className="flex flex-col space-y-2"
-              >
+              <div className="flex flex-col space-y-2">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="now" id="send-now" />
+                  <input
+                    type="radio"
+                    id="send-now"
+                    name="sendOption"
+                    value="now"
+                    checked={formData.sendOption === "now"}
+                    onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
+                    className="h-4 w-4"
+                  />
                   <Label htmlFor="send-now">Send Now</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="schedule" id="schedule" />
+                  <input
+                    type="radio"
+                    id="schedule"
+                    name="sendOption"
+                    value="schedule"
+                    checked={formData.sendOption === "schedule"}
+                    onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
+                    className="h-4 w-4"
+                  />
                   <Label htmlFor="schedule">Schedule Send</Label>
                 </div>
-              </RadioGroup>
+              </div>
 
               {formData.sendOption === "schedule" && (
                 <div className="space-y-2">
