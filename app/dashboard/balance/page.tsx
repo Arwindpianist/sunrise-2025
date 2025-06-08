@@ -182,36 +182,116 @@ export default function BalancePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Balance</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {Object.entries(CREDIT_PACKAGES).map(([credits, price]) => (
-          <div key={credits} className="border rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2">{credits} Credits</h3>
-            <p className="text-2xl font-bold mb-4">RM {price.toFixed(2)}</p>
-            <Button 
-              onClick={() => handlePurchase(credits)}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? "Processing..." : "Purchase"}
-            </Button>
-          </div>
-        ))}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
+      <div className="container mx-auto py-8">
+        <div className="grid gap-8 md:grid-cols-2">
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-orange-500" />
+                Your Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                  {userBalance} credits
+                </p>
+                <p className="text-muted-foreground mt-2">
+                  Each email costs {PRICE_PER_EMAIL} credits
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-orange-500" />
+                Recent Transactions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {transactions.length === 0 ? (
+                  <p className="text-muted-foreground text-center">No successful transactions yet.</p>
+                ) : (
+                  transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(transaction.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <p className="font-bold flex items-center gap-1 text-green-600">
+                        +{transaction.amount} credits
+                        <CheckCircle className="h-4 w-4" />
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mt-8 bg-white/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-orange-500" />
+              Purchase Credits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              {Object.entries(CREDIT_PACKAGES).map(([credits, price]) => (
+                <Card
+                  key={credits}
+                  className="relative bg-white/50 backdrop-blur-sm hover:shadow-lg transition-shadow"
+                >
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{credits}</p>
+                      <p className="text-muted-foreground">credits</p>
+                      <p className="text-xl font-bold mt-2 text-orange-500">
+                        RM{price.toFixed(2)}
+                      </p>
+                      <Button 
+                        className="w-full mt-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                        onClick={() => handlePurchase(credits)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Processing..." : "Purchase"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-orange-500" />
               {selectedPackage ? `Purchase ${selectedPackage.credits} Credits` : 'Payment'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             {selectedPackage && (
-              <div className="mb-4">
-                <p className="text-lg font-semibold">Total: RM {selectedPackage.price.toFixed(2)}</p>
+              <div className="mb-4 text-center">
+                <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                  RM {selectedPackage.price.toFixed(2)}
+                </p>
+                <p className="text-muted-foreground">{selectedPackage.credits} credits</p>
               </div>
             )}
             <form id="payment-form" className="space-y-4">
@@ -221,45 +301,15 @@ export default function BalancePage() {
               <Button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
               >
                 {isLoading ? "Processing..." : "Pay Now"}
               </Button>
-              <div id="payment-message" className="text-red-500 mt-2"></div>
+              <div id="payment-message" className="text-red-500 mt-2 text-center"></div>
             </form>
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
-        <div className="space-y-4">
-          {transactions.length === 0 ? (
-            <p className="text-gray-500">No successful transactions yet.</p>
-          ) : (
-            transactions.map((transaction) => (
-              <div key={transaction.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(transaction.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">
-                      +{transaction.amount} credits
-                    </p>
-                    <p className="text-sm text-green-500">
-                      Completed
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   )
 } 
