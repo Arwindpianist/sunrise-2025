@@ -5,39 +5,39 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @ts-ignore
 import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
 
-const PRICE_PER_EMAIL = 0.01 // $0.01 per email
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+}
 
 serve(async (req: Request) => {
+  // Log all incoming headers for debugging
+  console.log('Incoming request headers:', Object.fromEntries(req.headers.entries()))
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    })
+  }
+
   try {
-    // Get the signature from the headers
-    const signature = req.headers.get('stripe-signature')
-    if (!signature) {
-      throw new Error('No signature found')
-    }
-
-    // Get the webhook secret
-    // @ts-ignore
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
-    if (!webhookSecret) {
-      throw new Error('No webhook secret found')
-    }
-
-    // Get the raw body
+    // Get the raw body first
     const body = await req.text()
+    console.log('Request body:', body)
+
+    // Check if this is a Stripe webhook
+    const signature = req.headers.get('stripe-signature')
+    console.log('Stripe signature:', signature)
 
     // Initialize Stripe
     // @ts-ignore
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-05-28.basil',
       httpClient: Stripe.createFetchHttpClient(),
     })
-
-    // Verify the event
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    )
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -47,92 +47,116 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Handle the event
-    switch (event.type) {
-      case 'payment_intent.created': {
-        const paymentIntent = event.data.object
-        const { userId, type, credits } = paymentIntent.metadata
+    let event
 
-        // Create a transaction record
-        const { error: transactionError } = await supabaseClient
-          .from('transactions')
-          .insert({
-            user_id: userId,
-            type: 'purchase',
-            amount: parseInt(credits),
-            description: `Purchase ${credits} email credits`,
-            stripe_payment_id: paymentIntent.id,
-            status: 'pending',
-          })
+    // If this is a Stripe webhook
+    if (signature) {
+      // @ts-ignore
+      const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+      console.log('Webhook secret exists:', !!webhookSecret)
 
-        if (transactionError) {
-          throw new Error(`Error creating transaction: ${transactionError.message}`)
-        }
-        break
+      if (!webhookSecret) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET environment variable')
+        return new Response(
+          JSON.stringify({ error: 'Server configuration error' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        )
       }
 
+      try {
+        event = stripe.webhooks.constructEvent(
+          body,
+          signature,
+          webhookSecret
+        )
+        console.log('Event constructed successfully:', event.type)
+      } catch (err: any) {
+        console.error('Webhook signature verification failed:', err.message)
+        return new Response(
+          JSON.stringify({ error: 'Invalid signature' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        )
+      }
+    } else {
+      // This is a regular authenticated request
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'No authorization header' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 401,
+          }
+        )
+      }
+
+      try {
+        event = JSON.parse(body)
+        console.log('Parsed event from authenticated request:', event)
+      } catch (err) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON body' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        )
+      }
+    }
+
+    // Handle the event
+    switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object
         const { userId, type, credits } = paymentIntent.metadata
+        console.log('Processing successful payment:', { userId, type, credits })
 
-        // Update transaction status
-        const { error: transactionError } = await supabaseClient
-          .from('transactions')
-          .update({ status: 'completed' })
-          .eq('stripe_payment_id', paymentIntent.id)
+        if (type === 'credits') {
+          // Add credits to user's balance
+          const { error } = await supabaseClient
+            .from('user_credits')
+            .upsert({
+              user_id: userId,
+              credits: parseInt(credits),
+              last_updated: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
+            })
 
-        if (transactionError) {
-          throw new Error(`Error updating transaction: ${transactionError.message}`)
+          if (error) {
+            console.error('Error updating user credits:', error)
+            throw error
+          }
+          console.log('Successfully updated user credits')
         }
 
-        // Get current balance
-        const { data: balanceData, error: balanceError } = await supabaseClient
-          .from('user_balances')
-          .select('balance')
-          .eq('user_id', userId)
-          .single()
-
-        if (balanceError && balanceError.code !== 'PGRST116') {
-          throw new Error(`Error getting balance: ${balanceError.message}`)
-        }
-
-        const currentBalance = balanceData?.balance || 0
-        const newBalance = currentBalance + parseInt(credits)
-
-        // Update or insert balance
-        const { error: upsertError } = await supabaseClient
-          .from('user_balances')
-          .upsert({
-            user_id: userId,
-            balance: newBalance,
-          })
-
-        if (upsertError) {
-          throw new Error(`Error updating balance: ${upsertError.message}`)
-        }
         break
       }
-
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object
-
-        // Update transaction status
-        const { error: transactionError } = await supabaseClient
-          .from('transactions')
-          .update({ status: 'failed' })
-          .eq('stripe_payment_id', paymentIntent.id)
-
-        if (transactionError) {
-          throw new Error(`Error updating transaction: ${transactionError.message}`)
-        }
+        console.error('Payment failed:', paymentIntent.last_payment_error)
         break
+      }
+      case 'payment_intent.canceled': {
+        const paymentIntent = event.data.object
+        console.log('Payment canceled:', paymentIntent.id)
+        break
+      }
+      default: {
+        console.log(`Unhandled event type: ${event.type}`)
       }
     }
 
     return new Response(
       JSON.stringify({ received: true }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
@@ -141,7 +165,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },
     )

@@ -20,6 +20,12 @@ const CREDIT_PACKAGES = [
 
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email
 
+interface PaymentResponse {
+  clientSecret: string;
+  amount: number;
+  credits: number;
+}
+
 export default function BalancePage() {
   const router = useRouter()
   const { supabase, user } = useSupabase()
@@ -80,7 +86,7 @@ export default function BalancePage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error("No active session")
 
-      const { data, error } = await supabase.functions.invoke('create-payment', {
+      const { data, error } = await supabase.functions.invoke<PaymentResponse>('create-payment', {
         body: {
           amount: packageId,
           type: 'credits',
@@ -91,58 +97,48 @@ export default function BalancePage() {
       })
 
       if (error) throw error
+      if (!data?.clientSecret) throw new Error("No client secret received")
 
       // Load Stripe
       const stripe = await stripePromise
       if (!stripe) throw new Error("Stripe failed to load")
 
-      // Confirm payment
-      const { error: stripeError } = await stripe.confirmPayment({
-        elements: undefined,
+      // Create payment element
+      const elements = stripe.elements({
         clientSecret: data.clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/dashboard/balance?success=true`,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: '#0F172A',
+          },
         },
-        redirect: 'if_required'
       })
 
-      if (stripeError) {
-        if (stripeError.type === 'card_error' || stripeError.type === 'validation_error') {
-          throw new Error(stripeError.message)
-        } else {
-          throw new Error('An unexpected error occurred.')
-        }
-      }
+      // Create and mount the Payment Element
+      const paymentElement = elements.create('payment')
+      paymentElement.mount('#payment-element')
 
-      // Check payment status
-      const paymentIntent = await stripe.retrievePaymentIntent(data.clientSecret)
-      
-      if (paymentIntent.paymentIntent?.status === 'succeeded') {
-        toast({
-          title: "Success!",
-          description: "Your payment was successful.",
-        })
-        router.refresh()
-      } else if (paymentIntent.paymentIntent?.status === 'requires_payment_method') {
-        // Payment failed or was cancelled
-        throw new Error('Payment failed. Please try again.')
-      } else if (paymentIntent.paymentIntent?.status === 'requires_confirmation') {
-        // Payment needs confirmation
-        const { error: confirmError } = await stripe.confirmPayment({
-          elements: undefined,
-          clientSecret: data.clientSecret,
+      // Handle form submission
+      const form = document.getElementById('payment-form')
+      if (!form) throw new Error("Payment form not found")
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+
+        const { error: submitError } = await stripe.confirmPayment({
+          elements,
           confirmParams: {
             return_url: `${window.location.origin}/dashboard/balance?success=true`,
           },
         })
-        
-        if (confirmError) {
-          throw new Error(confirmError.message)
+
+        if (submitError) {
+          const messageDiv = document.getElementById('payment-message')
+          if (messageDiv) {
+            messageDiv.textContent = submitError.message ?? ''
+          }
         }
-      } else {
-        // Handle other states
-        throw new Error(`Payment status: ${paymentIntent.paymentIntent?.status}`)
-      }
+      })
 
     } catch (error: any) {
       console.error("Payment error:", error)
@@ -266,6 +262,22 @@ export default function BalancePage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="max-w-md mx-auto mt-8">
+          <form id="payment-form" className="space-y-4">
+            <div id="payment-element" className="mb-4">
+              {/* Stripe Elements will be mounted here */}
+            </div>
+            <Button 
+              type="submit"
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Processing..." : "Pay Now"}
+            </Button>
+            <div id="payment-message" className="text-red-500 mt-2"></div>
+          </form>
+        </div>
       </div>
     </div>
   )
