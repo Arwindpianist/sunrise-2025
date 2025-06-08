@@ -34,6 +34,7 @@ export default function CreateEventPage() {
   const router = useRouter()
   const { supabase, user } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -45,6 +46,10 @@ export default function CreateEventPage() {
     recipientCategory: "all" as RecipientCategory,
     sendOption: "schedule" as SendOption,
   })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!user) {
@@ -121,7 +126,7 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  if (!user) {
+  if (!user || !mounted) {
     return null
   }
 
@@ -177,7 +182,7 @@ export default function CreateEventPage() {
               <Label htmlFor="recipientCategory">Recipient Category</Label>
               <Select
                 value={formData.recipientCategory}
-                onValueChange={(value) => handleInputChange("recipientCategory", value as RecipientCategory)}
+                onValueChange={(value: RecipientCategory) => handleInputChange("recipientCategory", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select recipient category" />
@@ -217,7 +222,7 @@ export default function CreateEventPage() {
               <Label>Send Options</Label>
               <RadioGroup
                 value={formData.sendOption}
-                onValueChange={(value) => handleInputChange("sendOption", value as SendOption)}
+                onValueChange={(value: SendOption) => handleInputChange("sendOption", value)}
                 className="flex flex-col space-y-2"
               >
                 <div className="flex items-center space-x-2">
