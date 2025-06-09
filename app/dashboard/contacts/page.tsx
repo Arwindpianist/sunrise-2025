@@ -70,6 +70,8 @@ export default function ContactsPage() {
     category: "other",
     notes: "",
   })
+  const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -275,6 +277,73 @@ export default function ContactsPage() {
     setFormData(prev => ({ ...prev, category: value }))
   }
 
+  const handleEditContact = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingContact) return
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch(`/api/contacts/${editingContact.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to update contact")
+      }
+
+      const updatedContact = await response.json()
+      setContacts(contacts.map(contact => 
+        contact.id === updatedContact.id ? updatedContact : contact
+      ))
+      setFilteredContacts(filteredContacts.map(contact => 
+        contact.id === updatedContact.id ? updatedContact : contact
+      ))
+      
+      // Reset form and close dialog
+      setFormData({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        category: "other",
+        notes: "",
+      })
+      setEditingContact(null)
+      setIsEditDialogOpen(false)
+
+      toast({
+        title: "Success",
+        description: "Contact updated successfully",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update contact",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const openEditDialog = (contact: Contact) => {
+    setEditingContact(contact)
+    setFormData({
+      first_name: contact.first_name,
+      last_name: contact.last_name,
+      email: contact.email,
+      phone: contact.phone || "",
+      category: contact.category,
+      notes: contact.notes || "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
   if (!user) return null
 
   return (
@@ -476,26 +545,32 @@ export default function ContactsPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredContacts.map((contact) => (
                     <TableRow key={contact.id}>
-                      <TableCell>
+                      <TableCell className="font-medium">
                         {contact.first_name} {contact.last_name}
                       </TableCell>
                       <TableCell>{contact.email}</TableCell>
-                      <TableCell>{contact.phone}</TableCell>
+                      <TableCell>{contact.phone || "-"}</TableCell>
                       <TableCell>
-                        {CATEGORIES.find(c => c.value === contact.category)?.label || contact.category}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          {CATEGORIES.find(c => c.value === contact.category)?.label || contact.category}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {contact.notes || "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {/* TODO: Implement edit */}}
+                            onClick={() => openEditDialog(contact)}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -515,6 +590,126 @@ export default function ContactsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Contact Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Contact</DialogTitle>
+              <DialogDescription>
+                Update the contact details below.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditContact} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="edit_first_name" className="text-sm font-medium">
+                    First Name *
+                  </label>
+                  <Input
+                    id="edit_first_name"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleFormChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="edit_last_name" className="text-sm font-medium">
+                    Last Name *
+                  </label>
+                  <Input
+                    id="edit_last_name"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleFormChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit_email" className="text-sm font-medium">
+                  Email *
+                </label>
+                <Input
+                  id="edit_email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit_phone" className="text-sm font-medium">
+                  Phone
+                </label>
+                <Input
+                  id="edit_phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleFormChange}
+                  placeholder="+60 12-345 6789"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit_category" className="text-sm font-medium">
+                  Category
+                </label>
+                <Select
+                  value={formData.category}
+                  onValueChange={handleCategoryChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit_notes" className="text-sm font-medium">
+                  Notes
+                </label>
+                <Textarea
+                  id="edit_notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleFormChange}
+                  rows={4}
+                  placeholder="Add any additional notes about this contact..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsEditDialogOpen(false)
+                    setEditingContact(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
