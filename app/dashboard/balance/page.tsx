@@ -183,8 +183,8 @@ export default function BalancePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
-      <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-2">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="grid gap-4 sm:gap-8 grid-cols-1 md:grid-cols-2">
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -240,7 +240,7 @@ export default function BalancePage() {
           </Card>
         </div>
 
-        <Card className="mt-8 bg-white/50 backdrop-blur-sm">
+        <div className="mt-6 sm:mt-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Coins className="h-5 w-5 text-orange-500" />
@@ -248,7 +248,7 @@ export default function BalancePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
               {Object.entries(CREDIT_PACKAGES).map(([credits, price]) => (
                 <Card
                   key={credits}
@@ -274,7 +274,7 @@ export default function BalancePage() {
               ))}
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
 
       <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>

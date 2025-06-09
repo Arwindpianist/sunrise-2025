@@ -111,21 +111,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
-      <div className="container mx-auto py-8">
-        <div className="mb-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
           <Card className="bg-white/50 backdrop-blur-sm border-none">
-            <CardContent className="pt-6">
-              <h1 className="text-3xl font-bold text-gray-800">
+            <CardContent className="pt-4 sm:pt-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
                 Good {getGreeting()}, {userProfile?.first_name || 'there'} {userProfile?.last_name || ''} 🌅
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                 Welcome back to your dashboard. Here's an overview of your events and activities.
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-4 sm:gap-8 grid-cols-1 md:grid-cols-4">
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -184,7 +184,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid gap-8 mt-8 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-8 mt-6 sm:mt-8 grid-cols-1 md:grid-cols-2">
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

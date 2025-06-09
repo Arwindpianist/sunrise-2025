@@ -4,12 +4,19 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { LogOut, User } from "lucide-react"
+import { LogOut, User, Menu, X } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import { useState } from "react"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 export default function Header() {
   const pathname = usePathname()
   const { user, supabase } = useSupabase()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -38,7 +45,7 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
@@ -70,13 +77,14 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
+                {/* Hide username on mobile */}
+                <span className="hidden md:inline text-sm text-gray-600">
                   Welcome, {user.email?.split('@')[0]}
                 </span>
                 <Link href="/dashboard">
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500">
                     <User className="h-4 w-4 mr-2" />
-                    Dashboard
+                    <span className="hidden sm:inline">Dashboard</span>
                   </Button>
                 </Link>
                 <Button
@@ -86,7 +94,7 @@ export default function Header() {
                   className="text-gray-600 hover:text-orange-500"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
+                  <span className="hidden sm:inline">Sign Out</span>
                 </Button>
               </div>
             ) : (
@@ -106,6 +114,73 @@ export default function Header() {
                 </Link>
               </>
             )}
+
+            {/* Mobile Menu Button */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col space-y-4 mt-8">
+                  <Link
+                    href="/"
+                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
+                      pathname === "/" ? "text-orange-500" : "text-gray-600"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/features"
+                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
+                      pathname === "/features" ? "text-orange-500" : "text-gray-600"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Features
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
+                      pathname === "/pricing" ? "text-orange-500" : "text-gray-600"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Pricing
+                  </Link>
+                  {user && (
+                    <>
+                      <div className="border-t border-gray-200 pt-4">
+                        <p className="text-sm text-gray-600 mb-4">
+                          Welcome, {user.email?.split('@')[0]}
+                        </p>
+                        <Link
+                          href="/dashboard"
+                          className="flex items-center text-sm font-medium text-gray-600 hover:text-orange-500"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          Dashboard
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleSignOut()
+                            setIsMobileMenuOpen(false)
+                          }}
+                          className="flex items-center text-sm font-medium text-gray-600 hover:text-orange-500 mt-2"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
