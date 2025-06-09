@@ -171,10 +171,16 @@ export default function CreateEventPage() {
         // Deduct credits from user balance
         const { error: balanceError } = await supabase
           .from('user_balances')
-          .upsert({
-            user_id: user.id,
-            balance: userBalance - contactCount,
-          })
+          .upsert(
+            {
+              user_id: user.id,
+              balance: userBalance - contactCount,
+            },
+            {
+              onConflict: 'user_id',
+              ignoreDuplicates: false
+            }
+          )
 
         if (balanceError) {
           throw balanceError
