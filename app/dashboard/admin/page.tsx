@@ -125,14 +125,17 @@ export default function AdminPage() {
 
       // Fetch users with their related data
       const { data: usersData, error: usersError } = await supabase
-        .from("users")
+        .from("auth.users")
         .select(`
           id,
           email,
-          full_name,
-          subscription_plan,
-          token_balance,
           created_at,
+          last_sign_in_at,
+          users!inner (
+            full_name,
+            subscription_plan,
+            token_balance
+          ),
           profiles (
             first_name,
             last_name
@@ -155,16 +158,8 @@ export default function AdminPage() {
 
       if (usersError) throw usersError
 
-      // Fetch auth users for last sign in
-      const { data: authUsers, error: authError } = await supabase
-        .from("auth_users")
-        .select("id, last_sign_in_at")
-
-      if (authError) throw authError
-
       // Process users data
       const processedUsers = usersData.map((user: any) => {
-        const authUser = authUsers.find((au: any) => au.id === user.id)
         const emailsSent = user.event_contacts?.filter((ec: any) => 
           ec.status === "sent" || ec.status === "opened"
         ).length || 0
@@ -177,13 +172,13 @@ export default function AdminPage() {
           email: user.email,
           full_name: user.profiles?.[0]?.first_name && user.profiles?.[0]?.last_name ? 
             `${user.profiles[0].first_name} ${user.profiles[0].last_name}` : 
-            user.full_name || null,
-          subscription_plan: user.subscription_plan,
-          token_balance: user.token_balance,
+            user.users?.[0]?.full_name || null,
+          subscription_plan: user.users?.[0]?.subscription_plan || "free",
+          token_balance: user.users?.[0]?.token_balance || 0,
           created_at: user.created_at,
-          last_sign_in_at: authUser?.last_sign_in_at || null,
-          is_active: authUser?.last_sign_in_at ? 
-            new Date(authUser.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
+          last_sign_in_at: user.last_sign_in_at,
+          is_active: user.last_sign_in_at ? 
+            new Date(user.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
             false,
           contacts_count: user.contacts?.length || 0,
           events_count: user.events?.length || 0,
