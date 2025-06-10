@@ -15,6 +15,16 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import {
+  Users,
+  Calendar,
+  Mail,
+  DollarSign,
+  UserCheck,
+  MessageSquare,
+  CreditCard,
+  Clock,
+} from "lucide-react"
 
 interface User {
   id: string
@@ -25,6 +35,10 @@ interface User {
   created_at: string
   last_sign_in_at: string | null
   is_active: boolean
+  contacts_count: number
+  events_count: number
+  emails_sent: number
+  total_spent: number
 }
 
 interface Stats {
@@ -35,6 +49,34 @@ interface Stats {
   totalEmailsSent: number
   totalRevenue: number
   averageRevenuePerUser: number
+  eventsByStatus: {
+    draft: number
+    scheduled: number
+    sending: number
+    sent: number
+    failed: number
+    partial: number
+    cancelled: number
+  }
+  emailsByStatus: {
+    sent: number
+    failed: number
+    opened: number
+  }
+  subscriptionsByPlan: {
+    free: number
+    basic: number
+    pro: number
+    enterprise: number
+  }
+  recentTransactions: Array<{
+    id: string
+    user_id: string
+    type: string
+    amount: number
+    status: string
+    created_at: string
+  }>
 }
 
 export default function AdminPage() {
@@ -66,7 +108,6 @@ export default function AdminPage() {
           return
         }
 
-        // Only fetch data if user is admin
         await fetchData()
       } catch (error) {
         console.error("Error checking admin status:", error)
@@ -82,52 +123,72 @@ export default function AdminPage() {
     try {
       setLoading(true)
 
-      // Fetch users from profiles table
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
+      // Fetch users with their related data
+      const { data: usersData, error: usersError } = await supabase
+        .from("users")
         .select(`
           id,
-          first_name,
-          last_name,
+          email,
+          full_name,
+          subscription_plan,
+          token_balance,
           created_at,
-          users!inner (
-            email,
-            subscription_plan,
-            token_balance
+          profiles!inner (
+            first_name,
+            last_name
+          ),
+          contacts:contacts(count),
+          events:events(count),
+          event_contacts!inner (
+            status
+          ),
+          transactions!inner (
+            amount,
+            status
           )
         `)
         .order("created_at", { ascending: false })
 
-      if (profilesError) throw profilesError
+      if (usersError) throw usersError
 
-      // Fetch auth users to get last sign in
+      // Fetch auth users for last sign in
       const { data: authUsers, error: authError } = await supabase
         .from("auth_users")
         .select("id, last_sign_in_at")
 
       if (authError) throw authError
 
-      // Combine profile and auth data
-      const combinedUsers = profiles.map((profile: any) => {
-        const authUser = authUsers.find((au: any) => au.id === profile.id)
-        const userData = profile.users[0] // Get the first (and should be only) user record
+      // Process users data
+      const processedUsers = usersData.map((user: any) => {
+        const authUser = authUsers.find((au: any) => au.id === user.id)
+        const emailsSent = user.event_contacts?.filter((ec: any) => 
+          ec.status === "sent" || ec.status === "opened"
+        ).length || 0
+        const totalSpent = user.transactions?.reduce((sum: number, t: any) => 
+          t.status === "completed" ? sum + t.amount : sum, 0
+        ) || 0
+
         return {
-          id: profile.id,
-          email: userData.email,
-          full_name: profile.first_name && profile.last_name ? 
-            `${profile.first_name} ${profile.last_name}` : 
+          id: user.id,
+          email: user.email,
+          full_name: user.profiles[0]?.first_name && user.profiles[0]?.last_name ? 
+            `${user.profiles[0].first_name} ${user.profiles[0].last_name}` : 
             null,
-          subscription_plan: userData.subscription_plan,
-          token_balance: userData.token_balance,
-          created_at: profile.created_at,
+          subscription_plan: user.subscription_plan,
+          token_balance: user.token_balance,
+          created_at: user.created_at,
           last_sign_in_at: authUser?.last_sign_in_at || null,
           is_active: authUser?.last_sign_in_at ? 
             new Date(authUser.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
-            false
+            false,
+          contacts_count: user.contacts?.[0]?.count || 0,
+          events_count: user.events?.[0]?.count || 0,
+          emails_sent: emailsSent,
+          total_spent: totalSpent
         }
       })
 
-      setUsers(combinedUsers)
+      setUsers(processedUsers)
 
       // Fetch statistics
       const { data: statsData, error: statsError } = await supabase
@@ -175,10 +236,11 @@ export default function AdminPage() {
       </div>
 
       {/* Statistics Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
@@ -190,18 +252,20 @@ export default function AdminPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Platform Activity</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
               <p className="text-sm">Events: {stats?.totalEvents || 0}</p>
               <p className="text-sm">Contacts: {stats?.totalContacts || 0}</p>
-              <p className="text-sm">Emails Sent: {stats?.totalEmailsSent || 0}</p>
+              <p className="text-sm">Emails: {stats?.totalEmailsSent || 0}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -212,7 +276,56 @@ export default function AdminPage() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Subscription Plans</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {stats?.subscriptionsByPlan && Object.entries(stats.subscriptionsByPlan).map(([plan, count]) => (
+                <p key={plan} className="text-sm capitalize">
+                  {plan}: {count}
+                </p>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Event Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Event Status Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            {stats?.eventsByStatus && Object.entries(stats.eventsByStatus).map(([status, count]) => (
+              <div key={status} className="flex items-center justify-between p-4 border rounded-lg">
+                <span className="capitalize">{status}</span>
+                <Badge variant="outline">{count}</Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Email Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Status Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {stats?.emailsByStatus && Object.entries(stats.emailsByStatus).map(([status, count]) => (
+              <div key={status} className="flex items-center justify-between p-4 border rounded-lg">
+                <span className="capitalize">{status}</span>
+                <Badge variant="outline">{count}</Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* User Management */}
       <Card>
@@ -241,20 +354,24 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <div className="grid grid-cols-6 gap-4 p-4 font-medium border-b">
+            <div className="grid grid-cols-8 gap-4 p-4 font-medium border-b">
               <div>Name</div>
               <div>Email</div>
               <div>Plan</div>
               <div>Balance</div>
+              <div>Contacts</div>
+              <div>Events</div>
               <div>Status</div>
               <div>Joined</div>
             </div>
             {filteredUsers.map((user) => (
-              <div key={user.id} className="grid grid-cols-6 gap-4 p-4 border-b last:border-0">
+              <div key={user.id} className="grid grid-cols-8 gap-4 p-4 border-b last:border-0">
                 <div>{user.full_name || "N/A"}</div>
                 <div>{user.email}</div>
                 <div className="capitalize">{user.subscription_plan}</div>
                 <div>{user.token_balance} tokens</div>
+                <div>{user.contacts_count}</div>
+                <div>{user.events_count}</div>
                 <div>
                   <Badge variant={user.is_active ? "default" : "secondary"}>
                     {user.is_active ? "Active" : "Inactive"}
@@ -266,6 +383,39 @@ export default function AdminPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Recent Transactions */}
+      {stats?.recentTransactions && stats.recentTransactions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <div className="grid grid-cols-5 gap-4 p-4 font-medium border-b">
+                <div>User</div>
+                <div>Type</div>
+                <div>Amount</div>
+                <div>Status</div>
+                <div>Date</div>
+              </div>
+              {stats.recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="grid grid-cols-5 gap-4 p-4 border-b last:border-0">
+                  <div>{users.find(u => u.id === transaction.user_id)?.email || "Unknown"}</div>
+                  <div className="capitalize">{transaction.type}</div>
+                  <div>${(transaction.amount / 100).toFixed(2)}</div>
+                  <div>
+                    <Badge variant={transaction.status === "completed" ? "default" : "secondary"}>
+                      {transaction.status}
+                    </Badge>
+                  </div>
+                  <div>{format(new Date(transaction.created_at), "MMM d, yyyy")}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 } 
