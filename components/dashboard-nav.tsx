@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar, Users, Coins, Settings, LogOut, Shield } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import { useEffect } from "react"
 
 export function DashboardNav() {
   const pathname = usePathname()
@@ -16,6 +17,12 @@ export function DashboardNav() {
   }
 
   const isAdmin = user?.email === "arwindpianist@gmail.com"
+
+  useEffect(() => {
+    console.log("DashboardNav - User:", user)
+    console.log("DashboardNav - Is Admin:", isAdmin)
+    console.log("DashboardNav - User Email:", user?.email)
+  }, [user, isAdmin])
 
   return (
     <nav className="grid items-start gap-2">
