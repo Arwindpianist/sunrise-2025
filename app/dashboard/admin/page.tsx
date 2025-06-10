@@ -133,16 +133,20 @@ export default function AdminPage() {
           subscription_plan,
           token_balance,
           created_at,
-          profiles!inner (
+          profiles (
             first_name,
             last_name
           ),
-          contacts:contacts(count),
-          events:events(count),
-          event_contacts!inner (
+          contacts (
+            id
+          ),
+          events (
+            id
+          ),
+          event_contacts (
             status
           ),
-          transactions!inner (
+          transactions (
             amount,
             status
           )
@@ -171,9 +175,9 @@ export default function AdminPage() {
         return {
           id: user.id,
           email: user.email,
-          full_name: user.profiles[0]?.first_name && user.profiles[0]?.last_name ? 
+          full_name: user.profiles?.[0]?.first_name && user.profiles?.[0]?.last_name ? 
             `${user.profiles[0].first_name} ${user.profiles[0].last_name}` : 
-            null,
+            user.full_name || null,
           subscription_plan: user.subscription_plan,
           token_balance: user.token_balance,
           created_at: user.created_at,
@@ -181,8 +185,8 @@ export default function AdminPage() {
           is_active: authUser?.last_sign_in_at ? 
             new Date(authUser.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
             false,
-          contacts_count: user.contacts?.[0]?.count || 0,
-          events_count: user.events?.[0]?.count || 0,
+          contacts_count: user.contacts?.length || 0,
+          events_count: user.events?.length || 0,
           emails_sent: emailsSent,
           total_spent: totalSpent
         }
