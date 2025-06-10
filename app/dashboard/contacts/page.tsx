@@ -36,7 +36,7 @@ import { Textarea } from "@/components/ui/textarea"
 interface Contact {
   id: string
   first_name: string
-  last_name: string
+  last_name?: string
   email: string
   phone: string
   category: string
@@ -53,7 +53,7 @@ const CATEGORIES = [
 
 export default function ContactsPage() {
   const router = useRouter()
-  const { user } = useSupabase()
+  const { user, supabase } = useSupabase()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -172,7 +172,7 @@ export default function ContactsPage() {
       filtered = filtered.filter(
         contact =>
           contact.first_name.toLowerCase().includes(searchLower) ||
-          contact.last_name.toLowerCase().includes(searchLower) ||
+          contact.last_name?.toLowerCase().includes(searchLower) ||
           contact.email.toLowerCase().includes(searchLower)
       )
     }
@@ -225,24 +225,28 @@ export default function ContactsPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/contacts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const { error } = await supabase
+        .from('contacts')
+        .insert([
+          {
+            user_id: user?.id,
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim() || null,
+            email: formData.email.trim(),
+            phone: formData.phone.trim() || null,
+            category: formData.category,
+            notes: formData.notes.trim() || null,
+          },
+        ])
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: "Contact added successfully",
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Failed to add contact")
-      }
-
-      const newContact = await response.json()
-      setContacts([newContact, ...contacts])
-      setFilteredContacts([newContact, ...filteredContacts])
-      
-      // Reset form and close dialog
+      setIsAddDialogOpen(false)
       setFormData({
         first_name: "",
         last_name: "",
@@ -251,16 +255,12 @@ export default function ContactsPage() {
         category: "other",
         notes: "",
       })
-      setIsAddDialogOpen(false)
-
-      toast({
-        title: "Success",
-        description: "Contact added successfully",
-      })
-    } catch (error: any) {
+      fetchContacts()
+    } catch (error) {
+      console.error('Error adding contact:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to add contact",
+        description: "Failed to add contact",
         variant: "destructive",
       })
     } finally {
@@ -280,31 +280,31 @@ export default function ContactsPage() {
   const handleEditContact = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingContact) return
+
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/contacts/${editingContact.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const { error } = await supabase
+        .from('contacts')
+        .update({
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim() || null,
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || null,
+          category: formData.category,
+          notes: formData.notes.trim() || null,
+        })
+        .eq('id', editingContact.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: "Contact updated successfully",
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Failed to update contact")
-      }
-
-      const updatedContact = await response.json()
-      setContacts(contacts.map(contact => 
-        contact.id === updatedContact.id ? updatedContact : contact
-      ))
-      setFilteredContacts(filteredContacts.map(contact => 
-        contact.id === updatedContact.id ? updatedContact : contact
-      ))
-      
-      // Reset form and close dialog
+      setIsEditDialogOpen(false)
+      setEditingContact(null)
       setFormData({
         first_name: "",
         last_name: "",
@@ -313,17 +313,12 @@ export default function ContactsPage() {
         category: "other",
         notes: "",
       })
-      setEditingContact(null)
-      setIsEditDialogOpen(false)
-
-      toast({
-        title: "Success",
-        description: "Contact updated successfully",
-      })
-    } catch (error: any) {
+      fetchContacts()
+    } catch (error) {
+      console.error('Error updating contact:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to update contact",
+        description: "Failed to update contact",
         variant: "destructive",
       })
     } finally {
@@ -335,7 +330,7 @@ export default function ContactsPage() {
     setEditingContact(contact)
     setFormData({
       first_name: contact.first_name,
-      last_name: contact.last_name,
+      last_name: contact.last_name || "",
       email: contact.email,
       phone: contact.phone || "",
       category: contact.category,
@@ -419,14 +414,13 @@ export default function ContactsPage() {
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="last_name" className="text-sm font-medium">
-                        Last Name *
+                        Last Name
                       </label>
                       <Input
                         id="last_name"
                         name="last_name"
                         value={formData.last_name}
                         onChange={handleFormChange}
-                        required
                       />
                     </div>
                   </div>
@@ -553,7 +547,7 @@ export default function ContactsPage() {
                   {filteredContacts.map((contact) => (
                     <TableRow key={contact.id}>
                       <TableCell className="font-medium">
-                        {contact.first_name} {contact.last_name}
+                        {contact.first_name} {contact.last_name ? contact.last_name : ''}
                       </TableCell>
                       <TableCell>{contact.email}</TableCell>
                       <TableCell>{contact.phone || "-"}</TableCell>
@@ -616,14 +610,13 @@ export default function ContactsPage() {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="edit_last_name" className="text-sm font-medium">
-                    Last Name *
+                    Last Name
                   </label>
                   <Input
                     id="edit_last_name"
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
               </div>

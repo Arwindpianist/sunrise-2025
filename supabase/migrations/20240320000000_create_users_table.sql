@@ -38,11 +38,10 @@ begin
   );
 
   -- Insert into profiles table
-  insert into public.profiles (id, first_name, last_name)
+  insert into public.profiles (id, full_name)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'first_name', ''),
-    coalesce(new.raw_user_meta_data->>'last_name', '')
+    coalesce(new.raw_user_meta_data->>'full_name', '')
   )
   on conflict (id) do nothing;
   

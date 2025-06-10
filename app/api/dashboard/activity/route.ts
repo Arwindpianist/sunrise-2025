@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       ...contacts.map(contact => ({
         id: contact.id,
         type: 'contact_added',
-        title: `${contact.first_name} ${contact.last_name}`,
+        title: contact.full_name,
         created_at: contact.created_at,
       })),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

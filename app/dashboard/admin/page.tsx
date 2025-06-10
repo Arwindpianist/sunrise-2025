@@ -123,69 +123,31 @@ export default function AdminPage() {
     try {
       setLoading(true)
 
-      // Fetch users with their related data
+      // Fetch users with their stats using the new view
       const { data: usersData, error: usersError } = await supabase
-        .from("auth.users")
-        .select(`
-          id,
-          email,
-          created_at,
-          last_sign_in_at,
-          users!inner (
-            full_name,
-            subscription_plan,
-            token_balance
-          ),
-          profiles (
-            first_name,
-            last_name
-          ),
-          contacts (
-            id
-          ),
-          events (
-            id
-          ),
-          event_contacts (
-            status
-          ),
-          transactions (
-            amount,
-            status
-          )
-        `)
+        .from("admin_user_stats")
+        .select("*")
         .order("created_at", { ascending: false })
 
       if (usersError) throw usersError
 
       // Process users data
-      const processedUsers = usersData.map((user: any) => {
-        const emailsSent = user.event_contacts?.filter((ec: any) => 
-          ec.status === "sent" || ec.status === "opened"
-        ).length || 0
-        const totalSpent = user.transactions?.reduce((sum: number, t: any) => 
-          t.status === "completed" ? sum + t.amount : sum, 0
-        ) || 0
-
-        return {
-          id: user.id,
-          email: user.email,
-          full_name: user.profiles?.[0]?.first_name && user.profiles?.[0]?.last_name ? 
-            `${user.profiles[0].first_name} ${user.profiles[0].last_name}` : 
-            user.users?.[0]?.full_name || null,
-          subscription_plan: user.users?.[0]?.subscription_plan || "free",
-          token_balance: user.users?.[0]?.token_balance || 0,
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at,
-          is_active: user.last_sign_in_at ? 
-            new Date(user.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
-            false,
-          contacts_count: user.contacts?.length || 0,
-          events_count: user.events?.length || 0,
-          emails_sent: emailsSent,
-          total_spent: totalSpent
-        }
-      })
+      const processedUsers = usersData.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name || null,
+        subscription_plan: user.subscription_plan || "free",
+        token_balance: user.token_balance || 0,
+        created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at,
+        is_active: user.last_sign_in_at ? 
+          new Date(user.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
+          false,
+        contacts_count: user.contacts_count || 0,
+        events_count: user.events_count || 0,
+        emails_sent: user.emails_sent || 0,
+        total_spent: user.total_spent || 0
+      }))
 
       setUsers(processedUsers)
 

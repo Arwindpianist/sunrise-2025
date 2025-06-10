@@ -38,7 +38,7 @@ export default function DashboardPage() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name')
+        .select('full_name')
         .eq('id', user?.id)
         .single()
 
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           <Card className="bg-white/50 backdrop-blur-sm border-none">
             <CardContent className="pt-4 sm:pt-6">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                Good {getGreeting()}, {userProfile?.first_name || 'there'} {userProfile?.last_name || ''} 🌅
+                Good {getGreeting()}, {userProfile?.full_name || 'there'} 🌅
               </h1>
               <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                 Welcome back to your dashboard. Here's an overview of your events and activities.

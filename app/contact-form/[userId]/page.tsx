@@ -116,14 +116,13 @@ export default function ContactFormPage({ params }: { params: { userId: string }
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="last_name" className="text-sm font-medium">
-                    Last Name *
+                    Last Name
                   </label>
                   <Input
                     id="last_name"
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
-                    required
                   />
                 </div>
               </div>
