@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { format, isValid } from "date-fns"
-import { Plus, Send, Trash2 } from "lucide-react"
+import { Plus, Send, Trash2, Eye } from "lucide-react"
 
 interface Event {
   id: string
@@ -201,7 +201,13 @@ export default function EventsPage() {
             <Card key={event.id}>
               <CardHeader>
                 <CardTitle className="flex justify-between items-start">
-                  <span>{event.title}</span>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-bold"
+                    onClick={() => router.push(`/dashboard/events/${event.id}`)}
+                  >
+                    {event.title}
+                  </Button>
                   <span className="text-sm font-normal text-muted-foreground">
                     {event.status}
                   </span>
@@ -226,6 +232,14 @@ export default function EventsPage() {
                     </p>
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/events/${event.id}`)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
                     {event.status === "draft" && (
                       <Button
                         variant="outline"

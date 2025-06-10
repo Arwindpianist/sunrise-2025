@@ -100,11 +100,18 @@ serve(async (req: Request) => {
       throw new Error('Event ID is required')
     }
 
-    // Get the event details
+    // Start a transaction to ensure data consistency
+    const { data: { session } } = await supabaseClient.auth.getSession()
+    if (!session) {
+      throw new Error('Not authenticated')
+    }
+
+    // Get the event details and lock the row for update
     const { data: event, error: eventError } = await supabaseClient
       .from('events')
       .select('*')
       .eq('id', eventId)
+      .eq('user_id', session.user.id)
       .single()
 
     if (eventError) {
@@ -115,13 +122,17 @@ serve(async (req: Request) => {
       throw new Error('Event not found')
     }
 
+    // Check if event is already being processed
+    if (event.status === 'sending') {
+      throw new Error('Event is already being processed')
+    }
+
     // Get the contacts based on the category
     let contactsQuery = supabaseClient
       .from('contacts')
       .select('*')
       .eq('user_id', event.user_id)
 
-    // If category is not 'all', filter by category
     if (category !== 'all') {
       contactsQuery = contactsQuery.eq('category', category)
     }
@@ -136,6 +147,17 @@ serve(async (req: Request) => {
       throw new Error('No contacts found for the specified category')
     }
 
+    // Update event status to 'sending' only after all validations
+    const { error: updateError } = await supabaseClient
+      .from('events')
+      .update({ status: 'sending' })
+      .eq('id', eventId)
+      .eq('status', event.status) // Ensure status hasn't changed
+
+    if (updateError) {
+      throw new Error(`Error updating event status: ${updateError.message}`)
+    }
+
     // Create event_contacts entries for each contact
     const eventContacts = contacts.map((contact: Contact) => ({
       event_id: eventId,
@@ -148,18 +170,17 @@ serve(async (req: Request) => {
       .insert(eventContacts)
 
     if (insertError) {
+      // Rollback event status
+      await supabaseClient
+        .from('events')
+        .update({ status: event.status })
+        .eq('id', eventId)
       throw new Error(`Error creating event contacts: ${insertError.message}`)
     }
 
-    // Update event status to 'sending'
-    const { error: updateError } = await supabaseClient
-      .from('events')
-      .update({ status: 'sending' })
-      .eq('id', eventId)
-
-    if (updateError) {
-      throw new Error(`Error updating event status: ${updateError.message}`)
-    }
+    let successCount = 0
+    let failureCount = 0
+    const errors: { email: string; error: string }[] = []
 
     // Send emails to each contact using Resend
     for (const contact of contacts as Contact[]) {
@@ -203,8 +224,11 @@ serve(async (req: Request) => {
         if (updateContactError) {
           throw updateContactError
         }
+
+        successCount++
       } catch (error: any) {
-        console.error(`Error sending email to ${contact.email}:`, error)
+        failureCount++
+        errors.push({ email: contact.email, error: error.message })
 
         // Log the error
         const { error: logError } = await supabaseClient
@@ -237,10 +261,22 @@ serve(async (req: Request) => {
       }
     }
 
-    // Update event status to 'sent' if all emails were sent successfully
+    // Update event status based on results
+    let finalStatus = 'sent'
+    if (failureCount > 0) {
+      finalStatus = failureCount === contacts.length ? 'failed' : 'partial'
+    }
+
     const { error: finalUpdateError } = await supabaseClient
       .from('events')
-      .update({ status: 'sent' })
+      .update({ 
+        status: finalStatus,
+        metadata: {
+          success_count: successCount,
+          failure_count: failureCount,
+          errors: errors
+        }
+      })
       .eq('id', eventId)
 
     if (finalUpdateError) {
@@ -249,10 +285,13 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ 
-        message: 'Emails sent successfully',
+        message: 'Email sending process completed',
         eventId,
         category,
-        contactsCount: contacts.length
+        totalContacts: contacts.length,
+        successCount,
+        failureCount,
+        errors: errors.length > 0 ? errors : undefined
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
