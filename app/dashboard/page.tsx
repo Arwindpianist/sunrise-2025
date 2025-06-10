@@ -200,10 +200,9 @@ export default function DashboardPage() {
                     className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
                   >
                     <div>
-                      <p className="font-medium">{event.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(event.date).toLocaleDateString()}
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-sm text-muted-foreground capitalize">
+                        {event.status}
                       </p>
                     </div>
                     <Button
