@@ -6,7 +6,7 @@ import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { format } from "date-fns"
+import { format, isValid } from "date-fns"
 import { Plus, Send, Trash2 } from "lucide-react"
 
 interface Event {
@@ -20,6 +20,11 @@ interface Event {
   email_template: string
   scheduled_send_time: string
   created_at: string
+}
+
+const formatDate = (dateString: string, formatStr: string) => {
+  const date = new Date(dateString)
+  return isValid(date) ? format(date, formatStr) : "Invalid date"
 }
 
 export default function EventsPage() {
@@ -210,14 +215,14 @@ export default function EventsPage() {
                   <div className="text-sm">
                     <p>
                       <strong>Date:</strong>{" "}
-                      {format(new Date(event.event_date), "PPP")}
+                      {formatDate(event.event_date, "PPP")}
                     </p>
                     <p>
                       <strong>Location:</strong> {event.location}
                     </p>
                     <p>
                       <strong>Send Time:</strong>{" "}
-                      {format(new Date(event.scheduled_send_time), "PPP p")}
+                      {formatDate(event.scheduled_send_time, "PPP p")}
                     </p>
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">

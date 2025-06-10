@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { isValid } from "date-fns"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -34,6 +35,21 @@ type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
 type SendOption = "now" | "schedule"
 
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
+
+const validateDates = (eventDate: Date, scheduledSendTime: Date) => {
+  if (!isValid(eventDate)) {
+    throw new Error("Invalid event date")
+  }
+  if (!isValid(scheduledSendTime)) {
+    throw new Error("Invalid scheduled send time")
+  }
+  if (scheduledSendTime < new Date()) {
+    throw new Error("Scheduled send time must be in the future")
+  }
+  if (eventDate < new Date()) {
+    throw new Error("Event date must be in the future")
+  }
+}
 
 export default function CreateEventPage() {
   const router = useRouter()
@@ -115,6 +131,9 @@ export default function CreateEventPage() {
       if (!user) {
         throw new Error("Not authenticated")
       }
+
+      // Validate dates
+      validateDates(formData.eventDate, formData.scheduledSendTime)
 
       // Check if user has enough balance
       if (formData.sendOption === "now" && userBalance < contactCount) {
