@@ -4,16 +4,18 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut } from "lucide-react"
+import { Calendar, Users, Coins, Settings, LogOut, Shield } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 
 export function DashboardNav() {
   const pathname = usePathname()
-  const { supabase } = useSupabase()
+  const { supabase, user } = useSupabase()
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
+
+  const isAdmin = user?.email === "arwindpianist@gmail.com"
 
   return (
     <nav className="grid items-start gap-2">
@@ -65,21 +67,23 @@ export function DashboardNav() {
           Balance
         </Button>
       </Link>
-      <Link href="/dashboard/settings">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start",
-            pathname.startsWith("/dashboard/settings") && "bg-accent"
-          )}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
-        </Button>
-      </Link>
+      {isAdmin && (
+        <Link href="/dashboard/admin">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              pathname.startsWith("/dashboard/admin") && "bg-accent"
+            )}
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            Admin
+          </Button>
+        </Link>
+      )}
       <Button
         variant="ghost"
-        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
         onClick={handleSignOut}
       >
         <LogOut className="mr-2 h-4 w-4" />
