@@ -6,23 +6,47 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar, Users, Coins, Settings, LogOut, Shield } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export function DashboardNav() {
   const pathname = usePathname()
   const { supabase, user } = useSupabase()
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false)
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        // Get the user's email from the session
+        const { data: { session } } = await supabase.auth.getSession()
+        const userEmail = session?.user?.email
+
+        // Check if the user is an admin
+        setIsAdmin(userEmail === "arwindpianist@gmail.com")
+      } catch (error) {
+        console.error("Error checking admin status:", error)
+        setIsAdmin(false)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [user, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
 
-  const isAdmin = user?.email === "arwindpianist@gmail.com"
-
-  useEffect(() => {
-    console.log("DashboardNav - User:", user)
-    console.log("DashboardNav - Is Admin:", isAdmin)
-    console.log("DashboardNav - User Email:", user?.email)
-  }, [user, isAdmin])
+  if (isLoading) {
+    return null // or a loading spinner
+  }
 
   return (
     <nav className="grid items-start gap-2">
