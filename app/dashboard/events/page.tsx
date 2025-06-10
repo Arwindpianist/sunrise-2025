@@ -220,31 +220,21 @@ export default function EventsPage() {
                     {event.description}
                   </p>
                   <div className="text-sm">
-                    {isValid(new Date(event.event_date)) ? (
-                      <p>
-                        <strong>Date:</strong>{" "}
-                        {formatDate(event.event_date, "PPP")}
-                      </p>
-                    ) : (
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        <span className="capitalize">{event.status}</span>
-                      </p>
-                    )}
+                    <p>
+                      <strong>Created:</strong>{" "}
+                      {formatDate(event.created_at, "PPP")}
+                    </p>
                     <p>
                       <strong>Location:</strong> {event.location || "Not specified"}
                     </p>
-                    {isValid(new Date(event.scheduled_send_time)) ? (
-                      <p>
-                        <strong>Send Time:</strong>{" "}
-                        {formatDate(event.scheduled_send_time, "PPP p")}
-                      </p>
-                    ) : (
-                      <p>
-                        <strong>Category:</strong>{" "}
-                        <span className="capitalize">{event.category || "All"}</span>
-                      </p>
-                    )}
+                    <p>
+                      <strong>Category:</strong>{" "}
+                      <span className="capitalize">{event.category || "All"}</span>
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      <span className="capitalize">{event.status}</span>
+                    </p>
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">
                     <Button
