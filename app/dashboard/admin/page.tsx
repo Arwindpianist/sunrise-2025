@@ -98,9 +98,16 @@ export default function AdminPage() {
       }
 
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const userEmail = session?.user?.email
-        const isUserAdmin = userEmail === "arwindpianist@gmail.com"
+        // Check if user has admin subscription plan
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('subscription_plan')
+          .eq('id', user.id)
+          .single()
+
+        if (userError) throw userError
+
+        const isUserAdmin = userData?.subscription_plan === 'admin'
         setIsAdmin(isUserAdmin)
 
         if (!isUserAdmin) {
