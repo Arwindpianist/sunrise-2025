@@ -45,15 +45,38 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [planFilter, setPlanFilter] = useState("all")
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    if (!user || user.email !== "arwindpianist@gmail.com") {
-      router.push("/dashboard")
-      return
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false)
+        router.push("/dashboard")
+        return
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const userEmail = session?.user?.email
+        const isUserAdmin = userEmail === "arwindpianist@gmail.com"
+        setIsAdmin(isUserAdmin)
+
+        if (!isUserAdmin) {
+          router.push("/dashboard")
+          return
+        }
+
+        // Only fetch data if user is admin
+        await fetchData()
+      } catch (error) {
+        console.error("Error checking admin status:", error)
+        setIsAdmin(false)
+        router.push("/dashboard")
+      }
     }
 
-    fetchData()
-  }, [user, router])
+    checkAdminStatus()
+  }, [user, router, supabase])
 
   const fetchData = async () => {
     try {
@@ -62,7 +85,17 @@ export default function AdminPage() {
       // Fetch users from profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(`
+          id,
+          first_name,
+          last_name,
+          created_at,
+          users!inner (
+            email,
+            subscription_plan,
+            token_balance
+          )
+        `)
         .order("created_at", { ascending: false })
 
       if (profilesError) throw profilesError
@@ -77,8 +110,16 @@ export default function AdminPage() {
       // Combine profile and auth data
       const combinedUsers = profiles.map((profile: any) => {
         const authUser = authUsers.find((au: any) => au.id === profile.id)
+        const userData = profile.users[0] // Get the first (and should be only) user record
         return {
-          ...profile,
+          id: profile.id,
+          email: userData.email,
+          full_name: profile.first_name && profile.last_name ? 
+            `${profile.first_name} ${profile.last_name}` : 
+            null,
+          subscription_plan: userData.subscription_plan,
+          token_balance: userData.token_balance,
+          created_at: profile.created_at,
           last_sign_in_at: authUser?.last_sign_in_at || null,
           is_active: authUser?.last_sign_in_at ? 
             new Date(authUser.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
@@ -104,16 +145,19 @@ export default function AdminPage() {
   }
 
   const filteredUsers = users.filter(user => {
+    if (!user) return false
+
+    const searchLower = searchQuery.toLowerCase()
     const matchesSearch = 
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      (user.email?.toLowerCase().includes(searchLower) ?? false) ||
+      (user.full_name?.toLowerCase().includes(searchLower) ?? false)
     
     const matchesPlan = planFilter === "all" || user.subscription_plan === planFilter
 
     return matchesSearch && matchesPlan
   })
 
-  if (loading) {
+  if (!isAdmin || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
@@ -131,7 +175,7 @@ export default function AdminPage() {
       </div>
 
       {/* Statistics Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
