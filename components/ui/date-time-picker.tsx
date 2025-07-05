@@ -13,6 +13,7 @@ interface DateTimePickerProps {
 
 export function DateTimePicker({ date, onSelect, className }: DateTimePickerProps) {
   const [mounted, setMounted] = React.useState(false)
+  const mountedRef = React.useRef(false)
   const [selectedDate, setSelectedDate] = React.useState<string>(() => {
     const now = new Date()
     const defaultDate = addMinutes(now, 10)
@@ -26,10 +27,11 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
 
   React.useEffect(() => {
     setMounted(true)
+    mountedRef.current = true
   }, [])
 
   React.useEffect(() => {
-    if (!mounted) return
+    if (!mountedRef.current) return
 
     try {
       const [year, month, day] = selectedDate.split("-").map(Number)
@@ -39,7 +41,7 @@ export function DateTimePicker({ date, onSelect, className }: DateTimePickerProp
     } catch (error) {
       console.error("Error updating date:", error)
     }
-  }, [selectedDate, selectedTime, onSelect, mounted])
+  }, [selectedDate, selectedTime])
 
   if (!mounted) {
     return (

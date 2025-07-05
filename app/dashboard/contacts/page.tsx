@@ -13,14 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,10 +22,16 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
 import PhoneImport from "@/components/phone-import"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Contact {
   id: string
@@ -204,31 +202,33 @@ export default function ContactsPage() {
 
   const handleImportGoogle = async () => {
     try {
-      window.location.href = '/api/oauth/google/initiate'
+      const response = await fetch("/api/oauth/google/initiate")
+      if (!response.ok) throw new Error("Failed to initiate Google import")
+      const data = await response.json()
+      window.location.href = data.authUrl
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to import contacts",
+        description: error.message || "Failed to import from Google",
         variant: "destructive",
       })
     }
   }
 
   const handleDeleteContact = async (contactId: string) => {
+    if (!confirm("Are you sure you want to delete this contact?")) return
+
     try {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: "DELETE",
       })
-
       if (!response.ok) throw new Error("Failed to delete contact")
-
-      setContacts(contacts.filter(contact => contact.id !== contactId))
-      setFilteredContacts(filteredContacts.filter(contact => contact.id !== contactId))
       
       toast({
         title: "Success",
         description: "Contact deleted successfully",
       })
+      fetchContacts()
     } catch (error: any) {
       toast({
         title: "Error",
@@ -243,28 +243,26 @@ export default function ContactsPage() {
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .insert([
-          {
-            user_id: user?.id,
-            first_name: formData.first_name.trim(),
-            last_name: formData.last_name.trim() || null,
-            email: formData.email.trim(),
-            phone: formData.phone.trim() || null,
-            category: formData.category === "__no_category__" ? "" : formData.category,
-            notes: formData.notes.trim() || null,
-          },
-        ])
+      const contactData = {
+        ...formData,
+        category: formData.category === "__no_category__" ? "" : formData.category,
+      }
 
-      if (error) throw error
+      const response = await fetch("/api/contacts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactData),
+      })
+
+      if (!response.ok) throw new Error("Failed to add contact")
 
       toast({
         title: "Success",
         description: "Contact added successfully",
       })
 
-      setIsAddDialogOpen(false)
       setFormData({
         first_name: "",
         last_name: "",
@@ -273,12 +271,12 @@ export default function ContactsPage() {
         category: "__no_category__",
         notes: "",
       })
+      setIsAddDialogOpen(false)
       fetchContacts()
-    } catch (error) {
-      console.error('Error adding contact:', error)
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to add contact",
+        description: error.message || "Failed to add contact",
         variant: "destructive",
       })
     } finally {
@@ -287,8 +285,7 @@ export default function ContactsPage() {
   }
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   const handleCategoryChange = (value: string) => {
@@ -298,23 +295,23 @@ export default function ContactsPage() {
   const handleEditContact = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingContact) return
-
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim() || null,
-          email: formData.email.trim(),
-          phone: formData.phone.trim() || null,
-          category: formData.category === "__no_category__" ? "" : formData.category,
-          notes: formData.notes.trim() || null,
-        })
-        .eq('id', editingContact.id)
+      const contactData = {
+        ...formData,
+        category: formData.category === "__no_category__" ? "" : formData.category,
+      }
 
-      if (error) throw error
+      const response = await fetch(`/api/contacts/${editingContact.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactData),
+      })
+
+      if (!response.ok) throw new Error("Failed to update contact")
 
       toast({
         title: "Success",
@@ -323,20 +320,11 @@ export default function ContactsPage() {
 
       setIsEditDialogOpen(false)
       setEditingContact(null)
-      setFormData({
-        first_name: "",
-        last_name: "",
-        email: "",
-        phone: "",
-        category: "__no_category__",
-        notes: "",
-      })
       fetchContacts()
-    } catch (error) {
-      console.error('Error updating contact:', error)
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update contact",
+        description: error.message || "Failed to update contact",
         variant: "destructive",
       })
     } finally {
@@ -351,7 +339,7 @@ export default function ContactsPage() {
       last_name: contact.last_name || "",
       email: contact.email,
       phone: contact.phone || "",
-      category: contact.category,
+      category: contact.category || "__no_category__",
       notes: contact.notes || "",
     })
     setIsEditDialogOpen(true)
@@ -361,18 +349,21 @@ export default function ContactsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Contacts</h1>
-            <p className="text-gray-600">Manage your event contacts and categories</p>
-          </div>
-          <div className="flex gap-4 mt-4 md:mt-0">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Contacts</h1>
+          <p className="text-gray-600 text-sm md:text-base">Manage your event contacts and categories</p>
+        </div>
+
+        {/* Action Buttons - Mobile Responsive */}
+        <div className="mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" size="sm" className="h-12 md:h-10">
                   <LinkIcon className="h-4 w-4 mr-2" />
-                  Share Form
+                  <span className="hidden md:inline">Share</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -401,9 +392,9 @@ export default function ContactsPage() {
             
             <Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" size="sm" className="h-12 md:h-10">
                   <Settings className="h-4 w-4 mr-2" />
-                  Manage Categories
+                  <span className="hidden md:inline">Categories</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -415,7 +406,6 @@ export default function ContactsPage() {
                 </DialogHeader>
                 <CategoryManager onCategoryChange={(newCategories) => {
                   setCategories(newCategories)
-                  // Refresh contacts to update category displays
                   fetchContacts()
                 }} />
               </DialogContent>
@@ -426,15 +416,21 @@ export default function ContactsPage() {
               onImportComplete={fetchContacts}
             />
             
-            <Button onClick={handleImportGoogle}>
+            <Button 
+              onClick={handleImportGoogle} 
+              size="sm" 
+              className="h-12 md:h-10"
+            >
               <Upload className="h-4 w-4 mr-2" />
-              Import from Google
+              <span className="hidden md:inline">Google</span>
             </Button>
+
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm" className="h-12 md:h-10 col-span-2 md:col-span-1">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Contact
+                  <span className="hidden md:inline">Add Contact</span>
+                  <span className="md:hidden">Add</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -445,7 +441,7 @@ export default function ContactsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleAddContact} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="first_name" className="text-sm font-medium">
                         First Name *
@@ -548,22 +544,26 @@ export default function ContactsPage() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row gap-4">
+        {/* Search and Filter */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <Input
-                  placeholder="Search contacts..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="max-w-sm"
-                />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search contacts..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
               <Select
                 value={selectedCategory}
                 onValueChange={handleFilterCategoryChange}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -583,76 +583,102 @@ export default function ContactsPage() {
                 </SelectContent>
               </Select>
             </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-4">Loading...</div>
-            ) : filteredContacts.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                No contacts found
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell className="font-medium">
-                        {contact.first_name} {contact.last_name ? contact.last_name : ''}
-                      </TableCell>
-                      <TableCell>{contact.email}</TableCell>
-                      <TableCell>{contact.phone || "-"}</TableCell>
-                      <TableCell>
-                        {contact.category ? (
-                          <span 
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
-                            style={{ 
-                              backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
-                            }}
-                          >
-                            {contact.category}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">No category</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {contact.notes || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(contact)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteContact(contact.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
           </CardContent>
         </Card>
+
+        {/* Contacts Grid - Mobile Card Layout */}
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading contacts...</p>
+          </div>
+        ) : filteredContacts.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No contacts found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchQuery || selectedCategory !== "all" 
+                  ? "Try adjusting your search or filter criteria"
+                  : "Get started by adding your first contact"
+                }
+              </p>
+              {!searchQuery && selectedCategory === "all" && (
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Contact
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredContacts.map((contact) => (
+              <Card key={contact.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {contact.first_name} {contact.last_name}
+                      </h3>
+                      {contact.category && (
+                        <span 
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white mt-1"
+                          style={{ 
+                            backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
+                          }}
+                        >
+                          {contact.category}
+                        </span>
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(contact)}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteContact(contact.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="space-y-2">
+                    {contact.email && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{contact.email}</span>
+                      </div>
+                    )}
+                    {contact.phone && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{contact.phone}</span>
+                      </div>
+                    )}
+                    {contact.notes && (
+                      <div className="flex items-start text-sm text-gray-600">
+                        <FileText className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+                        <span className="line-clamp-2">{contact.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Edit Contact Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -664,7 +690,7 @@ export default function ContactsPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleEditContact} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="edit_first_name" className="text-sm font-medium">
                     First Name *
@@ -718,7 +744,7 @@ export default function ContactsPage() {
                 />
               </div>
 
-                            <div className="space-y-2">
+              <div className="space-y-2">
                 <label htmlFor="edit_category" className="text-sm font-medium">
                   Category
                 </label>
