@@ -49,8 +49,8 @@ export default function HomePage() {
               <div className="bg-rose-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <Users className="h-8 w-8 text-rose-500" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Add Contacts</h3>
-              <p className="text-gray-600">Import your loved ones or add them manually to share the celebration.</p>
+                          <h3 className="text-xl font-semibold mb-3">Smart Contact Management</h3>
+            <p className="text-gray-600">Import from Google, phone files, or create custom categories to organize your circle perfectly.</p>
             </CardContent>
           </Card>
 
@@ -93,8 +93,8 @@ export default function HomePage() {
               <div className="bg-amber-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
                 <Users className="h-6 w-6 text-amber-500" />
               </div>
-              <h3 className="font-semibold mb-2">Contact Management</h3>
-              <p className="text-sm text-gray-600">Organize & import your guest lists</p>
+                          <h3 className="font-semibold mb-2">Smart Contact Import</h3>
+            <p className="text-sm text-gray-600">Google, vCard, CSV & custom categories</p>
             </div>
 
             <div className="text-center">

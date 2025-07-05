@@ -15,7 +15,7 @@ const PRICING_PLANS = [
     features: [
       "100 email credits",
       "Basic email templates",
-      "Contact management",
+      "Smart contact management",
       "Event scheduling",
       "Email tracking",
     ],
@@ -28,7 +28,7 @@ const PRICING_PLANS = [
     features: [
       "500 email credits",
       "Advanced email templates",
-      "Contact management",
+      "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Priority support",
@@ -43,7 +43,7 @@ const PRICING_PLANS = [
     features: [
       "1000 email credits",
       "Premium email templates",
-      "Contact management",
+      "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Priority support",

@@ -30,8 +30,10 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2 } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import CategoryManager from "@/components/category-manager"
+import PhoneImport from "@/components/phone-import"
 
 interface Contact {
   id: string
@@ -44,18 +46,19 @@ interface Contact {
   created_at: string
 }
 
-const CATEGORIES = [
-  { value: "family", label: "Family" },
-  { value: "friend", label: "Friend" },
-  { value: "guest", label: "Guest" },
-  { value: "other", label: "Other" },
-]
+interface Category {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
 
 export default function ContactsPage() {
   const router = useRouter()
   const { user, supabase } = useSupabase()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
@@ -67,11 +70,12 @@ export default function ContactsPage() {
     last_name: "",
     email: "",
     phone: "",
-    category: "other",
+    category: "__no_category__",
     notes: "",
   })
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -127,6 +131,7 @@ export default function ContactsPage() {
     }
 
     fetchContacts()
+    fetchCategories()
     generateShareableLink()
   }, [user, router])
 
@@ -145,6 +150,17 @@ export default function ContactsPage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/contacts/categories")
+      if (!response.ok) throw new Error("Failed to fetch categories")
+      const data = await response.json()
+      setCategories(data)
+    } catch (error: any) {
+      console.error('Error fetching categories:', error)
     }
   }
 
@@ -177,7 +193,9 @@ export default function ContactsPage() {
       )
     }
 
-    if (category !== "all") {
+    if (category === "__no_category__") {
+      filtered = filtered.filter(contact => !contact.category || contact.category === "")
+    } else if (category !== "all") {
       filtered = filtered.filter(contact => contact.category === category)
     }
 
@@ -234,7 +252,7 @@ export default function ContactsPage() {
             last_name: formData.last_name.trim() || null,
             email: formData.email.trim(),
             phone: formData.phone.trim() || null,
-            category: formData.category,
+            category: formData.category === "__no_category__" ? "" : formData.category,
             notes: formData.notes.trim() || null,
           },
         ])
@@ -252,7 +270,7 @@ export default function ContactsPage() {
         last_name: "",
         email: "",
         phone: "",
-        category: "other",
+        category: "__no_category__",
         notes: "",
       })
       fetchContacts()
@@ -291,7 +309,7 @@ export default function ContactsPage() {
           last_name: formData.last_name.trim() || null,
           email: formData.email.trim(),
           phone: formData.phone.trim() || null,
-          category: formData.category,
+          category: formData.category === "__no_category__" ? "" : formData.category,
           notes: formData.notes.trim() || null,
         })
         .eq('id', editingContact.id)
@@ -310,7 +328,7 @@ export default function ContactsPage() {
         last_name: "",
         email: "",
         phone: "",
-        category: "other",
+        category: "__no_category__",
         notes: "",
       })
       fetchContacts()
@@ -380,6 +398,34 @@ export default function ContactsPage() {
                 </div>
               </DialogContent>
             </Dialog>
+            
+            <Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Manage Categories
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Manage Contact Categories</DialogTitle>
+                  <DialogDescription>
+                    Create and manage custom categories to organize your contacts.
+                  </DialogDescription>
+                </DialogHeader>
+                <CategoryManager onCategoryChange={(newCategories) => {
+                  setCategories(newCategories)
+                  // Refresh contacts to update category displays
+                  fetchContacts()
+                }} />
+              </DialogContent>
+            </Dialog>
+
+            <PhoneImport 
+              categories={categories} 
+              onImportComplete={fetchContacts}
+            />
+            
             <Button onClick={handleImportGoogle}>
               <Upload className="h-4 w-4 mr-2" />
               Import from Google
@@ -457,16 +503,23 @@ export default function ContactsPage() {
                       Category
                     </label>
                     <Select
-                      value={formData.category}
+                      value={formData.category || "__no_category__"}
                       onValueChange={handleCategoryChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
+                        <SelectItem value="__no_category__">No category</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              {category.name}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -515,9 +568,16 @@ export default function ContactsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {CATEGORIES.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
+                  <SelectItem value="__no_category__">No Category</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -552,9 +612,18 @@ export default function ContactsPage() {
                       <TableCell>{contact.email}</TableCell>
                       <TableCell>{contact.phone || "-"}</TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                          {CATEGORIES.find(c => c.value === contact.category)?.label || contact.category}
-                        </span>
+                        {contact.category ? (
+                          <span 
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+                            style={{ 
+                              backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
+                            }}
+                          >
+                            {contact.category}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">No category</span>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {contact.notes || "-"}
@@ -649,21 +718,28 @@ export default function ContactsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+                            <div className="space-y-2">
                 <label htmlFor="edit_category" className="text-sm font-medium">
                   Category
                 </label>
                 <Select
-                  value={formData.category}
+                  value={formData.category || "__no_category__"}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
-                        {category.label}
+                    <SelectItem value="__no_category__">No category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

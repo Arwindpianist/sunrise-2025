@@ -32,10 +32,10 @@ export default function FeaturesPage() {
     },
     {
       icon: Users,
-      title: "Contact Management",
+      title: "Smart Contact Management",
       description:
-        "Organize your guest lists effortlessly. Import from CSV, add manually, or sync with your existing contacts.",
-      benefits: ["CSV import", "Contact groups & tags", "Duplicate detection", "Search & filter"],
+        "Organize your guest lists with flexible categories. Import from Google Contacts, vCard files, CSV, or add manually with custom organization.",
+      benefits: ["Google Contacts import", "vCard/CSV import", "Custom categories", "Color-coded organization"],
     },
     {
       icon: MessageSquare,
