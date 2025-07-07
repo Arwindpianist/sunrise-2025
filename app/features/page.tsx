@@ -86,10 +86,10 @@ export default function FeaturesPage() {
   ]
 
   const pricingTiers = [
-    { name: "Free", contacts: "20", tokens: "10", channels: "Email only" },
-    { name: "Basic", contacts: "100", tokens: "100", channels: "Email + WhatsApp" },
-    { name: "Premium", contacts: "500", tokens: "300", channels: "Email + WhatsApp + Telegram" },
-    { name: "Business", contacts: "Unlimited", tokens: "1,000", channels: "All channels + SMS" },
+    { name: "Free", contacts: "Unlimited", tokens: "15 free", channels: "Email only", price: "RM0.50/token" },
+    { name: "Basic", contacts: "Unlimited", tokens: "Discounted", channels: "Email + WhatsApp", price: "RM0.45/token" },
+    { name: "Pro", contacts: "Unlimited", tokens: "Discounted", channels: "Email + WhatsApp + Telegram", price: "RM0.40/token" },
+    { name: "Enterprise", contacts: "Unlimited", tokens: "Discounted", channels: "All channels + SMS", price: "RM0.35/token" },
   ]
 
   return (
@@ -218,7 +218,7 @@ export default function FeaturesPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-gray-800 font-semibold">Plan</th>
                   <th className="px-6 py-4 text-center text-gray-800 font-semibold">Contacts</th>
-                  <th className="px-6 py-4 text-center text-gray-800 font-semibold">Monthly Tokens</th>
+                  <th className="px-6 py-4 text-center text-gray-800 font-semibold">Token Pricing</th>
                   <th className="px-6 py-4 text-center text-gray-800 font-semibold">Channels</th>
                 </tr>
               </thead>
@@ -226,10 +226,10 @@ export default function FeaturesPage() {
                 {pricingTiers.map((tier, index) => (
                   <tr key={index} className="border-t border-gray-200">
                     <td className="px-6 py-4">
-                      <Badge variant={tier.name === "Basic" ? "default" : "outline"}>{tier.name}</Badge>
+                      <Badge variant={tier.name === "Pro" ? "default" : "outline"}>{tier.name}</Badge>
                     </td>
                     <td className="px-6 py-4 text-center text-gray-800">{tier.contacts}</td>
-                    <td className="px-6 py-4 text-center text-gray-800">{tier.tokens}</td>
+                    <td className="px-6 py-4 text-center text-gray-800">{tier.price}</td>
                     <td className="px-6 py-4 text-center text-gray-800 text-sm">{tier.channels}</td>
                   </tr>
                 ))}

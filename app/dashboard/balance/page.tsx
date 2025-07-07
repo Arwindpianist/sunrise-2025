@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { loadStripe } from '@stripe/stripe-js'
-import { Coins, TrendingUp, Clock, CheckCircle } from "lucide-react"
+import { Coins, TrendingUp, Clock, CheckCircle, Crown, Zap, Building } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { TOKEN_TOPUPS, getTokenPrice, calculateTokenPackPrice, getTierInfo } from "@/lib/pricing"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -28,16 +29,14 @@ interface Transaction {
   created_at: string;
 }
 
-type CreditPackageId = '100' | '500' | '1000' | '5000'
-
-const CREDIT_PACKAGES: Record<CreditPackageId, number> = {
-  '100': 4.90,    // 100 credits for RM 4.90
-  '500': 19.90,   // 500 credits for RM 19.90
-  '1000': 39.90,  // 1000 credits for RM 39.90
-  '5000': 199.90, // 5000 credits for RM 199.90
+function getTierIcon(tier: string) {
+  switch (tier) {
+    case "enterprise": return Crown;
+    case "pro": return Zap;
+    case "basic": return Building;
+    default: return Coins;
+  }
 }
-
-const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
 
 interface PaymentResponse {
   clientSecret: string;
@@ -50,31 +49,43 @@ export default function BalancePage() {
   const { supabase, user } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [selectedPackage, setSelectedPackage] = useState<{credits: string, price: number} | null>(null)
+  const [selectedPackage, setSelectedPackage] = useState<{tokens: number, price: number, name: string} | null>(null)
   const [userBalance, setUserBalance] = useState(0)
+  const [userTier, setUserTier] = useState<string>("free")
   const [transactions, setTransactions] = useState<Transaction[]>([])
 
   useEffect(() => {
     if (!user) {
       router.push('/login')
     } else {
-      fetchUserBalance()
+      fetchUserData()
       fetchTransactions()
     }
   }, [user, router])
 
-  const fetchUserBalance = async () => {
+  const fetchUserData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch user balance
+      const { data: balanceData, error: balanceError } = await supabase
         .from('user_balances')
         .select('balance')
         .eq('user_id', user?.id)
         .single()
 
-      if (error && error.code !== 'PGRST116') throw error
-      setUserBalance(data?.balance || 0)
+      if (balanceError && balanceError.code !== 'PGRST116') throw balanceError
+      setUserBalance(balanceData?.balance || 0)
+
+      // Fetch user tier
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('subscription_plan')
+        .eq('id', user?.id)
+        .single()
+
+      if (userError) throw userError
+      setUserTier(userData?.subscription_plan || "free")
     } catch (error) {
-      console.error('Error fetching user balance:', error)
+      console.error('Error fetching user data:', error)
     }
   }
 
@@ -97,12 +108,14 @@ export default function BalancePage() {
     setTransactions(data || [])
   }
 
-  const handlePurchase = async (packageId: string) => {
+  const handlePurchase = async (pack: typeof TOKEN_TOPUPS[0]) => {
     try {
       setIsLoading(true)
+      const price = calculateTokenPackPrice(pack.tokens, userTier)
       setSelectedPackage({
-        credits: packageId,
-        price: CREDIT_PACKAGES[packageId as CreditPackageId]
+        tokens: pack.tokens,
+        price: price,
+        name: pack.name
       })
       setIsPaymentOpen(true)
 
@@ -112,8 +125,9 @@ export default function BalancePage() {
 
       const { data, error } = await supabase.functions.invoke<PaymentResponse>('create-payment', {
         body: {
-          amount: packageId,
+          amount: pack.tokens.toString(),
           type: 'credits',
+          userTier: userTier,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -181,10 +195,15 @@ export default function BalancePage() {
     return null
   }
 
+  const currentTokenPrice = getTokenPrice(userTier)
+  const TierIcon = getTierIcon(userTier)
+  const tierInfo = getTierInfo(userTier)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <div className="grid gap-4 sm:gap-8 grid-cols-1 md:grid-cols-2">
+          {/* Balance Card */}
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -198,91 +217,174 @@ export default function BalancePage() {
                   {userBalance} tokens
                 </p>
                 <p className="text-muted-foreground mt-2">
-                  Each email costs 1 token (RM{PRICE_PER_EMAIL.toFixed(2)})
+                  Each email costs 1 token
                 </p>
               </div>
             </CardContent>
           </Card>
 
+          {/* Subscription Tier Card */}
           <Card className="bg-white/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-orange-500" />
-                Recent Transactions
+                <TierIcon className={`h-5 w-5 ${tierInfo.color}`} />
+                Your Plan
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {transactions.length === 0 ? (
-                  <p className="text-muted-foreground text-center">No successful transactions yet.</p>
-                ) : (
-                  transactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
-                    >
-                      <div>
-                        <p className="font-medium">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(transaction.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <p className="font-bold flex items-center gap-1 text-green-600">
-                        +{transaction.amount} credits
-                        <CheckCircle className="h-4 w-4" />
-                      </p>
-                    </div>
-                  ))
+              <div className="text-center">
+                <p className={`text-2xl font-bold ${tierInfo.color} capitalize`}>
+                  {userTier === "free" ? "No Plan" : userTier}
+                </p>
+                <p className="text-muted-foreground mt-2">
+                  Token Price: RM{currentTokenPrice.toFixed(2)}
+                </p>
+                {userTier !== "free" && (
+                  <p className="text-sm text-green-600 mt-1">
+                    You're saving on tokens!
+                  </p>
+                )}
+                {userTier === "free" && (
+                  <Button 
+                    className="mt-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                    onClick={() => router.push('/pricing')}
+                  >
+                    Upgrade to Save
+                  </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="mt-6 sm:mt-8">
+        {/* Recent Transactions */}
+        <Card className="bg-white/50 backdrop-blur-sm mt-6 sm:mt-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Coins className="h-5 w-5 text-orange-500" />
-              Purchase Credits
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+              Recent Transactions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-              {Object.entries(CREDIT_PACKAGES).map(([credits, price]) => (
-                <Card
-                  key={credits}
-                  className="relative bg-white/50 backdrop-blur-sm hover:shadow-lg transition-shadow"
-                >
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{credits}</p>
-                      <p className="text-muted-foreground">tokens</p>
-                      <p className="text-xl font-bold mt-2 text-orange-500">
-                        RM{price.toFixed(2)}
+            <div className="space-y-4">
+              {transactions.length === 0 ? (
+                <p className="text-muted-foreground text-center">No successful transactions yet.</p>
+              ) : (
+                transactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm"
+                  >
+                    <div>
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(transaction.created_at).toLocaleDateString()}
                       </p>
-                      <Button 
-                        className="w-full mt-4 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                        onClick={() => handlePurchase(credits)}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Processing..." : "Purchase Tokens"}
-                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <p className="font-bold flex items-center gap-1 text-green-600">
+                      +{transaction.amount} tokens
+                      <CheckCircle className="h-4 w-4" />
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
+        </Card>
+
+        {/* Token Purchase Section */}
+        <div className="mt-6 sm:mt-8">
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-orange-500" />
+                Purchase Tokens
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Your current token price: RM{currentTokenPrice.toFixed(2)} per token
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                {TOKEN_TOPUPS.map((pack) => {
+                  const price = calculateTokenPackPrice(pack.tokens, userTier)
+                  const savings = userTier !== "free" ? (pack.tokens * 0.50) - price : 0
+                  
+                  return (
+                    <Card
+                      key={pack.name}
+                      className={`relative bg-white/50 backdrop-blur-sm hover:shadow-lg transition-shadow ${
+                        pack.popular ? "border-2 border-orange-500" : ""
+                      }`}
+                    >
+                      {pack.popular && (
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                            Popular
+                          </span>
+                        </div>
+                      )}
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="font-bold text-lg mb-1">{pack.name}</h3>
+                          <p className="text-2xl font-bold text-orange-500 mb-1">{pack.tokens}</p>
+                          <p className="text-muted-foreground text-sm mb-2">tokens</p>
+                          <p className="text-sm text-gray-500 mb-3">{pack.description}</p>
+                          
+                          <div className="mb-3">
+                            <p className="text-xl font-bold text-gray-800">
+                              RM{price.toFixed(2)}
+                            </p>
+                            {savings > 0 && (
+                              <p className="text-sm text-green-600">
+                                Save RM{savings.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <Button 
+                            className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                            onClick={() => handlePurchase(pack)}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? "Processing..." : "Purchase Tokens"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+              
+              {/* Upgrade CTA for free users */}
+              {userTier === "free" && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg text-center">
+                  <h3 className="font-semibold text-gray-800 mb-2">Upgrade to Save More!</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Subscribe to a plan and get discounted token prices. Save up to 30% on every purchase.
+                  </p>
+                  <Button 
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-50"
+                    onClick={() => router.push('/pricing')}
+                  >
+                    View Plans
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
+      {/* Payment Dialog */}
       <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
         <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Coins className="h-5 w-5 text-orange-500" />
-              {selectedPackage ? `Purchase ${selectedPackage.credits} Tokens` : 'Payment'}
+              {selectedPackage ? `Purchase ${selectedPackage.name}` : 'Payment'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -291,7 +393,8 @@ export default function BalancePage() {
                 <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                   RM {selectedPackage.price.toFixed(2)}
                 </p>
-                <p className="text-muted-foreground">{selectedPackage.credits} tokens</p>
+                <p className="text-muted-foreground">{selectedPackage.tokens} tokens</p>
+                <p className="text-sm text-gray-500">at RM{currentTokenPrice.toFixed(2)} per token</p>
               </div>
             )}
             <form id="payment-form" className="space-y-4">
