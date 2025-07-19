@@ -96,6 +96,9 @@ export default function ContactsPage() {
     expires_at: "",
     max_uses: 100,
   })
+  const [editingLink, setEditingLink] = useState<OnboardingLink | null>(null)
+  const [isEditLinkDialogOpen, setIsEditLinkDialogOpen] = useState(false)
+  const [isDeletingLink, setIsDeletingLink] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -194,6 +197,96 @@ export default function ContactsPage() {
     } catch (error: any) {
       console.error('Error fetching onboarding links:', error)
     }
+  }
+
+  const handleEditLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingLink) return
+
+    try {
+      const response = await fetch(`/api/onboarding-links/${editingLink.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(onboardingFormData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update onboarding link")
+      }
+
+      toast({
+        title: "Success",
+        description: "Onboarding link updated successfully",
+      })
+
+      setIsEditLinkDialogOpen(false)
+      setEditingLink(null)
+      setOnboardingFormData({
+        title: "",
+        description: "",
+        expires_at: "",
+        max_uses: 100,
+      })
+      fetchOnboardingLinks()
+    } catch (error: any) {
+      console.error("Error updating onboarding link:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update onboarding link",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteLink = async (linkId: string) => {
+    if (!confirm("Are you sure you want to delete this onboarding link? This action cannot be undone.")) {
+      return
+    }
+
+    setIsDeletingLink(true)
+    try {
+      const response = await fetch(`/api/onboarding-links/${linkId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete onboarding link")
+      }
+
+      toast({
+        title: "Success",
+        description: "Onboarding link deleted successfully",
+      })
+
+      fetchOnboardingLinks()
+    } catch (error: any) {
+      console.error("Error deleting onboarding link:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete onboarding link",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeletingLink(false)
+    }
+  }
+
+  const openEditLinkDialog = (link: OnboardingLink) => {
+    setEditingLink(link)
+    setOnboardingFormData({
+      title: link.title,
+      description: link.description,
+      expires_at: link.expires_at ? new Date(link.expires_at).toISOString().slice(0, 16) : "",
+      max_uses: link.max_uses,
+    })
+    setIsEditLinkDialogOpen(true)
   }
 
   const generateShareableLink = () => {
@@ -646,21 +739,41 @@ export default function ContactsPage() {
                                   )}
                                 </p>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const url = `${window.location.origin}/onboarding/${link.token}`
-                                  navigator.clipboard.writeText(url)
-                                  toast({
-                                    title: "Copied!",
-                                    description: "Link copied to clipboard",
-                                  })
-                                }}
-                              >
-                                <Copy className="h-4 w-4 mr-1" />
-                                Copy
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const url = `${window.location.origin}/onboarding/${link.token}`
+                                    navigator.clipboard.writeText(url)
+                                    toast({
+                                      title: "Copied!",
+                                      description: "Link copied to clipboard",
+                                    })
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEditLinkDialog(link)}
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteLink(link.id)}
+                                  disabled={isDeletingLink}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  {isDeletingLink ? "..." : "Delete"}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -754,6 +867,88 @@ export default function ContactsPage() {
                     </form>
                   </div>
                 </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Edit Onboarding Link Dialog */}
+            <Dialog open={isEditLinkDialogOpen} onOpenChange={setIsEditLinkDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Onboarding Link</DialogTitle>
+                  <DialogDescription>
+                    Update the onboarding link details below.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleEditLink} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_title">Title</Label>
+                      <Input
+                        id="edit_title"
+                        value={onboardingFormData.title}
+                        onChange={(e) => setOnboardingFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="e.g., Join My Events"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_max_uses">Max Uses</Label>
+                      <Input
+                        id="edit_max_uses"
+                        type="number"
+                        value={onboardingFormData.max_uses}
+                        onChange={(e) => setOnboardingFormData(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 100 }))}
+                        min="1"
+                        max="1000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_description">Description</Label>
+                    <Textarea
+                      id="edit_description"
+                      value={onboardingFormData.description}
+                      onChange={(e) => setOnboardingFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="e.g., Join my contact list to receive event invitations and updates"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_expires_at">Expires At (Optional)</Label>
+                    <Input
+                      id="edit_expires_at"
+                      type="datetime-local"
+                      value={onboardingFormData.expires_at}
+                      onChange={(e) => setOnboardingFormData(prev => ({ ...prev, expires_at: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setIsEditLinkDialogOpen(false)
+                        setEditingLink(null)
+                        setOnboardingFormData({
+                          title: "",
+                          description: "",
+                          expires_at: "",
+                          max_uses: 100,
+                        })
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="flex-1">
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Update Link
+                    </Button>
+                  </div>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
