@@ -24,9 +24,9 @@ export async function PUT(
     const contactData = await request.json()
     
     // Validate required fields
-    if (!contactData.first_name || !contactData.last_name || !contactData.email) {
+    if (!contactData.first_name || !contactData.email) {
       return NextResponse.json(
-        { message: 'First name, last name, and email are required' },
+        { message: 'First name and email are required' },
         { status: 400 }
       )
     }

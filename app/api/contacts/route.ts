@@ -117,9 +117,9 @@ export async function POST(request: Request) {
     const { first_name, last_name, email, phone, telegram_chat_id, category, notes } = body
 
     // Validate required fields
-    if (!first_name || !last_name || !email) {
+    if (!first_name || !email) {
       return new NextResponse(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'First name and email are required' }),
         { 
           status: 400,
           headers: {
