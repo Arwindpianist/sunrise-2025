@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { ArrowLeft, Send, CheckCircle, XCircle, Clock, Settings, Bug, Zap } from "lucide-react"
+import { ArrowLeft, Send, CheckCircle, XCircle, Clock, Settings, Bug, Zap, TestTube } from "lucide-react"
 
 interface TelegramLog {
   id: string
@@ -49,6 +49,7 @@ export default function TelegramLogsPage() {
   const [isDiagnosing, setIsDiagnosing] = useState(false)
   const [diagnosticData, setDiagnosticData] = useState<any>(null)
   const [isTestingWebhook, setIsTestingWebhook] = useState(false)
+  const [isTestingSetup, setIsTestingSetup] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -321,6 +322,41 @@ export default function TelegramLogsPage() {
     }
   }
 
+  const handleTestSetup = async () => {
+    try {
+      setIsTestingSetup(true)
+      
+      const response = await fetch("/api/telegram/setup-webhook-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to test webhook setup")
+      }
+
+      console.log("Setup test result:", data)
+      
+      toast({
+        title: "Setup Test Complete",
+        description: "Check the console for detailed results.",
+      })
+    } catch (error: any) {
+      console.error("Error testing setup:", error)
+      toast({
+        title: "Setup Test Failed",
+        description: error.message || "Failed to test setup",
+        variant: "destructive",
+      })
+    } finally {
+      setIsTestingSetup(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="container mx-auto px-4 py-6">
@@ -356,6 +392,15 @@ export default function TelegramLogsPage() {
               >
                 <Zap className="mr-2 h-4 w-4" />
                 {isTestingWebhook ? "Testing..." : "Test Webhook"}
+              </Button>
+              <Button
+                onClick={handleTestSetup}
+                disabled={isTestingSetup}
+                variant="outline"
+                className="border-purple-500 text-purple-600 hover:bg-purple-50"
+              >
+                <TestTube className="mr-2 h-4 w-4" />
+                {isTestingSetup ? "Testing..." : "Test Setup"}
               </Button>
               <Button
                 onClick={handleSetupWebhook}
