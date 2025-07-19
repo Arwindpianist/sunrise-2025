@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { ArrowLeft, Send, CheckCircle, XCircle, Clock, Settings, Bug } from "lucide-react"
+import { ArrowLeft, Send, CheckCircle, XCircle, Clock, Settings, Bug, Zap } from "lucide-react"
 
 interface TelegramLog {
   id: string
@@ -48,6 +48,7 @@ export default function TelegramLogsPage() {
   const [isSettingUpWebhook, setIsSettingUpWebhook] = useState(false)
   const [isDiagnosing, setIsDiagnosing] = useState(false)
   const [diagnosticData, setDiagnosticData] = useState<any>(null)
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -260,6 +261,62 @@ export default function TelegramLogsPage() {
     }
   }
 
+  const handleTestWebhook = async () => {
+    try {
+      setIsTestingWebhook(true)
+      
+      // Test GET request
+      const getResponse = await fetch("/api/telegram/webhook", {
+        method: "GET",
+      })
+      
+      console.log("Webhook GET test:", {
+        status: getResponse.status,
+        ok: getResponse.ok
+      })
+
+      // Test POST request with sample data
+      const postResponse = await fetch("/api/telegram/webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          test: true,
+          message: {
+            chat: { id: 123456789, type: "private" },
+            from: { first_name: "Test", username: "testuser" },
+            text: "test message"
+          }
+        })
+      })
+      
+      console.log("Webhook POST test:", {
+        status: postResponse.status,
+        ok: postResponse.ok
+      })
+
+      if (postResponse.ok) {
+        const responseData = await postResponse.json()
+        console.log("Webhook response:", responseData)
+      }
+      
+      toast({
+        title: "Webhook Test Complete",
+        description: "Check the console for test results.",
+      })
+    } catch (error: any) {
+      console.error("Error testing webhook:", error)
+      toast({
+        title: "Webhook Test Failed",
+        description: error.message || "Failed to test webhook",
+        variant: "destructive",
+      })
+    } finally {
+      setIsTestingWebhook(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="container mx-auto px-4 py-6">
@@ -277,7 +334,7 @@ export default function TelegramLogsPage() {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Telegram Logs</h1>
               <p className="text-gray-600 text-sm md:text-base">View your Telegram message history and delivery status</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={handleDiagnose}
                 disabled={isDiagnosing}
@@ -286,6 +343,15 @@ export default function TelegramLogsPage() {
               >
                 <Bug className="mr-2 h-4 w-4" />
                 {isDiagnosing ? "Diagnosing..." : "Diagnose Issues"}
+              </Button>
+              <Button
+                onClick={handleTestWebhook}
+                disabled={isTestingWebhook}
+                variant="outline"
+                className="border-green-500 text-green-600 hover:bg-green-50"
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                {isTestingWebhook ? "Testing..." : "Test Webhook"}
               </Button>
               <Button
                 onClick={handleSetupWebhook}

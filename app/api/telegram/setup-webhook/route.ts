@@ -37,29 +37,61 @@ export async function POST(request: Request) {
     const { origin } = new URL(request.url)
     const webhookUrl = `${origin}/api/telegram/webhook`
 
+    console.log("Request URL:", request.url)
+    console.log("Origin:", origin)
     console.log("Setting up webhook URL:", webhookUrl)
 
+    // Validate webhook URL
+    try {
+      new URL(webhookUrl)
+    } catch (error) {
+      console.error("Invalid webhook URL:", webhookUrl)
+      return new NextResponse(
+        JSON.stringify({ 
+          error: "Invalid webhook URL",
+          webhookUrl,
+          details: error instanceof Error ? error.message : "URL validation failed"
+        }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
     // Set the webhook with Telegram
+    console.log("Attempting to set webhook with URL:", webhookUrl)
+    
+    const webhookPayload = {
+      url: webhookUrl,
+      allowed_updates: ["message"],
+      drop_pending_updates: true,
+    }
+    
+    console.log("Webhook payload:", JSON.stringify(webhookPayload, null, 2))
+    
     const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        url: webhookUrl,
-        allowed_updates: ["message"],
-        drop_pending_updates: true,
-      }),
+      body: JSON.stringify(webhookPayload),
     })
 
+    console.log("Telegram response status:", telegramResponse.status)
+    console.log("Telegram response headers:", Object.fromEntries(telegramResponse.headers.entries()))
+
     const responseData = await telegramResponse.json()
+    console.log("Telegram response data:", JSON.stringify(responseData, null, 2))
 
     if (!telegramResponse.ok) {
       console.error("Error setting webhook:", responseData)
       return new NextResponse(
         JSON.stringify({ 
           error: "Failed to set webhook",
-          details: responseData
+          details: responseData,
+          status: telegramResponse.status,
+          webhookUrl
         }),
         { 
           status: 500,
@@ -88,8 +120,14 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error setting up webhook:", error)
+    console.error("Error stack:", error.stack)
     return new NextResponse(
-      JSON.stringify({ error: "Internal server error", details: error.message }),
+      JSON.stringify({ 
+        error: "Internal server error", 
+        details: error.message,
+        stack: error.stack,
+        name: error.name
+      }),
       { 
         status: 500,
         headers: { "Content-Type": "application/json" },
