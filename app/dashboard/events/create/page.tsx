@@ -16,21 +16,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
+import { emailTemplates, type EmailTemplateVars } from "@/components/email-templates"
+import { format } from "date-fns"
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const stripePromise = typeof window !== 'undefined' && window.location.protocol === 'https:' 
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+  : null
 
-const RECIPIENT_CATEGORIES = [
-  { id: "all", label: "All Contacts" },
-  { id: "family", label: "Family" },
-  { id: "friends", label: "Friends" },
-  { id: "colleagues", label: "Colleagues" },
-  { id: "clients", label: "Clients" },
-  { id: "vendors", label: "Vendors" },
-  { id: "custom", label: "Custom Category" },
-] as const
+interface Category {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
 
-type RecipientCategory = typeof RECIPIENT_CATEGORIES[number]["id"]
+type RecipientCategory = string
 type SendOption = "now" | "schedule"
 
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
@@ -61,6 +63,7 @@ export default function CreateEventPage() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [contactCount, setContactCount] = useState(0)
   const [userBalance, setUserBalance] = useState(0)
+  const [categories, setCategories] = useState<Category[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -72,6 +75,8 @@ export default function CreateEventPage() {
     sendOption: "now" as SendOption,
     scheduledSendTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
   })
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("")
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -83,18 +88,52 @@ export default function CreateEventPage() {
     } else {
       fetchContactCount()
       fetchUserBalance()
+      fetchCategories()
     }
   }, [user, router])
+
+  useEffect(() => {
+    if (user) {
+      fetchContactCount()
+    }
+  }, [formData.category, user])
+
+  // Update template when form data changes
+  useEffect(() => {
+    if (selectedTemplate) {
+      const template = emailTemplates.find(t => t.key === selectedTemplate)
+      if (template) {
+        const templateVars: EmailTemplateVars = {
+          firstName: "", // Will be replaced with actual contact name when sending
+          eventTitle: formData.title || "Sample Event",
+          eventDescription: formData.description || "",
+          eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+          eventLocation: formData.location || "Sample Location",
+          hostName: user?.user_metadata?.full_name || "Your Name",
+          customMessage: formData.description || "",
+        }
+        const generatedTemplate = template.template(templateVars)
+        setFormData(prev => ({ ...prev, emailTemplate: generatedTemplate }))
+      }
+    }
+  }, [selectedTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
 
   const fetchContactCount = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      const { count, error } = await supabase
+      let contactsQuery = supabase
         .from('contacts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
+
+      // Filter by selected category if not "all"
+      if (formData.category && formData.category !== "all") {
+        contactsQuery = contactsQuery.eq('category', formData.category)
+      }
+
+      const { count, error } = await contactsQuery
 
       if (error) throw error
       setContactCount(count || 0)
@@ -115,6 +154,17 @@ export default function CreateEventPage() {
       setUserBalance(data?.balance || 0)
     } catch (error) {
       console.error('Error fetching user balance:', error)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/contacts/categories")
+      if (!response.ok) throw new Error("Failed to fetch categories")
+      const data = await response.json()
+      setCategories(data)
+    } catch (error) {
+      console.error('Error fetching categories:', error)
     }
   }
 
@@ -161,12 +211,18 @@ export default function CreateEventPage() {
         description: formData.description,
         event_date: formData.eventDate.toISOString(),
         location: formData.location,
-        category: formData.category,
+        category: formData.category === "all" ? "general" : formData.category,
         email_subject: formData.emailSubject,
         email_template: formData.emailTemplate,
         status: formData.sendOption === "now" ? "draft" : "draft",
         scheduled_send_time: formData.sendOption === "schedule" ? formData.scheduledSendTime.toISOString() : null,
       }
+
+      console.log("Event data being sent:", eventData)
+      console.log("Selected category:", formData.category)
+      console.log("Category being stored:", eventData.category)
+      console.log("Available categories:", categories.map(c => c.name))
+      console.log("Category names:", categories.map(c => c.name))
 
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -174,15 +230,16 @@ export default function CreateEventPage() {
         .select()
         .single()
 
-      if (eventError) throw eventError
+      if (eventError) {
+        console.error("Event creation error details:", eventError)
+        throw eventError
+      }
 
       // Deduct tokens from user balance
       const { error: balanceError } = await supabase
         .from('user_balances')
-        .upsert({
-          user_id: session.user.id,
-          balance: userBalance - contactCount,
-        })
+        .update({ balance: userBalance - contactCount })
+        .eq('user_id', session.user.id)
 
       if (balanceError) throw balanceError
 
@@ -221,6 +278,40 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }, [])
 
+  const handleTemplateSelect = useCallback((templateKey: string) => {
+    setSelectedTemplate(templateKey)
+    const template = emailTemplates.find(t => t.key === templateKey)
+    if (template) {
+      const templateVars: EmailTemplateVars = {
+        firstName: "", // Will be replaced with actual contact name when sending
+        eventTitle: formData.title || "Sample Event",
+        eventDescription: formData.description || "",
+        eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+        eventLocation: formData.location || "Sample Location",
+        hostName: user?.user_metadata?.full_name || "Your Name",
+        customMessage: formData.description || "",
+      }
+      const generatedTemplate = template.template(templateVars)
+      setFormData(prev => ({ ...prev, emailTemplate: generatedTemplate }))
+    }
+  }, [formData.title, formData.description, formData.eventDate, formData.location, user])
+
+  const getTemplatePreview = () => {
+    const template = emailTemplates.find(t => t.key === selectedTemplate)
+    if (!template) return ""
+    
+    const templateVars: EmailTemplateVars = {
+      firstName: "", // Will be replaced with actual contact name when sending
+      eventTitle: formData.title || "Sample Event",
+      eventDescription: formData.description || "",
+      eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+      eventLocation: formData.location || "Sample Location",
+      hostName: user?.user_metadata?.full_name || "Your Name",
+      customMessage: formData.description || "",
+    }
+    return template.template(templateVars)
+  }
+
   const handlePayment = async () => {
     try {
       setIsLoading(true)
@@ -243,7 +334,14 @@ export default function CreateEventPage() {
 
       // Load Stripe
       const stripe = await stripePromise
-      if (!stripe) throw new Error("Stripe failed to load")
+      if (!stripe) {
+        toast({
+          title: "Payment Error",
+          description: "Stripe is not available in development mode. Please use HTTPS in production.",
+          variant: "destructive",
+        })
+        return
+      }
 
       // Confirm payment
       const { error: stripeError } = await stripe.confirmPayment({
@@ -333,9 +431,10 @@ export default function CreateEventPage() {
                   onChange={(e) => handleInputChange("category", e.target.value as RecipientCategory)}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
                 >
-                  {RECIPIENT_CATEGORIES.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.label}
+                  <option value="all">All Contacts</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
@@ -354,15 +453,71 @@ export default function CreateEventPage() {
                 />
               </div>
 
+              <div className="space-y-4">
+                <Label>Email Template</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {emailTemplates.map((template) => (
+                    <button
+                      key={template.key}
+                      type="button"
+                      onClick={() => handleTemplateSelect(template.key)}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                        selectedTemplate === template.key
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{template.label}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {template.key === "birthday" && "🎉"}
+                        {template.key === "openHouse" && "🏡"}
+                        {template.key === "wedding" && "💍"}
+                        {template.key === "meeting" && "📅"}
+                        {template.key === "babyShower" && "👶"}
+                        {template.key === "generic" && "📧"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {selectedTemplate && (
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTemplatePreview(true)}
+                    >
+                      Preview Template
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTemplate("")
+                        setFormData(prev => ({ ...prev, emailTemplate: "" }))
+                      }}
+                    >
+                      Clear Template
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="emailTemplate">Email Template</Label>
+                <Label htmlFor="emailTemplate">Email Template HTML</Label>
                 <Textarea
                   id="emailTemplate"
                   value={formData.emailTemplate}
                   onChange={(e) => handleInputChange("emailTemplate", e.target.value)}
-                  placeholder="Enter email template"
-                  rows={6}
+                  placeholder="Select a template above or enter custom HTML"
+                  rows={8}
+                  className="font-mono text-sm"
                 />
+                <p className="text-xs text-gray-500">
+                  You can customize the template HTML above. Use {'{{firstName}}'}, {'{{eventTitle}}'}, {'{{eventDate}}'}, {'{{eventLocation}}'} as placeholders.
+                </p>
               </div>
 
               <div className="space-y-4">
@@ -462,6 +617,9 @@ export default function CreateEventPage() {
         <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle>Purchase Additional Tokens</DialogTitle>
+            <DialogDescription>
+              Purchase additional tokens to create this event. You need {contactCount} tokens to send emails to all contacts in the selected category.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="mb-4 text-center">
@@ -484,6 +642,31 @@ export default function CreateEventPage() {
                 className="w-full h-12 md:h-10"
               >
                 Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
+        <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm">
+          <DialogHeader>
+            <DialogTitle>Email Template Preview</DialogTitle>
+            <DialogDescription>
+              Preview how your email will look when sent to recipients.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div 
+              className="border rounded-lg p-4 max-h-96 overflow-y-auto"
+              dangerouslySetInnerHTML={{ __html: getTemplatePreview() }}
+            />
+            <div className="mt-4 flex justify-end">
+              <Button 
+                variant="outline"
+                onClick={() => setShowTemplatePreview(false)}
+              >
+                Close Preview
               </Button>
             </div>
           </div>

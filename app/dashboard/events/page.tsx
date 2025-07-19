@@ -112,11 +112,22 @@ export default function EventsPage() {
         throw eventError
       }
 
-      // Get contacts for the event
-      const { data: contacts, error: contactsError } = await supabase
+      // Get contacts for the event based on the event's category
+      let contactsQuery = supabase
         .from("contacts")
         .select("*")
         .eq("user_id", session.user.id)
+
+      // Filter by category if event has a category (no category means "all")
+      if (event.category) {
+        contactsQuery = contactsQuery.eq("category", event.category)
+      }
+
+      const { data: contacts, error: contactsError } = await contactsQuery
+
+      console.log("Event category:", event.category)
+      console.log("Found contacts:", contacts?.length || 0)
+      console.log("Contact categories:", contacts?.map(c => c.category))
 
       if (contactsError) {
         throw contactsError
@@ -137,19 +148,23 @@ export default function EventsPage() {
         throw eventContactsError
       }
 
-      // Update event status
-      const { error: updateError } = await supabase
-        .from("events")
-        .update({ status: "scheduled" })
-        .eq("id", eventId)
+      // Actually send the emails immediately
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ eventId }),
+      })
 
-      if (updateError) {
-        throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to send emails")
       }
 
       toast({
         title: "Success!",
-        description: "Emails have been scheduled for sending.",
+        description: "Emails have been sent successfully.",
       })
 
       fetchEvents()
@@ -308,12 +323,10 @@ export default function EventsPage() {
                         </div>
                       )}
                       
-                      {event.category && (
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Tag className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <span className="capitalize">{event.category}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Tag className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="capitalize">{event.category ? event.category : "All Contacts"}</span>
+                      </div>
                     </div>
 
                     <div className="pt-3 border-t border-gray-200">

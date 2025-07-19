@@ -6,12 +6,16 @@ import { Resend } from "resend"
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sunrise-2025.arwindpianist.store"
 
+// Check if Resend API key is configured
+if (!process.env.RESEND_API_KEY) {
+  console.error("RESEND_API_KEY is not configured")
+}
+
 export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ cookies })
 
     // Get the session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -69,6 +73,7 @@ export async function POST(request: Request) {
       .select(`
         *,
         contacts (
+          id,
           email,
           first_name,
           last_name
@@ -90,16 +95,20 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log(`Found ${eventContacts?.length || 0} pending event contacts for event ${eventId}`)
+
     // Send emails to each contact
     for (const eventContact of eventContacts) {
       try {
         const contact = eventContact.contacts
+        console.log(`Sending email to ${contact.email} for event ${eventId}`)
+        
         const emailTemplate = event.email_template
-          .replace("{{firstName}}", contact.first_name)
-          .replace("{{lastName}}", contact.last_name)
+          .replace("{{firstName}}", contact.first_name || "")
+          .replace("{{lastName}}", contact.last_name || "")
           .replace("{{eventTitle}}", event.title)
           .replace("{{eventDate}}", new Date(event.event_date).toLocaleDateString())
-          .replace("{{eventLocation}}", event.location)
+          .replace("{{eventLocation}}", event.location || "")
 
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: `Sunrise <${FROM_EMAIL}>`,
@@ -109,8 +118,11 @@ export async function POST(request: Request) {
         })
 
         if (emailError) {
+          console.error("Resend error:", emailError)
           throw emailError
         }
+
+        console.log(`Email sent successfully to ${contact.email}`)
 
         // Update event contact status
         const { error: updateError } = await supabase

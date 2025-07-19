@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut, Shield } from "lucide-react"
+import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
 
@@ -96,6 +96,18 @@ export function DashboardNav() {
         >
           <Coins className="mr-2 h-4 w-4" />
           Balance
+        </Button>
+      </Link>
+      <Link href="/dashboard/email-logs">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start",
+            pathname.startsWith("/dashboard/email-logs") && "bg-accent"
+          )}
+        >
+          <Mail className="mr-2 h-4 w-4" />
+          Email Logs
         </Button>
       </Link>
       {isAdmin && (

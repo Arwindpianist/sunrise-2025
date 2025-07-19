@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { format, isValid } from "date-fns"
 import { ArrowLeft, Send, Trash2 } from "lucide-react"
+import EmailTemplatePreview from "@/components/email-template-preview"
 
 interface Event {
   id: string
@@ -18,16 +19,19 @@ interface Event {
   status: "draft" | "scheduled" | "sent" | "cancelled"
   email_subject: string
   email_template: string
-  scheduled_send_time: string
+  scheduled_send_time: string | null
   created_at: string
+  category?: string
 }
 
-const formatDate = (dateString: string, formatStr: string) => {
+const formatDate = (dateString: string | null, formatStr: string) => {
+  if (!dateString) return "Not scheduled"
   const date = new Date(dateString)
   return isValid(date) ? format(date, formatStr) : "Invalid date"
 }
 
-export default function EventDetailsPage({ params }: { params: { id: string } }) {
+export default function EventDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const { supabase } = useSupabase()
   const [event, setEvent] = useState<Event | null>(null)
@@ -36,7 +40,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     fetchEvent()
-  }, [params.id])
+  }, [id])
 
   const fetchEvent = async () => {
     try {
@@ -49,7 +53,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", id)
         .eq("user_id", session.user.id)
         .single()
 
@@ -88,11 +92,22 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         throw new Error("Not authenticated")
       }
 
-      // Get contacts for the event
-      const { data: contacts, error: contactsError } = await supabase
+      // Get contacts for the event based on the event's category
+      let contactsQuery = supabase
         .from("contacts")
         .select("*")
         .eq("user_id", session.user.id)
+
+      // Filter by category if event has a category (no category means "all")
+      if (event && event.category) {
+        contactsQuery = contactsQuery.eq("category", event.category)
+      }
+
+      const { data: contacts, error: contactsError } = await contactsQuery
+
+      console.log("Event category:", event?.category)
+      console.log("Found contacts:", contacts?.length || 0)
+      console.log("Contact categories:", contacts?.map(c => c.category))
 
       if (contactsError) {
         throw contactsError
@@ -100,7 +115,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
 
       // Create event contacts
       const eventContacts = contacts.map((contact) => ({
-        event_id: params.id,
+        event_id: id,
         contact_id: contact.id,
         status: "pending",
       }))
@@ -113,19 +128,23 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         throw eventContactsError
       }
 
-      // Update event status
-      const { error: updateError } = await supabase
-        .from("events")
-        .update({ status: "scheduled" })
-        .eq("id", params.id)
+      // Actually send the emails immediately
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ eventId: id }),
+      })
 
-      if (updateError) {
-        throw updateError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to send emails")
       }
 
       toast({
         title: "Success!",
-        description: "Emails have been scheduled for sending.",
+        description: "Emails have been sent successfully.",
       })
 
       fetchEvent()
@@ -146,7 +165,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
       const { error } = await supabase
         .from("events")
         .delete()
-        .eq("id", params.id)
+        .eq("id", id)
 
       if (error) {
         throw error
@@ -239,10 +258,11 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
             </div>
 
             <div>
-              <h3 className="font-medium mb-2">Email Template</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {event.email_template}
-              </p>
+              <EmailTemplatePreview 
+                htmlContent={event.email_template}
+                subject={event.email_subject}
+                title="Email Template"
+              />
             </div>
 
             <div className="flex justify-end space-x-4 pt-4">

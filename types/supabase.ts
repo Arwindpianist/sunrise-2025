@@ -52,6 +52,7 @@ export interface Database {
           description: string | null
           event_date: string
           location: string | null
+          category: string | null
           created_at: string
           updated_at: string
           status: string
@@ -66,6 +67,7 @@ export interface Database {
           description?: string | null
           event_date: string
           location?: string | null
+          category?: string | null
           created_at?: string
           updated_at?: string
           status?: string
@@ -80,12 +82,120 @@ export interface Database {
           description?: string | null
           event_date?: string
           location?: string | null
+          category?: string | null
           created_at?: string
           updated_at?: string
           status?: string
           email_template?: string | null
           email_subject?: string | null
           scheduled_send_time?: string | null
+        }
+      }
+      email_logs: {
+        Row: {
+          id: string
+          event_id: string
+          contact_id: string
+          status: string
+          error_message: string | null
+          sent_at: string
+          opened_at: string | null
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          contact_id: string
+          status: string
+          error_message?: string | null
+          sent_at?: string
+          opened_at?: string | null
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          contact_id?: string
+          status?: string
+          error_message?: string | null
+          sent_at?: string
+          opened_at?: string | null
+        }
+      }
+      event_contacts: {
+        Row: {
+          id: string
+          event_id: string
+          contact_id: string
+          status: string
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          contact_id: string
+          status?: string
+          sent_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          contact_id?: string
+          status?: string
+          sent_at?: string | null
+          created_at?: string
+        }
+      }
+      user_balances: {
+        Row: {
+          id: string
+          user_id: string
+          balance: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      transactions: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          amount: number
+          description: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          amount: number
+          description?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          amount?: number
+          description?: string | null
+          status?: string
+          created_at?: string
         }
       }
     }

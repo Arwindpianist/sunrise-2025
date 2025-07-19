@@ -120,3 +120,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .email-preview {
+    /* Ensure email content renders properly */
+    line-height: 1.6;
+  }
+  
+  .email-preview h1,
+  .email-preview h2,
+  .email-preview h3,
+  .email-preview h4,
+  .email-preview h5,
+  .email-preview h6 {
+    margin-top: 0;
+    margin-bottom: 0.5em;
+  }
+  
+  .email-preview p {
+    margin-top: 0;
+    margin-bottom: 1em;
+  }
+  
+  .email-preview div {
+    /* Ensure divs render properly in email preview */
+    display: block;
+  }
+}
