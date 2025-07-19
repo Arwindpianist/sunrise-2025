@@ -15,7 +15,13 @@ export async function POST(request: Request) {
     const { message } = body
     
     if (!message) {
-      return new NextResponse("OK", { status: 200 })
+      return new NextResponse(
+        JSON.stringify({ status: "ok", message: "No message data" }),
+        { 
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
     }
 
     const { chat, text, from } = message
@@ -98,15 +104,41 @@ Need help? Send "help" for more information.`
       console.log(`Response sent successfully to chat ${chatId}`)
     }
 
-    return new NextResponse("OK", { status: 200 })
+    return new NextResponse(
+      JSON.stringify({ status: "ok", message: "Webhook processed successfully" }),
+      { 
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
 
   } catch (error: any) {
     console.error("Error processing Telegram webhook:", error)
-    return new NextResponse("Error", { status: 500 })
+    return new NextResponse(
+      JSON.stringify({ 
+        status: "error", 
+        message: "Error processing webhook",
+        error: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
   }
 }
 
 // Handle GET requests (for webhook verification)
 export async function GET(request: Request) {
-  return new NextResponse("Telegram Webhook Endpoint", { status: 200 })
+  return new NextResponse(
+    JSON.stringify({ 
+      status: "ok", 
+      message: "Telegram Webhook Endpoint",
+      timestamp: new Date().toISOString()
+    }),
+    { 
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  )
 } 

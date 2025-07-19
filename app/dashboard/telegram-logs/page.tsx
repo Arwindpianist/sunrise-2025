@@ -297,8 +297,12 @@ export default function TelegramLogsPage() {
       })
 
       if (postResponse.ok) {
-        const responseData = await postResponse.json()
-        console.log("Webhook response:", responseData)
+        try {
+          const responseData = await postResponse.json()
+          console.log("Webhook response:", responseData)
+        } catch (error) {
+          console.log("Webhook response (non-JSON):", await postResponse.text())
+        }
       }
       
       toast({
