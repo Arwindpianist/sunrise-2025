@@ -72,6 +72,7 @@ export async function PUT(
         last_name: contactData.last_name,
         email: contactData.email,
         phone: contactData.phone || null,
+        telegram_chat_id: contactData.telegram_chat_id || null,
         category: contactData.category || 'other',
         notes: contactData.notes || null,
       })

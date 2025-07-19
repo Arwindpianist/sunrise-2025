@@ -338,6 +338,9 @@ export default function ContactsPage() {
         category: formData.category === "__no_category__" ? "" : formData.category,
       }
 
+      console.log("Updating contact with data:", contactData)
+      console.log("Contact ID:", editingContact.id)
+
       const response = await fetch(`/api/contacts/${editingContact.id}`, {
         method: "PUT",
         headers: {
@@ -346,7 +349,16 @@ export default function ContactsPage() {
         body: JSON.stringify(contactData),
       })
 
-      if (!response.ok) throw new Error("Failed to update contact")
+      console.log("Update response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Update error data:", errorData)
+        throw new Error(errorData.message || "Failed to update contact")
+      }
+
+      const updatedContact = await response.json()
+      console.log("Updated contact:", updatedContact)
 
       toast({
         title: "Success",
@@ -357,6 +369,7 @@ export default function ContactsPage() {
       setEditingContact(null)
       fetchContacts()
     } catch (error: any) {
+      console.error("Error updating contact:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to update contact",

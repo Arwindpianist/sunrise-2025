@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { first_name, last_name, email, phone, category, notes } = body
+    const { first_name, last_name, email, phone, telegram_chat_id, category, notes } = body
 
     // Validate required fields
     if (!first_name || !last_name || !email) {
@@ -139,6 +139,7 @@ export async function POST(request: Request) {
           last_name,
           email,
           phone,
+          telegram_chat_id,
           category,
           notes,
         },
