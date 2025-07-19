@@ -204,7 +204,7 @@ export default function ContactsPage() {
     if (!editingLink) return
 
     try {
-      const response = await fetch(`/api/onboarding-links/${editingLink.id}`, {
+      const response = await fetch(`/api/onboarding-links/manage/${editingLink.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -248,7 +248,7 @@ export default function ContactsPage() {
 
     setIsDeletingLink(true)
     try {
-      const response = await fetch(`/api/onboarding-links/${linkId}`, {
+      const response = await fetch(`/api/onboarding-links/manage/${linkId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
