@@ -594,140 +594,15 @@ export default function ContactsPage() {
               </DialogContent>
             </Dialog>
 
+
+
             <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="h-12 md:h-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white">
+                <Button variant="outline" size="sm" className="h-12 md:h-10">
                   <LinkIcon className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Onboarding Link</span>
-                  <span className="md:hidden">Link</span>
+                  <span className="hidden md:inline">Onboarding</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Contact</DialogTitle>
-                  <DialogDescription>
-                    Fill in the contact details below.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddContact} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="first_name" className="text-sm font-medium">
-                        First Name *
-                      </label>
-                      <Input
-                        id="first_name"
-                        name="first_name"
-                        value={formData.first_name}
-                        onChange={handleFormChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label htmlFor="last_name" className="text-sm font-medium">
-                        Last Name
-                      </label>
-                      <Input
-                        id="last_name"
-                        name="last_name"
-                        value={formData.last_name}
-                        onChange={handleFormChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-medium">
-                      Email *
-                    </label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleFormChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="phone" className="text-sm font-medium">
-                      Phone
-                    </label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleFormChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="telegram_chat_id" className="text-sm font-medium">
-                      Telegram Chat ID
-                    </label>
-                    <Input
-                      id="telegram_chat_id"
-                      name="telegram_chat_id"
-                      value={formData.telegram_chat_id}
-                      onChange={handleFormChange}
-                      placeholder="e.g., 123456789"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Optional: Allows sending Telegram messages to this contact
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="category" className="text-sm font-medium">
-                      Category
-                    </label>
-                    <Select
-                      value={formData.category || "__no_category__"}
-                      onValueChange={handleCategoryChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__no_category__">No category</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: category.color }}
-                              />
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="notes" className="text-sm font-medium">
-                      Notes
-                    </label>
-                    <Textarea
-                      id="notes"
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleFormChange}
-                      rows={4}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Adding..." : "Add Contact"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Create Onboarding Link</DialogTitle>
@@ -970,6 +845,18 @@ export default function ContactsPage() {
                           <Edit2 className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
+                        {!contact.telegram_chat_id && (
+                          <DropdownMenuItem onClick={() => {
+                            setIsOnboardingDialogOpen(true)
+                            toast({
+                              title: "Get Telegram Chat ID",
+                              description: "Create an onboarding link to help this contact get their Telegram Chat ID",
+                            })
+                          }}>
+                            <LinkIcon className="h-4 w-4 mr-2" />
+                            Get Telegram ID
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => handleDeleteContact(contact.id)}
                           className="text-red-600"
@@ -992,6 +879,33 @@ export default function ContactsPage() {
                       <div className="flex items-center text-sm text-gray-600">
                         <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
                         <span className="truncate">{contact.phone}</span>
+                      </div>
+                    )}
+                    {contact.telegram_chat_id ? (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <LinkIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">Telegram: {contact.telegram_chat_id}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <LinkIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span>No Telegram ID</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            openEditDialog(contact)
+                            toast({
+                              title: "Add Telegram Chat ID",
+                              description: "You can now add the Telegram Chat ID for this contact",
+                            })
+                          }}
+                        >
+                          Add ID
+                        </Button>
                       </div>
                     )}
                     {contact.notes && (
@@ -1069,6 +983,33 @@ export default function ContactsPage() {
                   onChange={handleFormChange}
                   placeholder="+60 12-345 6789"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="edit_telegram_chat_id" className="text-sm font-medium">
+                  Telegram Chat ID
+                </label>
+                <Input
+                  id="edit_telegram_chat_id"
+                  name="telegram_chat_id"
+                  value={formData.telegram_chat_id}
+                  onChange={handleFormChange}
+                  placeholder="e.g., 123456789"
+                />
+                <p className="text-xs text-gray-500">
+                  Optional: Allows sending Telegram messages to this contact. 
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-xs text-blue-600 hover:text-blue-800"
+                    onClick={() => {
+                      // Open onboarding link dialog to help user get chat ID
+                      setIsOnboardingDialogOpen(true)
+                    }}
+                  >
+                    Need help getting Chat ID?
+                  </Button>
+                </p>
               </div>
 
               <div className="space-y-2">
