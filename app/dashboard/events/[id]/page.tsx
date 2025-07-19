@@ -19,6 +19,9 @@ interface Event {
   status: "draft" | "scheduled" | "sent" | "cancelled"
   email_subject: string
   email_template: string
+  telegram_template: string | null
+  send_email: boolean
+  send_telegram: boolean
   scheduled_send_time: string | null
   created_at: string
   category?: string
@@ -82,7 +85,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  const handleSendEmails = async () => {
+  const handleSendMessages = async () => {
     try {
       setIsSending(true)
 
@@ -128,31 +131,53 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         throw eventContactsError
       }
 
-      // Actually send the emails immediately
-      const response = await fetch("/api/email/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId: id }),
-      })
+      // Send emails if enabled
+      if (event?.send_email) {
+        const emailResponse = await fetch("/api/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: id }),
+        })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to send emails")
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json()
+          throw new Error(errorData.error || "Failed to send emails")
+        }
       }
+
+      // Send Telegram messages if enabled
+      if (event?.send_telegram) {
+        const telegramResponse = await fetch("/api/telegram/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: id }),
+        })
+
+        if (!telegramResponse.ok) {
+          const errorData = await telegramResponse.json()
+          throw new Error(errorData.error || "Failed to send Telegram messages")
+        }
+      }
+
+      const messageTypes = []
+      if (event?.send_email) messageTypes.push("emails")
+      if (event?.send_telegram) messageTypes.push("Telegram messages")
 
       toast({
         title: "Success!",
-        description: "Emails have been sent successfully.",
+        description: `${messageTypes.join(" and ")} have been sent successfully.`,
       })
 
       fetchEvent()
     } catch (error: any) {
-      console.error("Error sending emails:", error)
+      console.error("Error sending messages:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to send emails",
+        description: error.message || "Failed to send messages",
         variant: "destructive",
       })
     } finally {
@@ -252,28 +277,60 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
+            {/* Communication Methods */}
             <div>
-              <h3 className="font-medium mb-2">Email Subject</h3>
-              <p className="text-muted-foreground">{event.email_subject}</p>
+              <h3 className="font-medium mb-2">Communication Methods</h3>
+              <div className="flex gap-2">
+                {event.send_email && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    📧 Email
+                  </span>
+                )}
+                {event.send_telegram && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    📱 Telegram
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div>
-              <EmailTemplatePreview 
-                htmlContent={event.email_template}
-                subject={event.email_subject}
-                title="Email Template"
-              />
-            </div>
+            {/* Email Section - Only show if email is enabled */}
+            {event.send_email && (
+              <>
+                <div>
+                  <h3 className="font-medium mb-2">Email Subject</h3>
+                  <p className="text-muted-foreground">{event.email_subject}</p>
+                </div>
+
+                <div>
+                  <EmailTemplatePreview 
+                    htmlContent={event.email_template}
+                    subject={event.email_subject}
+                    title="Email Template"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Telegram Section - Only show if Telegram is enabled */}
+            {event.send_telegram && (
+              <div>
+                <h3 className="font-medium mb-2">Telegram Template</h3>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">{event.telegram_template || "No template set"}</pre>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-4 pt-4">
               {event.status === "draft" && (
                 <Button
                   variant="outline"
-                  onClick={handleSendEmails}
+                  onClick={handleSendMessages}
                   disabled={isSending}
                 >
                   <Send className="mr-2 h-4 w-4" />
-                  {isSending ? "Scheduling..." : "Send Emails"}
+                  {isSending ? "Sending..." : "Send Messages"}
                 </Button>
               )}
               <Button

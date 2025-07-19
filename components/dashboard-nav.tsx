@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail } from "lucide-react"
+import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
 
@@ -108,6 +108,18 @@ export function DashboardNav() {
         >
           <Mail className="mr-2 h-4 w-4" />
           Email Logs
+        </Button>
+      </Link>
+      <Link href="/dashboard/telegram-logs">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start",
+            pathname.startsWith("/dashboard/telegram-logs") && "bg-accent"
+          )}
+        >
+          <Send className="mr-2 h-4 w-4" />
+          Telegram Logs
         </Button>
       </Link>
       {isAdmin && (

@@ -19,7 +19,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { emailTemplates, type EmailTemplateVars } from "@/components/email-templates"
+import { telegramTemplates, type TelegramTemplateVars } from "@/components/telegram-templates"
 import { format } from "date-fns"
+import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight } from "lucide-react"
 
 const stripePromise = typeof window !== 'undefined' && window.location.protocol === 'https:' 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -35,7 +37,49 @@ interface Category {
 type RecipientCategory = string
 type SendOption = "now" | "schedule"
 
+interface CommunicationMethod {
+  id: string
+  name: string
+  icon: React.ReactNode
+  description: string
+  available: boolean
+  comingSoon?: boolean
+}
+
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
+
+const communicationMethods: CommunicationMethod[] = [
+  {
+    id: "email",
+    name: "Email",
+    icon: <Mail className="h-6 w-6" />,
+    description: "Professional email invitations with rich formatting",
+    available: true,
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    icon: <Send className="h-6 w-6" />,
+    description: "Instant messaging for quick delivery",
+    available: true,
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: <MessageCircle className="h-6 w-6" />,
+    description: "Direct WhatsApp Business messages",
+    available: false,
+    comingSoon: true,
+  },
+  {
+    id: "sms",
+    name: "SMS",
+    icon: <Smartphone className="h-6 w-6" />,
+    description: "Traditional text messages",
+    available: false,
+    comingSoon: true,
+  },
+]
 
 const validateDates = (eventDate: Date, scheduledSendTime: Date) => {
   const now = new Date()
@@ -61,9 +105,11 @@ export default function CreateEventPage() {
   const [mounted, setMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showOnboardingModal, setShowOnboardingModal] = useState(true)
   const [contactCount, setContactCount] = useState(0)
   const [userBalance, setUserBalance] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -72,10 +118,14 @@ export default function CreateEventPage() {
     category: "all" as RecipientCategory,
     emailSubject: "",
     emailTemplate: "",
+    telegramTemplate: "",
+    sendEmail: true,
+    sendTelegram: false,
     sendOption: "now" as SendOption,
     scheduledSendTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
   })
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("")
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<string>("")
+  const [selectedTelegramTemplate, setSelectedTelegramTemplate] = useState<string>("")
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   useEffect(() => {
@@ -86,22 +136,21 @@ export default function CreateEventPage() {
     if (!user) {
       router.push('/login')
     } else {
-      fetchContactCount()
       fetchUserBalance()
       fetchCategories()
     }
   }, [user, router])
 
   useEffect(() => {
-    if (user) {
+    if (user && selectedMethods.length > 0) {
       fetchContactCount()
     }
-  }, [formData.category, user])
+  }, [selectedMethods, formData.category, user])
 
-  // Update template when form data changes
+  // Update email template when form data changes
   useEffect(() => {
-    if (selectedTemplate) {
-      const template = emailTemplates.find(t => t.key === selectedTemplate)
+    if (selectedEmailTemplate) {
+      const template = emailTemplates.find(t => t.key === selectedEmailTemplate)
       if (template) {
         const templateVars: EmailTemplateVars = {
           firstName: "", // Will be replaced with actual contact name when sending
@@ -116,7 +165,56 @@ export default function CreateEventPage() {
         setFormData(prev => ({ ...prev, emailTemplate: generatedTemplate }))
       }
     }
-  }, [selectedTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
+  }, [selectedEmailTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
+
+  // Update telegram template when form data changes
+  useEffect(() => {
+    if (selectedTelegramTemplate) {
+      const template = telegramTemplates.find(t => t.key === selectedTelegramTemplate)
+      if (template) {
+        const templateVars: TelegramTemplateVars = {
+          firstName: "", // Will be replaced with actual contact name when sending
+          eventTitle: formData.title || "Sample Event",
+          eventDescription: formData.description || "",
+          eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+          eventLocation: formData.location || "Sample Location",
+          hostName: user?.user_metadata?.full_name || "Your Name",
+          customMessage: formData.description || "",
+        }
+        const generatedTemplate = template.template(templateVars)
+        setFormData(prev => ({ ...prev, telegramTemplate: generatedTemplate }))
+      }
+    }
+  }, [selectedTelegramTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
+
+  const handleMethodSelection = (methodId: string) => {
+    setSelectedMethods(prev => {
+      if (prev.includes(methodId)) {
+        return prev.filter(id => id !== methodId)
+      } else {
+        return [...prev, methodId]
+      }
+    })
+  }
+
+  const handleContinueToForm = () => {
+    if (selectedMethods.length === 0) {
+      toast({
+        title: "No Method Selected",
+        description: "Please select at least one communication method.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Update form data based on selected methods
+    const newFormData = { ...formData }
+    newFormData.sendEmail = selectedMethods.includes('email')
+    newFormData.sendTelegram = selectedMethods.includes('telegram')
+    
+    setFormData(newFormData)
+    setShowOnboardingModal(false)
+  }
 
   const fetchContactCount = async () => {
     try {
@@ -136,7 +234,29 @@ export default function CreateEventPage() {
       const { count, error } = await contactsQuery
 
       if (error) throw error
-      setContactCount(count || 0)
+      
+      // Calculate total cost based on selected sending methods
+      let totalCost = 0
+      if (selectedMethods.includes('email')) {
+        totalCost += count || 0
+      }
+      if (selectedMethods.includes('telegram')) {
+        // For Telegram, we need to count only contacts with phone numbers
+        let telegramContactsQuery = supabase
+          .from('contacts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .not('phone', 'is', null)
+
+        if (formData.category && formData.category !== "all") {
+          telegramContactsQuery = telegramContactsQuery.eq('category', formData.category)
+        }
+
+        const { count: telegramCount } = await telegramContactsQuery
+        totalCost += telegramCount || 0
+      }
+      
+      setContactCount(totalCost)
     } catch (error) {
       console.error('Error fetching contact count:', error)
     }
@@ -214,15 +334,12 @@ export default function CreateEventPage() {
         category: formData.category === "all" ? "general" : formData.category,
         email_subject: formData.emailSubject,
         email_template: formData.emailTemplate,
+        telegram_template: formData.telegramTemplate,
+        send_email: formData.sendEmail,
+        send_telegram: formData.sendTelegram,
         status: formData.sendOption === "now" ? "draft" : "draft",
         scheduled_send_time: formData.sendOption === "schedule" ? formData.scheduledSendTime.toISOString() : null,
       }
-
-      console.log("Event data being sent:", eventData)
-      console.log("Selected category:", formData.category)
-      console.log("Category being stored:", eventData.category)
-      console.log("Available categories:", categories.map(c => c.name))
-      console.log("Category names:", categories.map(c => c.name))
 
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -274,12 +391,12 @@ export default function CreateEventPage() {
     }
   }
 
-  const handleInputChange = useCallback((field: string, value: string | Date) => {
+  const handleInputChange = useCallback((field: string, value: string | Date | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }, [])
 
-  const handleTemplateSelect = useCallback((templateKey: string) => {
-    setSelectedTemplate(templateKey)
+  const handleEmailTemplateSelect = useCallback((templateKey: string) => {
+    setSelectedEmailTemplate(templateKey)
     const template = emailTemplates.find(t => t.key === templateKey)
     if (template) {
       const templateVars: EmailTemplateVars = {
@@ -296,11 +413,45 @@ export default function CreateEventPage() {
     }
   }, [formData.title, formData.description, formData.eventDate, formData.location, user])
 
-  const getTemplatePreview = () => {
-    const template = emailTemplates.find(t => t.key === selectedTemplate)
+  const handleTelegramTemplateSelect = useCallback((templateKey: string) => {
+    setSelectedTelegramTemplate(templateKey)
+    const template = telegramTemplates.find(t => t.key === templateKey)
+    if (template) {
+      const templateVars: TelegramTemplateVars = {
+        firstName: "", // Will be replaced with actual contact name when sending
+        eventTitle: formData.title || "Sample Event",
+        eventDescription: formData.description || "",
+        eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+        eventLocation: formData.location || "Sample Location",
+        hostName: user?.user_metadata?.full_name || "Your Name",
+        customMessage: formData.description || "",
+      }
+      const generatedTemplate = template.template(templateVars)
+      setFormData(prev => ({ ...prev, telegramTemplate: generatedTemplate }))
+    }
+  }, [formData.title, formData.description, formData.eventDate, formData.location, user])
+
+  const getEmailTemplatePreview = () => {
+    const template = emailTemplates.find(t => t.key === selectedEmailTemplate)
     if (!template) return ""
     
     const templateVars: EmailTemplateVars = {
+      firstName: "", // Will be replaced with actual contact name when sending
+      eventTitle: formData.title || "Sample Event",
+      eventDescription: formData.description || "",
+      eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+      eventLocation: formData.location || "Sample Location",
+      hostName: user?.user_metadata?.full_name || "Your Name",
+      customMessage: formData.description || "",
+    }
+    return template.template(templateVars)
+  }
+
+  const getTelegramTemplatePreview = () => {
+    const template = telegramTemplates.find(t => t.key === selectedTelegramTemplate)
+    if (!template) return ""
+    
+    const templateVars: TelegramTemplateVars = {
       firstName: "", // Will be replaced with actual contact name when sending
       eventTitle: formData.title || "Sample Event",
       eventDescription: formData.description || "",
@@ -363,262 +514,454 @@ export default function CreateEventPage() {
       })
     } finally {
       setIsLoading(false)
-      setShowPaymentDialog(false)
     }
   }
 
-  if (!user || !mounted) {
-    return null
-  }
+  if (!mounted) return null
 
   const totalCost = contactCount * PRICE_PER_EMAIL
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
-      <div className="container mx-auto px-4 py-6">
-        <Card className="bg-white/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-800">Create New Event</CardTitle>
-            <p className="text-gray-600 text-sm md:text-base">Set up your event and email campaign</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Event Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  required
-                  placeholder="Enter event title"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  placeholder="Enter event description"
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Event Date & Time</Label>
-                <DateTimePicker
-                  date={formData.eventDate}
-                  onSelect={(date) => handleInputChange("eventDate", date)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
-                  placeholder="Enter event location"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Recipient Category</Label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => handleInputChange("category", e.target.value as RecipientCategory)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+      {/* Onboarding Modal */}
+      <Dialog open={showOnboardingModal} onOpenChange={setShowOnboardingModal}>
+        <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">
+              🎉 Welcome to Event Creation!
+            </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Choose how you'd like to send your event invitations
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {communicationMethods.map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => method.available && handleMethodSelection(method.id)}
+                  disabled={!method.available}
+                  className={`p-6 border-2 rounded-xl text-left transition-all ${
+                    selectedMethods.includes(method.id)
+                      ? "border-orange-500 bg-orange-50 shadow-lg"
+                      : method.available
+                      ? "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                      : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                  }`}
                 >
-                  <option value="all">All Contacts</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-sm text-muted-foreground">
-                  {contactCount} contacts in this category
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className={`p-2 rounded-lg ${
+                      selectedMethods.includes(method.id) 
+                        ? "bg-orange-100 text-orange-600" 
+                        : "bg-gray-100 text-gray-600"
+                    }`}>
+                      {method.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{method.name}</h3>
+                      {method.comingSoon && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Coming Soon
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">{method.description}</p>
+                  {!method.available && method.comingSoon && (
+                    <div className="mt-3 flex items-center text-sm text-blue-600">
+                      <Zap className="h-4 w-4 mr-1" />
+                      We're working on this!
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 text-center">
+              <Button
+                onClick={handleContinueToForm}
+                disabled={selectedMethods.length === 0}
+                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-semibold"
+              >
+                Continue to Event Creation
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Main Form */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Create New Event</h1>
+                <p className="text-gray-600 text-sm md:text-base">
+                  {selectedMethods.includes('email') && selectedMethods.includes('telegram') 
+                    ? "Sending via Email & Telegram"
+                    : selectedMethods.includes('email')
+                    ? "Sending via Email"
+                    : selectedMethods.includes('telegram')
+                    ? "Sending via Telegram"
+                    : "Choose your communication method"
+                  }
                 </p>
               </div>
+              <Button 
+                variant="outline"
+                onClick={() => setShowOnboardingModal(true)}
+                size="sm"
+              >
+                Change Method
+              </Button>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="emailSubject">Email Subject</Label>
-                <Input
-                  id="emailSubject"
-                  value={formData.emailSubject}
-                  onChange={(e) => handleInputChange("emailSubject", e.target.value)}
-                  placeholder="Enter email subject"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label>Email Template</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {emailTemplates.map((template) => (
-                    <button
-                      key={template.key}
-                      type="button"
-                      onClick={() => handleTemplateSelect(template.key)}
-                      className={`p-4 border-2 rounded-lg text-left transition-all ${
-                        selectedTemplate === template.key
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{template.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {template.key === "birthday" && "🎉"}
-                        {template.key === "openHouse" && "🏡"}
-                        {template.key === "wedding" && "💍"}
-                        {template.key === "meeting" && "📅"}
-                        {template.key === "babyShower" && "👶"}
-                        {template.key === "generic" && "📧"}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                
-                {selectedTemplate && (
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowTemplatePreview(true)}
-                    >
-                      Preview Template
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTemplate("")
-                        setFormData(prev => ({ ...prev, emailTemplate: "" }))
-                      }}
-                    >
-                      Clear Template
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="emailTemplate">Email Template HTML</Label>
-                <Textarea
-                  id="emailTemplate"
-                  value={formData.emailTemplate}
-                  onChange={(e) => handleInputChange("emailTemplate", e.target.value)}
-                  placeholder="Select a template above or enter custom HTML"
-                  rows={8}
-                  className="font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500">
-                  You can customize the template HTML above. Use {'{{firstName}}'}, {'{{eventTitle}}'}, {'{{eventDate}}'}, {'{{eventLocation}}'} as placeholders.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Send Options</Label>
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="send-now"
-                      name="sendOption"
-                      value="now"
-                      checked={formData.sendOption === "now"}
-                      onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
-                      className="h-4 w-4"
-                    />
-                    <Label htmlFor="send-now" className="text-sm">Send Now</Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="schedule"
-                      name="sendOption"
-                      value="schedule"
-                      checked={formData.sendOption === "schedule"}
-                      onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
-                      className="h-4 w-4"
-                    />
-                    <Label htmlFor="schedule" className="text-sm">Schedule Send</Label>
-                  </div>
-                </div>
-
-                {formData.sendOption === "schedule" && (
+          <Card className="bg-white/50 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Event Information */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Event Details</h2>
+                  
                   <div className="space-y-2">
-                    <Label>Schedule Send Time</Label>
-                    <DateTimePicker
-                      date={formData.scheduledSendTime}
-                      onSelect={(date) => handleInputChange("scheduledSendTime", date)}
+                    <Label htmlFor="title">Event Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      placeholder="Enter event title"
+                      required
                     />
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
-                  <div>
-                    <p className="font-medium text-sm md:text-base">Current Balance</p>
-                    <p className="text-sm text-muted-foreground">{userBalance} tokens</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      placeholder="Enter event description"
+                      rows={4}
+                    />
                   </div>
-                  <p className="text-xl md:text-2xl font-bold text-orange-500">
-                    RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)}
-                  </p>
-                </div>
 
-                <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
-                  <div>
-                    <p className="font-medium text-sm md:text-base">Event Cost</p>
-                    <p className="text-sm text-muted-foreground">{contactCount} emails × RM{PRICE_PER_EMAIL.toFixed(2)}</p>
+                  <div className="space-y-2">
+                    <Label>Event Date & Time</Label>
+                    <DateTimePicker
+                      date={formData.eventDate}
+                      onSelect={(date) => handleInputChange("eventDate", date)}
+                    />
                   </div>
-                  <p className="text-xl md:text-2xl font-bold text-orange-500">
-                    RM{totalCost.toFixed(2)}
-                  </p>
-                </div>
 
-                {userBalance < contactCount && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800 font-medium text-sm md:text-base">Insufficient Balance</p>
-                    <p className="text-red-600 text-sm">
-                      You need {contactCount - userBalance} more tokens to create this event.
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange("location", e.target.value)}
+                      placeholder="Enter event location"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Recipient Category</Label>
+                    <select
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => handleInputChange("category", e.target.value as RecipientCategory)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    >
+                      <option value="all">All Contacts</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-sm text-muted-foreground">
+                      {contactCount} contacts in this category
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/dashboard/events')}
-                  className="flex-1 h-12 md:h-10"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading || contactCount === 0}
-                  className="flex-1 h-12 md:h-10 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                >
-                  {isLoading ? "Creating..." : "Create Event"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {/* Email Section */}
+                {selectedMethods.includes('email') && (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center">
+                      <Mail className="mr-2 h-5 w-5" />
+                      Email Settings
+                    </h2>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="emailSubject">Email Subject</Label>
+                      <Input
+                        id="emailSubject"
+                        value={formData.emailSubject}
+                        onChange={(e) => handleInputChange("emailSubject", e.target.value)}
+                        placeholder="Enter email subject"
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label>Email Template</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {emailTemplates.map((template) => (
+                          <button
+                            key={template.key}
+                            type="button"
+                            onClick={() => handleEmailTemplateSelect(template.key)}
+                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                              selectedEmailTemplate === template.key
+                                ? "border-orange-500 bg-orange-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-medium text-sm">{template.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {template.key === "birthday" && "🎉"}
+                              {template.key === "openHouse" && "🏡"}
+                              {template.key === "wedding" && "💍"}
+                              {template.key === "meeting" && "📅"}
+                              {template.key === "babyShower" && "👶"}
+                              {template.key === "generic" && "📧"}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {selectedEmailTemplate && (
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowTemplatePreview(true)}
+                          >
+                            Preview Template
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmailTemplate("")
+                              setFormData(prev => ({ ...prev, emailTemplate: "" }))
+                            }}
+                          >
+                            Clear Template
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="emailTemplate">Email Template HTML</Label>
+                      <Textarea
+                        id="emailTemplate"
+                        value={formData.emailTemplate}
+                        onChange={(e) => handleInputChange("emailTemplate", e.target.value)}
+                        placeholder="Select a template above or enter custom HTML"
+                        rows={8}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500">
+                        You can customize the template HTML above. Use {'{{firstName}}'}, {'{{eventTitle}}'}, {'{{eventDate}}'}, {'{{eventLocation}}'} as placeholders.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Telegram Section */}
+                {selectedMethods.includes('telegram') && (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center">
+                      <Send className="mr-2 h-5 w-5" />
+                      Telegram Settings
+                    </h2>
+                    
+                    <div className="space-y-4">
+                      <Label>Telegram Template</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {telegramTemplates.map((template) => (
+                          <button
+                            key={template.key}
+                            type="button"
+                            onClick={() => handleTelegramTemplateSelect(template.key)}
+                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                              selectedTelegramTemplate === template.key
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-medium text-sm">{template.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {template.key === "birthday" && "🎉"}
+                              {template.key === "openHouse" && "🏡"}
+                              {template.key === "wedding" && "💍"}
+                              {template.key === "meeting" && "📅"}
+                              {template.key === "babyShower" && "👶"}
+                              {template.key === "generic" && "📧"}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {selectedTelegramTemplate && (
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowTemplatePreview(true)}
+                          >
+                            Preview Template
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTelegramTemplate("")
+                              setFormData(prev => ({ ...prev, telegramTemplate: "" }))
+                            }}
+                          >
+                            Clear Template
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="telegramTemplate">Telegram Template</Label>
+                      <Textarea
+                        id="telegramTemplate"
+                        value={formData.telegramTemplate}
+                        onChange={(e) => handleInputChange("telegramTemplate", e.target.value)}
+                        placeholder="Select a template above or enter custom message"
+                        rows={6}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500">
+                        You can customize the Telegram message above. Use {'{{firstName}}'}, {'{{eventTitle}}'}, {'{{eventDate}}'}, {'{{eventLocation}}'} as placeholders. Supports HTML formatting.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Send Options */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Send Options</h2>
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        id="send-now"
+                        name="sendOption"
+                        value="now"
+                        checked={formData.sendOption === "now"}
+                        onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="send-now" className="text-sm">Send Now</Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        id="schedule"
+                        name="sendOption"
+                        value="schedule"
+                        checked={formData.sendOption === "schedule"}
+                        onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="schedule" className="text-sm">Schedule Send</Label>
+                    </div>
+                  </div>
+
+                  {formData.sendOption === "schedule" && (
+                    <div className="space-y-2">
+                      <Label>Schedule Send Time</Label>
+                      <DateTimePicker
+                        date={formData.scheduledSendTime}
+                        onSelect={(date) => handleInputChange("scheduledSendTime", date)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Cost Summary */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Cost Summary</h2>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
+                      <div>
+                        <p className="font-medium text-sm md:text-base">Current Balance</p>
+                        <p className="text-sm text-muted-foreground">{userBalance} tokens</p>
+                      </div>
+                      <p className="text-xl md:text-2xl font-bold text-orange-500">
+                        RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
+                      <div>
+                        <p className="font-medium text-sm md:text-base">Event Cost</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedMethods.includes('email') && selectedMethods.includes('telegram') ? `${contactCount} messages (email + telegram)` : 
+                           selectedMethods.includes('email') ? `${contactCount} emails` : 
+                           selectedMethods.includes('telegram') ? `${contactCount} telegram messages` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-xl md:text-2xl font-bold text-orange-500">
+                        RM{totalCost.toFixed(2)}
+                      </p>
+                    </div>
+
+                    {userBalance < contactCount && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-800 font-medium text-sm md:text-base">Insufficient Balance</p>
+                        <p className="text-red-600 text-sm">
+                          You need {contactCount - userBalance} more tokens to create this event.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push('/dashboard/events')}
+                    className="flex-1 h-12 md:h-10"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isLoading || contactCount === 0}
+                    className="flex-1 h-12 md:h-10 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                  >
+                    {isLoading ? "Creating..." : "Create Event"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
+      {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm">
           <DialogHeader>
             <DialogTitle>Purchase Additional Tokens</DialogTitle>
             <DialogDescription>
-              Purchase additional tokens to create this event. You need {contactCount} tokens to send emails to all contacts in the selected category.
+              Purchase additional tokens to create this event. You need {contactCount} tokens to send messages to all contacts in the selected category.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -648,19 +991,33 @@ export default function CreateEventPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Template Preview Dialog */}
       <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
         <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle>Email Template Preview</DialogTitle>
+            <DialogTitle>Template Preview</DialogTitle>
             <DialogDescription>
-              Preview how your email will look when sent to recipients.
+              Preview how your message will look when sent to recipients.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div 
-              className="border rounded-lg p-4 max-h-96 overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: getTemplatePreview() }}
-            />
+            {selectedMethods.includes('email') && selectedEmailTemplate && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-2">Email Template</h3>
+                <div 
+                  className="border rounded-lg p-4 max-h-96 overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: getEmailTemplatePreview() }}
+                />
+              </div>
+            )}
+            {selectedMethods.includes('telegram') && selectedTelegramTemplate && (
+              <div>
+                <h3 className="font-semibold mb-2">Telegram Template</h3>
+                <div className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm">{getTelegramTemplatePreview()}</pre>
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex justify-end">
               <Button 
                 variant="outline"

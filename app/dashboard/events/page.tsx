@@ -24,6 +24,9 @@ interface Event {
   status: "draft" | "scheduled" | "sent" | "cancelled"
   email_subject: string
   email_template: string
+  telegram_template: string | null
+  send_email: boolean
+  send_telegram: boolean
   scheduled_send_time: string
   created_at: string
   category?: string
@@ -91,7 +94,7 @@ export default function EventsPage() {
     }
   }
 
-  const handleSendEmails = async (eventId: string) => {
+  const handleSendMessages = async (eventId: string) => {
     try {
       setSendingEmails((prev) => [...prev, eventId])
 
@@ -148,31 +151,53 @@ export default function EventsPage() {
         throw eventContactsError
       }
 
-      // Actually send the emails immediately
-      const response = await fetch("/api/email/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId }),
-      })
+      // Send emails if enabled
+      if (event.send_email) {
+        const emailResponse = await fetch("/api/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId }),
+        })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to send emails")
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json()
+          throw new Error(errorData.error || "Failed to send emails")
+        }
       }
+
+      // Send Telegram messages if enabled
+      if (event.send_telegram) {
+        const telegramResponse = await fetch("/api/telegram/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId }),
+        })
+
+        if (!telegramResponse.ok) {
+          const errorData = await telegramResponse.json()
+          throw new Error(errorData.error || "Failed to send Telegram messages")
+        }
+      }
+
+      const messageTypes = []
+      if (event.send_email) messageTypes.push("emails")
+      if (event.send_telegram) messageTypes.push("Telegram messages")
 
       toast({
         title: "Success!",
-        description: "Emails have been sent successfully.",
+        description: `${messageTypes.join(" and ")} have been sent successfully.`,
       })
 
       fetchEvents()
     } catch (error: any) {
-      console.error("Error sending emails:", error)
+      console.error("Error sending messages:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to send emails",
+        description: error.message || "Failed to send messages",
         variant: "destructive",
       })
     } finally {
@@ -283,11 +308,11 @@ export default function EventsPage() {
                         </DropdownMenuItem>
                         {event.status === "draft" && (
                           <DropdownMenuItem 
-                            onClick={() => handleSendEmails(event.id)}
+                            onClick={() => handleSendMessages(event.id)}
                             disabled={sendingEmails.includes(event.id)}
                           >
                             <Send className="h-4 w-4 mr-2" />
-                            {sendingEmails.includes(event.id) ? "Scheduling..." : "Send Emails"}
+                            {sendingEmails.includes(event.id) ? "Sending..." : "Send Messages"}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem 

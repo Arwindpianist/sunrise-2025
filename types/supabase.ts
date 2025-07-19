@@ -17,6 +17,7 @@ export interface Database {
           last_name: string
           email: string
           phone: string | null
+          telegram_chat_id: string | null
           category: string
           notes: string | null
           created_at: string
@@ -28,6 +29,7 @@ export interface Database {
           last_name: string
           email: string
           phone?: string | null
+          telegram_chat_id?: string | null
           category?: string
           notes?: string | null
           created_at?: string
@@ -39,6 +41,7 @@ export interface Database {
           last_name?: string
           email?: string
           phone?: string | null
+          telegram_chat_id?: string | null
           category?: string
           notes?: string | null
           created_at?: string
@@ -58,6 +61,9 @@ export interface Database {
           status: string
           email_template: string | null
           email_subject: string | null
+          telegram_template: string | null
+          send_email: boolean
+          send_telegram: boolean
           scheduled_send_time: string | null
         }
         Insert: {
@@ -73,6 +79,9 @@ export interface Database {
           status?: string
           email_template?: string | null
           email_subject?: string | null
+          telegram_template?: string | null
+          send_email?: boolean
+          send_telegram?: boolean
           scheduled_send_time?: string | null
         }
         Update: {
@@ -88,6 +97,9 @@ export interface Database {
           status?: string
           email_template?: string | null
           email_subject?: string | null
+          telegram_template?: string | null
+          send_email?: boolean
+          send_telegram?: boolean
           scheduled_send_time?: string | null
         }
       }
@@ -118,6 +130,32 @@ export interface Database {
           error_message?: string | null
           sent_at?: string
           opened_at?: string | null
+        }
+      }
+      telegram_logs: {
+        Row: {
+          id: string
+          event_id: string
+          contact_id: string
+          status: string
+          error_message: string | null
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          contact_id: string
+          status: string
+          error_message?: string | null
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          contact_id?: string
+          status?: string
+          error_message?: string | null
+          sent_at?: string
         }
       }
       event_contacts: {
@@ -196,6 +234,44 @@ export interface Database {
           description?: string | null
           status?: string
           created_at?: string
+        }
+      }
+      onboarding_links: {
+        Row: {
+          id: string
+          user_id: string
+          token: string
+          title: string | null
+          description: string | null
+          expires_at: string | null
+          max_uses: number
+          current_uses: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          token: string
+          title?: string | null
+          description?: string | null
+          expires_at?: string | null
+          max_uses?: number
+          current_uses?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          token?: string
+          title?: string | null
+          description?: string | null
+          expires_at?: string | null
+          max_uses?: number
+          current_uses?: number
+          created_at?: string
+          updated_at?: string
         }
       }
     }

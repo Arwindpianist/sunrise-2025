@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
 import PhoneImport from "@/components/phone-import"
@@ -39,8 +40,20 @@ interface Contact {
   last_name?: string
   email: string
   phone: string
+  telegram_chat_id?: string
   category: string
   notes: string
+  created_at: string
+}
+
+interface OnboardingLink {
+  id: string
+  token: string
+  title: string
+  description: string
+  expires_at: string | null
+  max_uses: number
+  current_uses: number
   created_at: string
 }
 
@@ -68,12 +81,21 @@ export default function ContactsPage() {
     last_name: "",
     email: "",
     phone: "",
+    telegram_chat_id: "",
     category: "__no_category__",
     notes: "",
   })
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
+  const [onboardingLinks, setOnboardingLinks] = useState<OnboardingLink[]>([])
+  const [isOnboardingDialogOpen, setIsOnboardingDialogOpen] = useState(false)
+  const [onboardingFormData, setOnboardingFormData] = useState({
+    title: "",
+    description: "",
+    expires_at: "",
+    max_uses: 100,
+  })
 
   useEffect(() => {
     if (!user) {
@@ -130,6 +152,7 @@ export default function ContactsPage() {
 
     fetchContacts()
     fetchCategories()
+    fetchOnboardingLinks()
     generateShareableLink()
   }, [user, router])
 
@@ -159,6 +182,17 @@ export default function ContactsPage() {
       setCategories(data)
     } catch (error: any) {
       console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchOnboardingLinks = async () => {
+    try {
+      const response = await fetch("/api/onboarding-links")
+      if (!response.ok) throw new Error("Failed to fetch onboarding links")
+      const data = await response.json()
+      setOnboardingLinks(data)
+    } catch (error: any) {
+      console.error('Error fetching onboarding links:', error)
     }
   }
 
@@ -268,6 +302,7 @@ export default function ContactsPage() {
         last_name: "",
         email: "",
         phone: "",
+        telegram_chat_id: "",
         category: "__no_category__",
         notes: "",
       })
@@ -339,6 +374,7 @@ export default function ContactsPage() {
       last_name: contact.last_name || "",
       email: contact.email,
       phone: contact.phone || "",
+      telegram_chat_id: contact.telegram_chat_id || "",
       category: contact.category || "__no_category__",
       notes: contact.notes || "",
     })
@@ -495,6 +531,22 @@ export default function ContactsPage() {
                   </div>
 
                   <div className="space-y-2">
+                    <label htmlFor="telegram_chat_id" className="text-sm font-medium">
+                      Telegram Chat ID
+                    </label>
+                    <Input
+                      id="telegram_chat_id"
+                      name="telegram_chat_id"
+                      value={formData.telegram_chat_id}
+                      onChange={handleFormChange}
+                      placeholder="e.g., 123456789"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Optional: Allows sending Telegram messages to this contact
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <label htmlFor="category" className="text-sm font-medium">
                       Category
                     </label>
@@ -539,6 +591,281 @@ export default function ContactsPage() {
                     {isSubmitting ? "Adding..." : "Add Contact"}
                   </Button>
                 </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="h-12 md:h-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white">
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  <span className="hidden md:inline">Onboarding Link</span>
+                  <span className="md:hidden">Link</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add New Contact</DialogTitle>
+                  <DialogDescription>
+                    Fill in the contact details below.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddContact} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="first_name" className="text-sm font-medium">
+                        First Name *
+                      </label>
+                      <Input
+                        id="first_name"
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleFormChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="last_name" className="text-sm font-medium">
+                        Last Name
+                      </label>
+                      <Input
+                        id="last_name"
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">
+                      Email *
+                    </label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="phone" className="text-sm font-medium">
+                      Phone
+                    </label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="telegram_chat_id" className="text-sm font-medium">
+                      Telegram Chat ID
+                    </label>
+                    <Input
+                      id="telegram_chat_id"
+                      name="telegram_chat_id"
+                      value={formData.telegram_chat_id}
+                      onChange={handleFormChange}
+                      placeholder="e.g., 123456789"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Optional: Allows sending Telegram messages to this contact
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="category" className="text-sm font-medium">
+                      Category
+                    </label>
+                    <Select
+                      value={formData.category || "__no_category__"}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__no_category__">No category</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="notes" className="text-sm font-medium">
+                      Notes
+                    </label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleFormChange}
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Adding..." : "Add Contact"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create Onboarding Link</DialogTitle>
+                  <DialogDescription>
+                    Create a shareable link that allows people to easily add themselves to your contact list with Telegram integration.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-6">
+                  {/* Onboarding Links List */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Your Onboarding Links</h3>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {onboardingLinks.length === 0 ? (
+                        <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
+                      ) : (
+                        onboardingLinks.map((link) => (
+                          <div key={link.id} className="p-3 border rounded-lg bg-gray-50">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium">{link.title}</h4>
+                                <p className="text-sm text-gray-600">{link.description}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {link.current_uses} of {link.max_uses} uses • 
+                                  Created {new Date(link.created_at).toLocaleDateString()}
+                                  {link.expires_at && (
+                                    <span> • Expires {new Date(link.expires_at).toLocaleDateString()}</span>
+                                  )}
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/onboarding/${link.token}`
+                                  navigator.clipboard.writeText(url)
+                                  toast({
+                                    title: "Copied!",
+                                    description: "Link copied to clipboard",
+                                  })
+                                }}
+                              >
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Create New Link Form */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-3">Create New Link</h3>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault()
+                      try {
+                        const response = await fetch("/api/onboarding-links", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(onboardingFormData),
+                        })
+                        
+                        if (!response.ok) throw new Error("Failed to create link")
+                        
+                        toast({
+                          title: "Success!",
+                          description: "Onboarding link created successfully",
+                        })
+                        
+                        setOnboardingFormData({
+                          title: "",
+                          description: "",
+                          expires_at: "",
+                          max_uses: 100,
+                        })
+                        
+                        fetchOnboardingLinks()
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to create link",
+                          variant: "destructive",
+                        })
+                      }
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Title</Label>
+                          <Input
+                            id="title"
+                            value={onboardingFormData.title}
+                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="e.g., Join My Events"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="max_uses">Max Uses</Label>
+                          <Input
+                            id="max_uses"
+                            type="number"
+                            value={onboardingFormData.max_uses}
+                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 100 }))}
+                            min="1"
+                            max="1000"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          value={onboardingFormData.description}
+                          onChange={(e) => setOnboardingFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="e.g., Join my contact list to receive event invitations and updates"
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="expires_at">Expires At (Optional)</Label>
+                        <Input
+                          id="expires_at"
+                          type="datetime-local"
+                          value={onboardingFormData.expires_at}
+                          onChange={(e) => setOnboardingFormData(prev => ({ ...prev, expires_at: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <Button type="submit" className="w-full">
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Create Onboarding Link
+                      </Button>
+                    </form>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
