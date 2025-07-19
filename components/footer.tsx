@@ -8,9 +8,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Sunrise</h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-3">
               Making event management simple and joyful.
             </p>
+            <div className="text-xs text-gray-500 space-y-1">
+              <p><strong>SUNRISE SUNSET SERVICES</strong></p>
+              <p>Business Registration No: 202503184225 (CT0152300-K)</p>
+            </div>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-900 mb-4">Product</h4>
@@ -56,6 +60,11 @@ export default function Footer() {
               </Link>
               </li>
             </ul>
+            <div className="mt-4">
+              <p className="text-xs text-gray-500">
+                Email: <a href="mailto:admin@sunrise-2025.com" className="text-orange-500 hover:text-orange-600">admin@sunrise-2025.com</a>
+              </p>
+            </div>
           </div>
         </div>
         <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-600">

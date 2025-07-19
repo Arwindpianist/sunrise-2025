@@ -7,9 +7,17 @@ export default function ContactPage() {
           <p className="text-gray-600 mb-4">
             Have questions or need assistance? We're here to help!
           </p>
-          <p className="text-gray-600">
-            Email us at: <a href="mailto:support@sunrise.com" className="text-orange-500 hover:text-orange-600">support@sunrise.com</a>
-          </p>
+          <div className="space-y-3">
+            <p className="text-gray-600">
+              Email us at: <a href="mailto:admin@sunrise-2025.com" className="text-orange-500 hover:text-orange-600">admin@sunrise-2025.com</a>
+            </p>
+            <div className="text-sm text-gray-500 mt-6 pt-6 border-t border-gray-200">
+              <p><strong>SUNRISE SUNSET SERVICES</strong></p>
+              <p>Business Registration No: 202503184225 (CT0152300-K)</p>
+              <p>Business Type: Sole Proprietorship</p>
+              <p>Business Start Date: 6 July 2025</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
