@@ -152,8 +152,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check contact creation limit (only for authenticated users)
-    if (session?.user?.id) {
+    // Check contact creation limit (only for authenticated users, not public forms)
+    if (session?.user?.id && !user_id) {
       const limitCheck = await canCreateContact()
       
       if (!limitCheck.allowed) {
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
     if (contactError) {
       console.error('Error creating contact:', contactError)
       return new NextResponse(
-        JSON.stringify({ error: 'Failed to create contact' }),
+        JSON.stringify({ error: 'Failed to create contact', details: contactError.message }),
         { 
           status: 500,
           headers: {
@@ -218,8 +218,27 @@ export async function POST(request: Request) {
       )
     }
 
+    if (!contact) {
+      console.error('No contact data returned')
+      return new NextResponse(
+        JSON.stringify({ error: 'Contact was not created' }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    console.log('Contact created successfully:', contact)
+
     return new NextResponse(
-      JSON.stringify(contact),
+      JSON.stringify({
+        success: true,
+        contact,
+        message: 'Contact created successfully'
+      }),
       { 
         status: 201,
         headers: {

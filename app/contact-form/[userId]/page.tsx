@@ -100,17 +100,24 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
     setIsSubmitting(true)
 
     try {
+      // Split full_name into first_name and last_name
+      const nameParts = formData.full_name.trim().split(' ')
+      const first_name = nameParts[0] || ''
+      const last_name = nameParts.slice(1).join(' ') || ''
+
       const response = await fetch("/api/contacts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
-          // Split full_name into first_name and last_name for database compatibility
-          first_name: formData.full_name.split(' ')[0] || '',
-          last_name: formData.full_name.split(' ').slice(1).join(' ') || '',
+          first_name,
+          last_name,
+          email: formData.email,
+          phone: formData.phone,
+          telegram_chat_id: formData.telegram_chat_id,
           category: formData.category === "__no_category__" ? "" : formData.category,
+          notes: formData.notes,
           user_id: userId,
         }),
       })
@@ -119,6 +126,8 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
         const error = await response.json()
         throw new Error(error.error || "Failed to submit form")
       }
+
+      const result = await response.json()
 
       toast({
         title: "Success!",
