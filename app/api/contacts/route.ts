@@ -102,9 +102,9 @@ export async function POST(request: Request) {
       targetUserId = session.user.id
     } else {
       return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized - no user context' }),
+        JSON.stringify({ error: 'No user context provided for contact submission' }),
         { 
-          status: 401,
+          status: 400,
           headers: {
             'Content-Type': 'application/json',
           },
