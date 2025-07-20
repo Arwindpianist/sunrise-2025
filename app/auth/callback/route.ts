@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const next = requestUrl.searchParams.get('next') || '/dashboard'
+    const type = requestUrl.searchParams.get('type')
 
     if (code) {
       const cookieStore = cookies()
@@ -22,13 +23,13 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL('/login?error=auth&message=' + encodeURIComponent(error.message), requestUrl.origin))
       }
 
-      // Check if this was a password reset
-      if (data.session?.user?.aud === 'authenticated' && data.session?.user?.app_metadata?.provider === 'email') {
-        // This might be a password reset - redirect to password reset page
+      // Check the type parameter to determine the flow
+      if (type === 'recovery' || next === '/reset-password') {
+        // This is a password reset - redirect to password reset page
         return NextResponse.redirect(new URL('/reset-password?success=email_verified', requestUrl.origin))
       }
 
-      // Check if this was an email verification
+      // Check if this was an email verification (default case)
       if (data.session?.user?.email_confirmed_at) {
         return NextResponse.redirect(new URL('/login?success=email_verified', requestUrl.origin))
       }
