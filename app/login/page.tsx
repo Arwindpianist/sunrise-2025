@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sunrise, Mail, Lock } from "lucide-react"
+import { Sunrise, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { toast } from "@/components/ui/use-toast"
 
@@ -28,6 +28,24 @@ function LoginForm() {
       }
     }
     checkSession()
+
+    // Handle URL parameters for success/error messages
+    const error = searchParams.get('error')
+    const success = searchParams.get('success')
+    const message = searchParams.get('message')
+
+    if (success === 'email_verified') {
+      toast({
+        title: "Email Verified!",
+        description: "Your email has been successfully verified. You can now sign in to your account.",
+      })
+    } else if (error) {
+      toast({
+        title: "Authentication Error",
+        description: message || "An error occurred during authentication. Please try again.",
+        variant: "destructive",
+      })
+    }
   }, [supabase, router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {

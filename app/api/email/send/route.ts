@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sunrise-2025.arwindpianist.store"
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sunrise-2025.com"
 
 // Check if Resend API key is configured
 if (!process.env.RESEND_API_KEY) {
