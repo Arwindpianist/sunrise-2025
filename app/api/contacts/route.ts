@@ -189,16 +189,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // For public contact forms, create a new Supabase client with service role access
+    // For public contact forms, use the existing client but ensure proper RLS policies
     let supabaseClient = supabase
     if (!session && user_id) {
-      console.log('Creating service role client for public contact form')
-      // Create a new client with service role for public contact forms
-      const { createClient } = await import('@supabase/supabase-js')
-      supabaseClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
+      console.log('Using existing client for public contact form - RLS policies should allow this')
     }
 
     console.log('About to insert contact with data:', {
