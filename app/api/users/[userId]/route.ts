@@ -270,19 +270,23 @@ export async function GET(
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { userId } = params
 
-    // Fetch user profile from users table
+    // First try to fetch from users table
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id, full_name, email')
       .eq('id', userId)
       .single()
 
-    if (userError) {
-      console.error('Error fetching user:', userError)
+    if (userData) {
+      // User exists in users table
       return new NextResponse(
-        JSON.stringify({ error: 'User not found' }),
+        JSON.stringify({
+          id: userData.id,
+          full_name: userData.full_name,
+          email: userData.email
+        }),
         { 
-          status: 404,
+          status: 200,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -290,11 +294,36 @@ export async function GET(
       )
     }
 
+    // If user doesn't exist in users table, try to get from auth.users
+    try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.admin.getUserById(userId)
+      
+      if (authUser) {
+        // User exists in auth but not in users table - return auth data
+        return new NextResponse(
+          JSON.stringify({
+            id: authUser.id,
+            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || null,
+            email: authUser.email
+          }),
+          { 
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      }
+    } catch (authError) {
+      console.error('Error fetching from auth:', authError)
+    }
+
+    // If user doesn't exist anywhere, return a generic response
     return new NextResponse(
       JSON.stringify({
-        id: userData.id,
-        full_name: userData.full_name,
-        email: userData.email
+        id: userId,
+        full_name: null,
+        email: null
       }),
       { 
         status: 200,
@@ -303,6 +332,7 @@ export async function GET(
         },
       }
     )
+
   } catch (error: any) {
     console.error('Error in user GET:', error)
     return new NextResponse(

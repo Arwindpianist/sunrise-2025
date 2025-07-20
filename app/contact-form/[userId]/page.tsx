@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Users, Mail, Phone, Calendar, MessageSquare, Bot } from "lucide-react"
+import { Users, Mail, Phone, Calendar, MessageSquare, Bot, ExternalLink } from "lucide-react"
 import { use } from "react"
 
 interface UserProfile {
@@ -26,9 +33,10 @@ interface UserProfile {
 
 export default function ContactFormPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
-  const router = useRouter()
+  const router = useParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [showTelegramHelp, setShowTelegramHelp] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [categories, setCategories] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -148,6 +156,18 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
     setFormData((prev) => ({ ...prev, category: value }))
   }
 
+  const getTelegramChatId = async () => {
+    try {
+      // Open Telegram userinfobot chat
+      const botUsername = "userinfobot"
+      window.open(`https://t.me/${botUsername}`, "_blank")
+      
+      setShowTelegramHelp(true)
+    } catch (error) {
+      console.error("Error opening Telegram:", error)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50 flex items-center justify-center px-4">
@@ -159,7 +179,19 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
     )
   }
 
-  const userName = userProfile?.full_name || userProfile?.email?.split('@')[0] || `User ${userId.slice(0, 8)}`
+  const userName = userProfile?.full_name || 
+                   userProfile?.email?.split('@')[0] || 
+                   'Sunrise Circle Host'
+
+  const displayName = userProfile?.full_name ? 
+                     `${userProfile.full_name}'s Sunrise Circle` : 
+                     userProfile?.email ? 
+                     `${userProfile.email.split('@')[0]}'s Sunrise Circle` :
+                     'Sunrise Circle'
+
+  const hostName = userProfile?.full_name || 
+                   userProfile?.email?.split('@')[0] || 
+                   'the host'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
@@ -171,10 +203,10 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                 <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
               <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-                Join {userName}'s Sunrise Circle
+                Join {displayName}
               </CardTitle>
               <p className="text-gray-600 text-base sm:text-lg">
-                Share your contact information to stay connected
+                Share your contact information to stay connected with {hostName}
               </p>
             </div>
             
@@ -184,10 +216,28 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                 Why we're collecting this information
               </h3>
               <p className="text-blue-700 text-xs sm:text-sm leading-relaxed">
-                This form is to collect your information on behalf of <strong>{userName}</strong> to be added into their Sunrise Circle. 
+                This form is to collect your information on behalf of <strong>{hostName}</strong> to be added into their Sunrise Circle. 
                 This will help them inform you of any sunrise occasions, events, and special moments easily. 
                 Your information will only be used for event notifications and will be kept private and secure.
               </p>
+            </div>
+
+            {/* Host Information */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h3 className="font-semibold text-orange-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                <Users className="h-4 w-4 flex-shrink-0" />
+                Host Information
+              </h3>
+              <div className="text-orange-700 text-xs sm:text-sm">
+                <p className="mb-1">
+                  <strong>Host:</strong> {hostName}
+                </p>
+                {userProfile?.email && (
+                  <p>
+                    <strong>Email:</strong> {userProfile.email}
+                  </p>
+                )}
+              </div>
             </div>
           </CardHeader>
           
@@ -225,7 +275,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                   required
                 />
                 <p className="text-xs text-gray-500">
-                  This is how {userName} will send you event invitations and updates
+                  This is how {hostName} will send you event invitations and updates
                 </p>
               </div>
 
@@ -252,36 +302,43 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                 <label htmlFor="telegram_chat_id" className="text-sm font-medium flex items-center gap-2">
                   <Bot className="h-4 w-4 flex-shrink-0" />
                   Telegram Chat ID
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={getTelegramChatId}
+                    className="ml-2 h-6 px-2 text-xs"
+                  >
+                    Get ID
+                  </Button>
                 </label>
-                <Input
-                  id="telegram_chat_id"
-                  name="telegram_chat_id"
-                  value={formData.telegram_chat_id}
-                  onChange={handleChange}
-                  placeholder="e.g., 123456789"
-                  className="text-base"
-                />
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-xs text-amber-800 leading-relaxed">
-                    <strong>How to find your Telegram Chat ID:</strong>
-                    <br />
-                    1. Open Telegram and search for "@userinfobot"
-                    <br />
-                    2. Start a chat with the bot by clicking "Start"
-                    <br />
-                    3. The bot will reply with your Chat ID (a number like 123456789)
-                    <br />
-                    4. Copy that number and paste it above
-                    <br />
-                    <em>This allows {userName} to send you Telegram messages for events</em>
-                  </p>
+                <div className="flex space-x-2">
+                  <Input
+                    id="telegram_chat_id"
+                    name="telegram_chat_id"
+                    value={formData.telegram_chat_id}
+                    onChange={handleChange}
+                    placeholder="Enter your Telegram Chat ID"
+                    className="text-base"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowTelegramHelp(true)}
+                    className="px-3"
+                  >
+                    Help
+                  </Button>
                 </div>
+                <p className="text-xs text-gray-500">
+                  This allows {hostName} to send you Telegram messages for events
+                </p>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="category" className="text-sm font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4 flex-shrink-0" />
-                  How do you know {userName}?
+                  How do you know {hostName}?
                 </label>
                 <Select
                   value={formData.category || "__no_category__"}
@@ -306,7 +363,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
-                  This helps {userName} organize their contacts and send relevant updates
+                  This helps {hostName} organize their contacts and send relevant updates
                 </p>
               </div>
 
@@ -330,7 +387,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
                 <p className="text-xs text-gray-600 text-center leading-relaxed">
-                  By submitting this form, you agree to receive event-related communications from {userName}. 
+                  By submitting this form, you agree to receive event-related communications from {hostName}. 
                   Your information will be kept private and secure.
                 </p>
               </div>
@@ -342,6 +399,57 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
           </CardContent>
         </Card>
       </div>
+
+      {/* Telegram Help Dialog */}
+      <Dialog open={showTelegramHelp} onOpenChange={setShowTelegramHelp}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Bot className="mr-2 h-5 w-5" />
+              How to Get Your Telegram Chat ID
+            </DialogTitle>
+            <DialogDescription>
+              Follow these steps to get your Telegram Chat ID:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-semibold">Step 1: Start a Chat</h4>
+              <p className="text-sm text-gray-600">
+                Click the button below to open a chat with @userinfobot:
+              </p>
+              <Button
+                onClick={() => window.open("https://t.me/userinfobot", "_blank")}
+                className="w-full"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open @userinfobot
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-semibold">Step 2: Send a Message</h4>
+              <p className="text-sm text-gray-600">
+                Send any message to the bot (like "hello" or "/start")
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-semibold">Step 3: Get Your Chat ID</h4>
+              <p className="text-sm text-gray-600">
+                The bot will reply with your Chat ID (a number like "123456789"). Copy that number and paste it in the form above.
+              </p>
+            </div>
+
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-700">
+                💡 <strong>Tip:</strong> Your Chat ID is a number like "123456789". It's unique to your Telegram account and works for any bot or service.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

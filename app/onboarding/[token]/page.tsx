@@ -138,8 +138,8 @@ export default function OnboardingPage() {
 
   const getTelegramChatId = async () => {
     try {
-      // Open Telegram bot chat
-      const botUsername = "sunrisemy_2025_bot" // Replace with your actual bot username
+      // Open Telegram userinfobot chat
+      const botUsername = "userinfobot"
       window.open(`https://t.me/${botUsername}`, "_blank")
       
       setShowTelegramHelp(true)
@@ -360,14 +360,14 @@ export default function OnboardingPage() {
             <div className="space-y-2">
               <h4 className="font-semibold">Step 1: Start a Chat</h4>
               <p className="text-sm text-gray-600">
-                Click the button below to open a chat with our bot:
+                Click the button below to open a chat with @userinfobot:
               </p>
               <Button
-                onClick={() => window.open("https://t.me/sunrisemy_2025_bot", "_blank")}
+                onClick={() => window.open("https://t.me/userinfobot", "_blank")}
                 className="w-full"
               >
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open Telegram Bot
+                Open @userinfobot
               </Button>
             </div>
 
@@ -381,13 +381,13 @@ export default function OnboardingPage() {
             <div className="space-y-2">
               <h4 className="font-semibold">Step 3: Get Your Chat ID</h4>
               <p className="text-sm text-gray-600">
-                Send any message to the bot (like "hello" or "/start") and it will reply with your Chat ID. Copy that number and paste it in the form above.
+                The bot will reply with your Chat ID (a number like "123456789"). Copy that number and paste it in the form above.
               </p>
             </div>
 
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
-                💡 <strong>Tip:</strong> Your Chat ID is a number like "123456789". It's unique to your Telegram account.
+                💡 <strong>Tip:</strong> Your Chat ID is a number like "123456789". It's unique to your Telegram account and works for any bot or service.
               </p>
             </div>
           </div>
