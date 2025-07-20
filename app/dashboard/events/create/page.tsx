@@ -49,7 +49,7 @@ interface CommunicationMethod {
 
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
 
-const communicationMethods: CommunicationMethod[] = [
+const getCommunicationMethods = (userTier: string): CommunicationMethod[] => [
   {
     id: "email",
     name: "Email",
@@ -62,7 +62,8 @@ const communicationMethods: CommunicationMethod[] = [
     name: "Telegram",
     icon: <Send className="h-6 w-6" />,
     description: "Instant messaging for quick delivery",
-    available: true,
+    available: userTier === "pro" || userTier === "enterprise",
+    comingSoon: userTier === "free" || userTier === "basic",
   },
   {
     id: "whatsapp",
@@ -109,6 +110,7 @@ export default function CreateEventPage() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(true)
   const [contactCount, setContactCount] = useState(0)
   const [userBalance, setUserBalance] = useState(0)
+  const [userTier, setUserTier] = useState<string>("free")
   const [eventLimitCheck, setEventLimitCheck] = useState<{ allowed: boolean; currentCount: number; maxAllowed: number; tier: string } | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedMethods, setSelectedMethods] = useState<string[]>([])
@@ -139,6 +141,7 @@ export default function CreateEventPage() {
       router.push('/login')
     } else {
       fetchUserBalance()
+      fetchUserTier()
       fetchCategories()
       checkEventLimit()
     }
@@ -191,6 +194,16 @@ export default function CreateEventPage() {
   }, [selectedTelegramTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
 
   const handleMethodSelection = (methodId: string) => {
+    // Check if user is trying to select Telegram but doesn't have access
+    if (methodId === "telegram" && (userTier === "free" || userTier === "basic")) {
+      toast({
+        title: "Telegram Not Available",
+        description: "Telegram messaging is available for Pro and Enterprise plans. Upgrade to unlock this feature!",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSelectedMethods(prev => {
       if (prev.includes(methodId)) {
         return prev.filter(id => id !== methodId)
@@ -280,6 +293,31 @@ export default function CreateEventPage() {
     }
   }
 
+  const fetchUserTier = async () => {
+    try {
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('user_subscriptions')
+        .select('tier, status')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+        console.error('Error fetching subscription:', subscriptionError)
+      }
+      
+      if (subscriptionData && subscriptionData.status === 'active') {
+        setUserTier(subscriptionData.tier)
+      } else {
+        setUserTier("free")
+      }
+    } catch (error) {
+      console.error('Error fetching user tier:', error)
+      setUserTier("free")
+    }
+  }
+
   const fetchCategories = async () => {
     try {
       const response = await fetch("/api/contacts/categories")
@@ -330,6 +368,16 @@ export default function CreateEventPage() {
     
     if (userBalance < contactCount) {
       setShowPaymentDialog(true)
+      return
+    }
+
+    // Check if free user is trying to schedule
+    if (formData.sendOption === "schedule" && userTier === "free") {
+      toast({
+        title: "Schedule Send Unavailable",
+        description: "Schedule send is available for Basic plans and above. Please upgrade to schedule your events.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -418,8 +466,18 @@ export default function CreateEventPage() {
   }
 
   const handleInputChange = useCallback((field: string, value: string | Date | boolean) => {
+    // Prevent free users from changing to schedule mode
+    if (field === "sendOption" && value === "schedule" && userTier === "free") {
+      toast({
+        title: "Schedule Send Unavailable",
+        description: "Schedule send is available for Basic plans and above. Please upgrade to schedule your events.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     setFormData((prev) => ({ ...prev, [field]: value }))
-  }, [])
+  }, [userTier])
 
   const handleEmailTemplateSelect = useCallback((templateKey: string) => {
     setSelectedEmailTemplate(templateKey)
@@ -563,7 +621,7 @@ export default function CreateEventPage() {
           
           <div className="py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {communicationMethods.map((method) => (
+              {getCommunicationMethods(userTier).map((method: CommunicationMethod) => (
                 <button
                   key={method.id}
                   onClick={() => method.available && handleMethodSelection(method.id)}
@@ -603,6 +661,29 @@ export default function CreateEventPage() {
                 </button>
               ))}
             </div>
+
+            {/* Upgrade Prompt for Free/Basic Users */}
+            {(userTier === "free" || userTier === "basic") && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg border border-orange-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  <h3 className="font-semibold text-orange-800">Unlock More Features</h3>
+                </div>
+                <p className="text-sm text-orange-700 mb-3">
+                  {userTier === "free" 
+                    ? "Upgrade to Basic to unlock Telegram messaging and more features."
+                    : "Upgrade to Pro to unlock Telegram messaging and unlimited events."
+                  }
+                </p>
+                <Button
+                  onClick={() => router.push('/pricing')}
+                  size="sm"
+                  className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
+                >
+                  View Plans
+                </Button>
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <Button
@@ -902,10 +983,45 @@ export default function CreateEventPage() {
                         value="schedule"
                         checked={formData.sendOption === "schedule"}
                         onChange={(e) => handleInputChange("sendOption", e.target.value as SendOption)}
+                        disabled={userTier === "free"}
                         className="h-4 w-4"
                       />
-                      <Label htmlFor="schedule" className="text-sm">Schedule Send</Label>
+                      <Label 
+                        htmlFor="schedule" 
+                        className={`text-sm ${userTier === "free" ? "text-gray-400 cursor-not-allowed" : ""}`}
+                      >
+                        Schedule Send
+                        {userTier === "free" && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Basic+
+                          </span>
+                        )}
+                      </Label>
                     </div>
+                    
+                    {/* Upgrade prompt for free users */}
+                    {userTier === "free" && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-blue-800 font-medium text-sm">Schedule Send Unavailable</p>
+                            <p className="text-blue-600 text-xs">
+                              Schedule send is available for Basic plans and above. Upgrade to schedule your events in advance.
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                              onClick={() => router.push('/pricing')}
+                            >
+                              View Plans
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {formData.sendOption === "schedule" && (
