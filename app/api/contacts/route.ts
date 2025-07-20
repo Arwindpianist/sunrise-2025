@@ -176,14 +176,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // For public contact forms, create a new Supabase client with explicit anonymous access
+    // For public contact forms, create a new Supabase client with service role access
     let supabaseClient = supabase
     if (!session && user_id) {
-      // Create a new client for anonymous access
+      // Create a new client with service role for public contact forms
       const { createClient } = await import('@supabase/supabase-js')
       supabaseClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
     }
 
