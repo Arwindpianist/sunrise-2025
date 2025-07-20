@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /admin/
+Disallow: /contact-form/
+Disallow: /onboarding/
+Disallow: /auth/
+
+Sitemap: https://sunrise-2025.com/sitemap.xml
