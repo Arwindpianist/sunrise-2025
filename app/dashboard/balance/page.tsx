@@ -68,6 +68,13 @@ export default function BalancePage() {
       if (paymentIntent) {
         handlePaymentIntent(paymentIntent)
       }
+      
+      // Check for subscription success
+      const success = urlParams.get('success')
+      const sessionId = urlParams.get('session_id')
+      if (success === 'true' && sessionId) {
+        handleSubscriptionSuccess(sessionId)
+      }
     }
   }, [user, router])
 
@@ -138,6 +145,63 @@ export default function BalancePage() {
     }
 
     setTransactions(data || [])
+  }
+
+  const handleSubscriptionSuccess = async (sessionId: string) => {
+    try {
+      // Refresh user data to get updated subscription and balance
+      await fetchUserData()
+      await fetchTransactions()
+      
+      toast({
+        title: "Subscription Successful!",
+        description: "Your subscription has been activated and tokens have been credited to your account.",
+        variant: "default",
+      })
+      
+      // Clean up URL parameters
+      const url = new URL(window.location.href)
+      url.searchParams.delete('success')
+      url.searchParams.delete('session_id')
+      window.history.replaceState({}, '', url.toString())
+    } catch (error) {
+      console.error('Error handling subscription success:', error)
+    }
+  }
+
+  const handleUpgradeToBasic = async () => {
+    try {
+      setIsLoading(true)
+      
+      // Create Stripe checkout session for Basic plan
+      const response = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tier: 'basic' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create subscription')
+      }
+
+      const { url } = await response.json()
+      
+      // Redirect to Stripe checkout
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error)
+      toast({
+        title: "Subscription Error",
+        description: "Failed to create subscription. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePaymentIntent = async (clientSecret: string) => {
@@ -329,9 +393,9 @@ export default function BalancePage() {
                 {userTier === "free" && (
                   <Button 
                     className="mt-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                    onClick={() => router.push('/pricing')}
+                    onClick={handleUpgradeToBasic}
                   >
-                    Upgrade to Save
+                    Upgrade to Basic
                   </Button>
                 )}
               </div>

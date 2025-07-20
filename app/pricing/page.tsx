@@ -51,11 +51,36 @@ export default function PricingPage() {
     }
   }
 
-  const handleGetStarted = (plan: string) => {
-    if (user) {
-      router.push('/dashboard/balance')
-    } else {
+  const handleGetStarted = async (plan: string) => {
+    if (!user) {
       router.push('/register')
+      return
+    }
+
+    try {
+      // Create Stripe checkout session
+      const response = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tier: plan.toLowerCase() }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create subscription')
+      }
+
+      const { url } = await response.json()
+      
+      // Redirect to Stripe checkout
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error)
+      // Fallback to balance page
+      router.push('/dashboard/balance')
     }
   }
 

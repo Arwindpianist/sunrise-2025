@@ -1,89 +1,150 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
+import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 })
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+export const dynamic = "force-dynamic"
 
-export async function POST(request: NextRequest) {
+// Create a Stripe checkout session for subscription
+export async function POST(request: Request) {
   try {
-    const { userId, plan, priceId } = await request.json()
+    const supabase = createRouteHandlerClient({ cookies })
 
-    if (!userId || !plan || !priceId) {
-      return NextResponse.json(
-        { error: 'Missing required parameters' },
-        { status: 400 }
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return new NextResponse(
+        JSON.stringify({ error: "Unauthorized" }),
+        { 
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
       )
     }
 
-    // Get user's email from Supabase users table
+    const { tier } = await request.json()
+
+    if (!tier || !SUBSCRIPTION_FEATURES[tier as SubscriptionTier]) {
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid subscription tier" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    // Get user's email for Stripe customer creation
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('email')
-      .eq('id', userId)
+      .eq('id', session.user.id)
       .single()
 
     if (userError || !userData?.email) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+      return new NextResponse(
+        JSON.stringify({ error: "User email not found" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       )
     }
 
-    // Create Stripe customer
-    const customer = await stripe.customers.create({
-      email: userData.email,
-      metadata: {
-        user_id: userId,
-      },
-    })
-
-    // Create subscription
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
-      metadata: {
-        user_id: userId,
-        plan: plan,
-      },
-    })
-
-    // Update user subscription in database
-    const { error: dbError } = await supabase
-      .from('user_subscriptions')
-      .upsert({
-        user_id: userId,
-        tier: plan,
-        status: 'active',
-        stripe_customer_id: customer.id,
-        stripe_subscription_id: subscription.id,
-        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-      })
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      // Continue anyway as Stripe subscription was created
+    // Get the price ID for the selected tier
+    const priceId = getPriceIdForTier(tier as SubscriptionTier)
+    if (!priceId) {
+      return new NextResponse(
+        JSON.stringify({ error: "Price not configured for this tier" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
     }
 
-    return NextResponse.json({
-      subscriptionId: subscription.id,
-      clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+    // Check if user already has a Stripe customer
+    const { data: existingSubscription } = await supabase
+      .from("user_subscriptions")
+      .select("stripe_customer_id, stripe_subscription_id, id")
+      .eq("user_id", session.user.id)
+      .single()
+
+    let customerId = existingSubscription?.stripe_customer_id
+
+    if (!customerId) {
+      // Create Stripe customer
+      const customer = await stripe.customers.create({
+        email: userData.email,
+        metadata: {
+          user_id: session.user.id,
+        },
+      })
+      customerId = customer.id
+    }
+
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=true`,
+      metadata: {
+        user_id: session.user.id,
+        plan: tier,
+      },
+      subscription_data: {
+        metadata: {
+          user_id: session.user.id,
+          plan: tier,
+        },
+      },
     })
-  } catch (error) {
-    console.error('Error creating subscription:', error)
-    return NextResponse.json(
-      { error: 'Failed to create subscription' },
-      { status: 500 }
+
+    return new NextResponse(
+      JSON.stringify({ 
+        sessionId: checkoutSession.id,
+        url: checkoutSession.url 
+      }),
+      { 
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
+
+  } catch (error: any) {
+    console.error("Error creating subscription checkout session:", error)
+    return new NextResponse(
+      JSON.stringify({ error: "Internal server error" }),
+      { 
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     )
   }
+}
+
+// Helper function to get Stripe price ID for each tier
+function getPriceIdForTier(tier: SubscriptionTier): string | null {
+  // You need to create these price IDs in your Stripe dashboard
+  // and replace them with your actual price IDs
+  const priceIds: Record<string, string | undefined> = {
+    basic: process.env.STRIPE_BASIC_PRICE_ID,
+    pro: process.env.STRIPE_PRO_PRICE_ID,
+    enterprise: process.env.STRIPE_ENTERPRISE_PRICE_ID,
+  }
+  
+  return priceIds[tier] || null
 } 

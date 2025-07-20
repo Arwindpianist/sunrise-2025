@@ -14,6 +14,7 @@ export interface SubscriptionFeatures {
   canBuyTokens: boolean;
   tokenPrice: number;
   monthlyPrice: number;
+  monthlyTokens: number; // Monthly tokens included with subscription
   features: string[];
   restrictions: string[];
 }
@@ -32,6 +33,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     canBuyTokens: false, // Cannot buy tokens without subscription
     tokenPrice: 0.50,
     monthlyPrice: 0,
+    monthlyTokens: 0, // No monthly tokens for free users
     features: [
       '15 trial tokens',
       'Basic email templates',
@@ -60,7 +62,9 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     canBuyTokens: true,
     tokenPrice: 0.45,
     monthlyPrice: 9.90,
+    monthlyTokens: 10, // 10 tokens per month
     features: [
+      '10 tokens included monthly',
       'Discounted token prices (RM0.45/token)',
       'Smart contact management',
       'Event scheduling',
@@ -91,7 +95,9 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     canBuyTokens: true,
     tokenPrice: 0.40,
     monthlyPrice: 29.90,
+    monthlyTokens: 30, // 30 tokens per month
     features: [
+      '30 tokens included monthly',
       'Discounted token prices (RM0.40/token)',
       'Advanced email templates',
       'Telegram messaging',
@@ -123,7 +129,9 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     canBuyTokens: true,
     tokenPrice: 0.35,
     monthlyPrice: 79.90,
+    monthlyTokens: 100, // 100 tokens per month
     features: [
+      '100 tokens included monthly',
       'Discounted token prices (RM0.35/token)',
       'Premium email templates',
       'Telegram messaging',
