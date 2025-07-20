@@ -270,7 +270,7 @@ export async function GET(
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     const { userId } = params
 
-    // First try to fetch from users table
+    // Fetch from users table (this should be publicly accessible)
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id, full_name, email')
@@ -294,31 +294,9 @@ export async function GET(
       )
     }
 
-    // If user doesn't exist in users table, try to get from auth.users
-    try {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.admin.getUserById(userId)
-      
-      if (authUser) {
-        // User exists in auth but not in users table - return auth data
-        return new NextResponse(
-          JSON.stringify({
-            id: authUser.id,
-            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || null,
-            email: authUser.email
-          }),
-          { 
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-      }
-    } catch (authError) {
-      console.error('Error fetching from auth:', authError)
-    }
-
-    // If user doesn't exist anywhere, return a generic response
+    // If user doesn't exist in users table, return a generic response
+    // This should not happen if the database trigger is working properly
+    console.warn(`User ${userId} not found in users table - database trigger may not be working`)
     return new NextResponse(
       JSON.stringify({
         id: userId,
