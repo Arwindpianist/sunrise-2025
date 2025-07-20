@@ -382,7 +382,7 @@ export default function BalancePage() {
 
         {/* Token Purchase Section */}
         <div className="mt-6 sm:mt-8">
-          <Card className="bg-white/50 backdrop-blur-sm">
+          <Card className={`bg-white/50 backdrop-blur-sm ${userTier === "free" ? "opacity-60" : ""}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-orange-500" />
@@ -393,71 +393,138 @@ export default function BalancePage() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-                {TOKEN_TOPUPS.map((pack) => {
-                  const price = calculateTokenPackPrice(pack.tokens, userTier)
-                  const savings = userTier !== "free" ? (pack.tokens * 0.50) - price : 0
+              {userTier === "free" ? (
+                /* Subscription Required Message for Free Users */
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <Crown className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                      Subscribe to Purchase Tokens
+                    </h3>
+                    <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                      Token purchases are available exclusively for subscribers. Upgrade to any plan to unlock discounted token pricing and start purchasing tokens.
+                    </p>
+                  </div>
                   
-                  return (
-                    <Card
-                      key={pack.name}
-                      className={`relative bg-white/50 backdrop-blur-sm hover:shadow-lg transition-shadow ${
-                        pack.popular ? "border-2 border-orange-500" : ""
-                      }`}
-                    >
-                      {pack.popular && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-                            Popular
-                          </span>
-                        </div>
-                      )}
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <h3 className="font-bold text-lg mb-1">{pack.name}</h3>
-                          <p className="text-2xl font-bold text-orange-500 mb-1">{pack.tokens}</p>
-                          <p className="text-muted-foreground text-sm mb-2">tokens</p>
-                          <p className="text-sm text-gray-500 mb-3">{pack.description}</p>
-                          
-                          <div className="mb-3">
-                            <p className="text-xl font-bold text-gray-800">
-                              RM{price.toFixed(2)}
-                            </p>
-                            {savings > 0 && (
-                              <p className="text-sm text-green-600">
-                                Save RM{savings.toFixed(2)}
-                              </p>
-                            )}
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto">
+                    {TOKEN_TOPUPS.map((pack) => {
+                      const price = calculateTokenPackPrice(pack.tokens, "basic") // Show basic tier pricing as example
+                      const savings = (pack.tokens * 0.50) - price
+                      
+                      return (
+                        <Card
+                          key={pack.name}
+                          className="relative bg-gray-50 border-gray-200 opacity-75"
+                        >
+                          {pack.popular && (
+                            <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                              <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
+                                Popular
+                              </span>
+                            </div>
+                          )}
+                          <CardContent className="pt-6">
+                            <div className="text-center">
+                              <h3 className="font-bold text-lg mb-1 text-gray-600">{pack.name}</h3>
+                              <p className="text-2xl font-bold text-gray-400 mb-1">{pack.tokens}</p>
+                              <p className="text-muted-foreground text-sm mb-2">tokens</p>
+                              <p className="text-sm text-gray-400 mb-3">{pack.description}</p>
+                              
+                              <div className="mb-3">
+                                <p className="text-xl font-bold text-gray-500">
+                                  RM{price.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-green-600">
+                                  Save RM{savings.toFixed(2)}
+                                </p>
+                              </div>
+                              
+                              <Button 
+                                className="w-full bg-gray-400 text-white cursor-not-allowed"
+                                disabled={true}
+                              >
+                                Subscribe to Unlock
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                  
+                  <div className="mt-8 p-6 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg">
+                    <h3 className="font-semibold text-gray-800 mb-3">Ready to Get Started?</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Choose a subscription plan and unlock discounted token pricing. Save up to 30% on every purchase.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button 
+                        className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                        onClick={() => router.push('/pricing')}
+                      >
+                        View Subscription Plans
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="border-orange-500 text-orange-500 hover:bg-orange-50"
+                        onClick={() => router.push('/dashboard')}
+                      >
+                        Back to Dashboard
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Token Purchase Cards for Subscribed Users */
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                  {TOKEN_TOPUPS.map((pack) => {
+                    const price = calculateTokenPackPrice(pack.tokens, userTier)
+                    const savings = userTier !== "free" ? (pack.tokens * 0.50) - price : 0
+                    
+                    return (
+                      <Card
+                        key={pack.name}
+                        className={`relative bg-white/50 backdrop-blur-sm hover:shadow-lg transition-shadow ${
+                          pack.popular ? "border-2 border-orange-500" : ""
+                        }`}
+                      >
+                        {pack.popular && (
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                            <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                              Popular
+                            </span>
                           </div>
-                          
-                          <Button 
-                            className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                            onClick={() => handlePurchase(pack)}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? "Processing..." : "Purchase Tokens"}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-              
-              {/* Upgrade CTA for free users */}
-              {userTier === "free" && (
-                <div className="mt-6 p-4 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg text-center">
-                  <h3 className="font-semibold text-gray-800 mb-2">Upgrade to Save More!</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Subscribe to a plan and get discounted token prices. Save up to 30% on every purchase.
-                  </p>
-                  <Button 
-                    variant="outline"
-                    className="border-orange-500 text-orange-500 hover:bg-orange-50"
-                    onClick={() => router.push('/pricing')}
-                  >
-                    View Plans
-                  </Button>
+                        )}
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <h3 className="font-bold text-lg mb-1">{pack.name}</h3>
+                            <p className="text-2xl font-bold text-orange-500 mb-1">{pack.tokens}</p>
+                            <p className="text-muted-foreground text-sm mb-2">tokens</p>
+                            <p className="text-sm text-gray-500 mb-3">{pack.description}</p>
+                            
+                            <div className="mb-3">
+                              <p className="text-xl font-bold text-gray-800">
+                                RM{price.toFixed(2)}
+                              </p>
+                              {savings > 0 && (
+                                <p className="text-sm text-green-600">
+                                  Save RM{savings.toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <Button 
+                              className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                              onClick={() => handlePurchase(pack)}
+                              disabled={isLoading}
+                            >
+                              {isLoading ? "Processing..." : "Purchase Tokens"}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
