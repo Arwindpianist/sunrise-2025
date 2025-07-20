@@ -59,8 +59,14 @@ export async function POST(request: Request) {
     // Get the price ID for the selected tier
     const priceId = getPriceIdForTier(tier as SubscriptionTier)
     if (!priceId) {
+      console.error(`Price ID not found for tier: ${tier}`)
+      console.error('Available environment variables:', {
+        STRIPE_BASIC_PRICE_ID: !!process.env.STRIPE_BASIC_PRICE_ID,
+        STRIPE_PRO_PRICE_ID: !!process.env.STRIPE_PRO_PRICE_ID,
+        STRIPE_ENTERPRISE_PRICE_ID: !!process.env.STRIPE_ENTERPRISE_PRICE_ID,
+      })
       return new NextResponse(
-        JSON.stringify({ error: "Price not configured for this tier" }),
+        JSON.stringify({ error: `Price not configured for ${tier} tier. Please check environment variables.` }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -88,6 +94,11 @@ export async function POST(request: Request) {
       customerId = customer.id
     }
 
+    // Get the base URL for redirects
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                   'https://sunrise-2025.com'
+
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -99,8 +110,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=true`,
+      success_url: `${baseUrl}/dashboard/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
         user_id: session.user.id,
         plan: tier,
@@ -126,8 +137,17 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error creating subscription checkout session:", error)
+    
+    // Return more specific error messages
+    let errorMessage = "Internal server error"
+    if (error.type === 'StripeInvalidRequestError') {
+      errorMessage = `Stripe error: ${error.message}`
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
     return new NextResponse(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500,
         headers: { "Content-Type": "application/json" },
