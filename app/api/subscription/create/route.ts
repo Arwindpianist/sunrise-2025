@@ -95,9 +95,7 @@ export async function POST(request: Request) {
     }
 
     // Get the base URL for redirects
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'https://sunrise-2025.com'
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sunrise-2025.com'
 
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
