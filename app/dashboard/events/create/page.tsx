@@ -147,6 +147,8 @@ export default function CreateEventPage() {
     }
   }, [user, router])
 
+
+
   useEffect(() => {
     if (user && selectedMethods.length > 0) {
       fetchContactCount()
@@ -480,6 +482,16 @@ export default function CreateEventPage() {
   }, [userTier])
 
   const handleEmailTemplateSelect = useCallback((templateKey: string) => {
+    // Free users can only use generic template
+    if (userTier === "free" && templateKey !== "generic") {
+      toast({
+        title: "Advanced Templates Unavailable",
+        description: "Advanced email templates are available for Basic plans and above. Please upgrade to access specialized templates.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     setSelectedEmailTemplate(templateKey)
     const template = emailTemplates.find(t => t.key === templateKey)
     if (template) {
@@ -495,7 +507,14 @@ export default function CreateEventPage() {
       const generatedTemplate = template.template(templateVars)
       setFormData(prev => ({ ...prev, emailTemplate: generatedTemplate }))
     }
-  }, [formData.title, formData.description, formData.eventDate, formData.location, user])
+  }, [formData.title, formData.description, formData.eventDate, formData.location, user, userTier])
+
+  // Auto-select generic template for free users
+  useEffect(() => {
+    if (userTier === "free" && selectedMethods.includes('email') && !selectedEmailTemplate) {
+      handleEmailTemplateSelect("generic")
+    }
+  }, [userTier, selectedMethods, selectedEmailTemplate, handleEmailTemplateSelect])
 
   const handleTelegramTemplateSelect = useCallback((templateKey: string) => {
     setSelectedTelegramTemplate(templateKey)
@@ -816,29 +835,69 @@ export default function CreateEventPage() {
                     <div className="space-y-4">
                       <Label>Email Template</Label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {emailTemplates.map((template) => (
-                          <button
-                            key={template.key}
-                            type="button"
-                            onClick={() => handleEmailTemplateSelect(template.key)}
-                            className={`p-4 border-2 rounded-lg text-left transition-all ${
-                              selectedEmailTemplate === template.key
-                                ? "border-orange-500 bg-orange-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            <div className="font-medium text-sm">{template.label}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {template.key === "birthday" && "🎉"}
-                              {template.key === "openHouse" && "🏡"}
-                              {template.key === "wedding" && "💍"}
-                              {template.key === "meeting" && "📅"}
-                              {template.key === "babyShower" && "👶"}
-                              {template.key === "generic" && "📧"}
-                            </div>
-                          </button>
-                        ))}
+                        {emailTemplates.map((template) => {
+                          // Free users can only use generic template
+                          const isDisabled = userTier === "free" && template.key !== "generic"
+                          const isSelected = selectedEmailTemplate === template.key
+                          
+                          return (
+                            <button
+                              key={template.key}
+                              type="button"
+                              onClick={() => !isDisabled && handleEmailTemplateSelect(template.key)}
+                              disabled={isDisabled}
+                              className={`p-4 border-2 rounded-lg text-left transition-all ${
+                                isSelected
+                                  ? "border-orange-500 bg-orange-50"
+                                  : isDisabled
+                                  ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                            >
+                              <div className="font-medium text-sm flex items-center justify-between">
+                                {template.label}
+                                {isDisabled && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Basic+
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {template.key === "birthday" && "🎉"}
+                                {template.key === "openHouse" && "🏡"}
+                                {template.key === "wedding" && "💍"}
+                                {template.key === "meeting" && "📅"}
+                                {template.key === "babyShower" && "👶"}
+                                {template.key === "generic" && "📧"}
+                              </div>
+                            </button>
+                          )
+                        })}
                       </div>
+                      
+                      {/* Upgrade prompt for free users */}
+                      {userTier === "free" && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-blue-800 font-medium text-sm">Advanced Templates Unavailable</p>
+                              <p className="text-blue-600 text-xs">
+                                Advanced email templates are available for Basic plans and above. Upgrade to access birthday, wedding, meeting, and other specialized templates.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                onClick={() => router.push('/pricing')}
+                              >
+                                View Plans
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       {selectedEmailTemplate && (
                         <div className="flex gap-2 mt-2">

@@ -111,7 +111,7 @@ export const SUBSCRIPTION_PLANS = [
       "Smart contact management",
       "Event scheduling",
       "Email tracking",
-      "Basic email templates",
+      "All email templates (birthday, wedding, etc.)",
       "Mobile-friendly interface",
       "100 lifetime tokens included",
     ],

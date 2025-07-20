@@ -9,6 +9,8 @@ export function canUseFeature(userTier: SubscriptionTier, feature: string): bool
       return features.canUseTelegram
     case 'schedule_send':
       return userTier === 'basic' || userTier === 'pro' || userTier === 'enterprise'
+    case 'email_templates':
+      return userTier === 'basic' || userTier === 'pro' || userTier === 'enterprise'
     case 'custom_templates':
       return features.canCustomizeTemplates
     case 'custom_branding':
@@ -45,6 +47,11 @@ export function getFeatureRestrictionMessage(userTier: SubscriptionTier, feature
     case 'schedule_send':
       if (userTier === 'free') {
         return 'Schedule send is available for Basic plans and above.'
+      }
+      return ''
+    case 'email_templates':
+      if (userTier === 'free') {
+        return 'Advanced email templates are available for Basic plans and above.'
       }
       return ''
     case 'custom_templates':
@@ -120,6 +127,14 @@ export function getFeatureUpgradeRecommendation(userTier: SubscriptionTier, feat
         return {
           recommended: 'basic',
           reason: 'Upgrade to Basic to unlock schedule send'
+        }
+      }
+      break
+    case 'email_templates':
+      if (userTier === 'free') {
+        return {
+          recommended: 'basic',
+          reason: 'Upgrade to Basic to unlock advanced email templates'
         }
       }
       break
