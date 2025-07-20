@@ -167,9 +167,9 @@ export async function DELETE(
           .eq('user_id', userId)
       },
       {
-        name: 'profiles',
+        name: 'users',
         query: () => supabase
-          .from('profiles')
+          .from('users')
           .delete()
           .eq('id', userId)
       }

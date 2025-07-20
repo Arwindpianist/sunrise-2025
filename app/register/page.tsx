@@ -80,31 +80,15 @@ export default function RegisterPage() {
         email_confirmed: authData.user.email_confirmed_at
       })
 
-      // Check if email confirmation is required
-      if (authData.user.email_confirmed_at) {
-        // Email already confirmed, log them in
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        })
-
-        if (signInError) {
-          throw new Error(signInError.message)
-        }
-
-        toast({
-          title: "Success!",
-          description: "Your account has been created and you're now logged in.",
-        })
-        router.push("/dashboard")
-      } else {
-        // Email confirmation required
-        toast({
-          title: "Almost there!",
-          description: "Please check your email to confirm your account. You can also try logging in directly.",
-        })
-        router.push("/login")
-      }
+      // Always show email confirmation message for new registrations
+      // Don't auto-login even if email appears confirmed
+      toast({
+        title: "Account Created!",
+        description: "Please check your email to confirm your account before logging in.",
+      })
+      
+      // Redirect to a confirmation page or login with message
+      router.push("/login?message=check_email")
     } catch (error: any) {
       console.error('Registration error:', {
         message: error.message,

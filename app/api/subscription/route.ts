@@ -144,7 +144,7 @@ export async function POST(request: Request) {
 
     // Get user's email for Stripe customer creation
     const { data: userData, error: userError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('email')
       .eq('id', session.user.id)
       .single()

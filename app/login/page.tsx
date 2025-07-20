@@ -39,6 +39,11 @@ function LoginForm() {
         title: "Email Verified!",
         description: "Your email has been successfully verified. You can now sign in to your account.",
       })
+    } else if (message === 'check_email') {
+      toast({
+        title: "Check Your Email!",
+        description: "We've sent you a confirmation email. Please check your inbox and click the confirmation link before signing in.",
+      })
     } else if (error) {
       toast({
         title: "Authentication Error",
