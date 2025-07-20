@@ -1,0 +1,21 @@
+{
+  "name": "Sunrise - Event Management Platform",
+  "short_name": "Sunrise",
+  "description": "Create and manage your events with ease. Streamline your event planning, contact management, and communication all in one powerful platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+} 
