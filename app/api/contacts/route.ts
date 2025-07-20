@@ -176,8 +176,19 @@ export async function POST(request: Request) {
       }
     }
 
+    // For public contact forms, create a new Supabase client with explicit anonymous access
+    let supabaseClient = supabase
+    if (!session && user_id) {
+      // Create a new client for anonymous access
+      const { createClient } = await import('@supabase/supabase-js')
+      supabaseClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+    }
+
     // Create contact
-    const { data: contact, error: contactError } = await supabase
+    const { data: contact, error: contactError } = await supabaseClient
       .from('contacts')
       .insert([
         {
