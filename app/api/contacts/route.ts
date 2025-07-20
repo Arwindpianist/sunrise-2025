@@ -83,13 +83,18 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    console.log('=== CONTACTS API START ===')
+    
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Get the session (optional for public contact forms)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    console.log('Session check:', { hasSession: !!session, sessionError })
 
     const body = await request.json()
+    console.log('Request body:', body)
+    
     const { first_name, last_name, email, phone, telegram_chat_id, category, notes, user_id } = body
 
     // Determine the user_id - either from session or from the form (for public contact forms)
@@ -97,10 +102,13 @@ export async function POST(request: Request) {
     if (user_id) {
       // Public contact form submission
       targetUserId = user_id
+      console.log('Public contact form submission for user:', targetUserId)
     } else if (session?.user?.id) {
       // Authenticated user submission
       targetUserId = session.user.id
+      console.log('Authenticated user submission for user:', targetUserId)
     } else {
+      console.log('No user context provided')
       return new NextResponse(
         JSON.stringify({ error: 'No user context provided for contact submission' }),
         { 
@@ -114,6 +122,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!first_name || !email) {
+      console.log('Validation failed: missing first_name or email')
       return new NextResponse(
         JSON.stringify({ error: 'Full name and email are required' }),
         { 
@@ -128,6 +137,7 @@ export async function POST(request: Request) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
+      console.log('Validation failed: invalid email format')
       return new NextResponse(
         JSON.stringify({ error: 'Please enter a valid email address' }),
         { 
@@ -141,6 +151,7 @@ export async function POST(request: Request) {
 
     // Validate telegram_chat_id if provided (should be numeric)
     if (telegram_chat_id && !/^\d+$/.test(telegram_chat_id)) {
+      console.log('Validation failed: invalid telegram_chat_id')
       return new NextResponse(
         JSON.stringify({ error: 'Telegram Chat ID should be a number' }),
         { 
@@ -154,10 +165,12 @@ export async function POST(request: Request) {
 
     // Check contact creation limit (only for authenticated users, not public forms)
     if (session?.user?.id && !user_id) {
+      console.log('Checking contact limits for authenticated user')
       const limitCheck = await canCreateContact()
       
       if (!limitCheck.allowed) {
         const limitInfo = limitCheck.maxAllowed === -1 ? 'unlimited' : limitCheck.maxAllowed
+        console.log('Contact limit reached')
         return new NextResponse(
           JSON.stringify({ 
             error: `Contact limit reached. You can only create up to ${limitInfo} contacts with your current plan.`,
@@ -179,6 +192,7 @@ export async function POST(request: Request) {
     // For public contact forms, create a new Supabase client with service role access
     let supabaseClient = supabase
     if (!session && user_id) {
+      console.log('Creating service role client for public contact form')
       // Create a new client with service role for public contact forms
       const { createClient } = await import('@supabase/supabase-js')
       supabaseClient = createClient(
@@ -186,6 +200,17 @@ export async function POST(request: Request) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
     }
+
+    console.log('About to insert contact with data:', {
+      user_id: targetUserId,
+      first_name,
+      last_name,
+      email,
+      phone,
+      telegram_chat_id,
+      category,
+      notes,
+    })
 
     // Create contact
     const { data: contact, error: contactError } = await supabaseClient
@@ -204,6 +229,8 @@ export async function POST(request: Request) {
       ])
       .select()
       .single()
+
+    console.log('Supabase response:', { contact, contactError })
 
     if (contactError) {
       console.error('Error creating contact:', contactError)
@@ -232,6 +259,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Contact created successfully:', contact)
+    console.log('=== CONTACTS API END ===')
 
     return new NextResponse(
       JSON.stringify({
@@ -247,9 +275,11 @@ export async function POST(request: Request) {
       }
     )
   } catch (error: any) {
+    console.error('=== CONTACTS API ERROR ===')
     console.error('Error in contacts:', error)
+    console.error('Error stack:', error.stack)
     return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
       { 
         status: 500,
         headers: {
