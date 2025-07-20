@@ -274,6 +274,41 @@ export interface Database {
           updated_at?: string
         }
       }
+      user_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          tier: string
+          status: string
+          current_period_start: string | null
+          current_period_end: string | null
+          total_tokens_purchased: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tier: string
+          status?: string
+          current_period_start?: string | null
+          current_period_end?: string | null
+          total_tokens_purchased?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tier?: string
+          status?: string
+          current_period_start?: string | null
+          current_period_end?: string | null
+          total_tokens_purchased?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { TOKEN_TOPUPS, getTokenPrice, calculateTokenPackPrice, getTierInfo } from "@/lib/pricing"
+import SubscriptionStatus from "@/components/subscription-status"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -60,6 +61,13 @@ export default function BalancePage() {
     } else {
       fetchUserData()
       fetchTransactions()
+      
+      // Check for payment intent in URL
+      const urlParams = new URLSearchParams(window.location.search)
+      const paymentIntent = urlParams.get('payment_intent')
+      if (paymentIntent) {
+        handlePaymentIntent(paymentIntent)
+      }
     }
   }, [user, router])
 
@@ -75,15 +83,39 @@ export default function BalancePage() {
       if (balanceError && balanceError.code !== 'PGRST116') throw balanceError
       setUserBalance(balanceData?.balance || 0)
 
-      // Fetch user tier
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('subscription_plan')
-        .eq('id', user?.id)
+      // Fetch user subscription tier - check for any subscription first
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('user_subscriptions')
+        .select('tier, status')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single()
 
-      if (userError) throw userError
-      setUserTier(userData?.subscription_plan || "free")
+      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+        console.error('Error fetching subscription:', subscriptionError)
+      }
+      
+      // Use the subscription tier if it exists, otherwise check for trial
+      if (subscriptionData) {
+        setUserTier(subscriptionData.tier)
+      } else {
+        // Check if user is in trial period
+        const { data: profile } = await supabase.auth.getUser()
+        if (profile.user) {
+          const createdAt = new Date(profile.user.created_at)
+          const now = new Date()
+          const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+          
+          if (daysSinceCreation <= 30) {
+            setUserTier("free") // Trial period
+          } else {
+            setUserTier("free") // No subscription
+          }
+        } else {
+          setUserTier("free")
+        }
+      }
     } catch (error) {
       console.error('Error fetching user data:', error)
     }
@@ -106,6 +138,56 @@ export default function BalancePage() {
     }
 
     setTransactions(data || [])
+  }
+
+  const handlePaymentIntent = async (clientSecret: string) => {
+    try {
+      setIsLoading(true)
+      
+      // Load Stripe
+      const stripe = await stripePromise
+      if (!stripe) throw new Error("Stripe failed to load")
+
+      // Create payment element
+      const elements = stripe.elements({
+        clientSecret,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: '#0F172A',
+          },
+        },
+      })
+
+      // Create and mount the Payment Element
+      const paymentElement = elements.create('payment')
+      
+      // Show payment dialog
+      setSelectedPackage({
+        tokens: 0,
+        price: 0,
+        name: 'Subscription Payment'
+      })
+      setIsPaymentOpen(true)
+      
+      // Mount payment element when dialog opens
+      setTimeout(() => {
+        const paymentContainer = document.getElementById('payment-element')
+        if (paymentContainer) {
+          paymentElement.mount('#payment-element')
+        }
+      }, 100)
+      
+    } catch (error) {
+      console.error('Error handling payment intent:', error)
+      toast({
+        title: "Payment Error",
+        description: "Failed to load payment form. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePurchase = async (pack: typeof TOKEN_TOPUPS[0]) => {
@@ -255,6 +337,11 @@ export default function BalancePage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Subscription Status */}
+        <div className="mt-6 sm:mt-8">
+          <SubscriptionStatus />
         </div>
 
         {/* Recent Transactions */}

@@ -113,14 +113,17 @@ export default function AdminPage() {
       try {
         // Check if user has admin subscription plan
         const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('subscription_plan')
-          .eq('id', user.id)
+          .from('user_subscriptions')
+          .select('tier, status')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
           .single()
 
-        if (userError) throw userError
+        if (userError && userError.code !== 'PGRST116') {
+          console.error('Error fetching subscription:', userError)
+        }
 
-        const isUserAdmin = userData?.subscription_plan === 'admin'
+        const isUserAdmin = userData?.tier === 'enterprise' || user.email === 'arwindpianist@gmail.com'
         setIsAdmin(isUserAdmin)
 
         if (!isUserAdmin) {

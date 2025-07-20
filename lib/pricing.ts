@@ -1,10 +1,20 @@
-// Token pricing based on user subscription tier
+// Token pricing based on user subscription tier (hidden from users)
 export function getTokenPrice(userTier: string): number {
   switch (userTier) {
     case "enterprise": return 0.35;
     case "pro": return 0.40;
     case "basic": return 0.45;
     default: return 0.50; // No subscription
+  }
+}
+
+// Get token price display (for UI - doesn't show actual price)
+export function getTokenPriceDisplay(userTier: string): string {
+  switch (userTier) {
+    case "enterprise": return "Best Value";
+    case "pro": return "Great Value";
+    case "basic": return "Good Value";
+    default: return "Standard";
   }
 }
 
@@ -63,27 +73,27 @@ export function getTierInfo(tier: string) {
 // Token top-up packages
 export const TOKEN_TOPUPS = [
   {
-    name: "Mini Pack",
-    tokens: 20,
-    description: "For light occasional use",
+    name: "Starter Pack",
+    tokens: 25,
+    description: "Perfect for small events",
     popular: false,
   },
   {
-    name: "Plus Pack",
-    tokens: 60,
-    description: "Great for moderate users",
+    name: "Popular Pack",
+    tokens: 75,
+    description: "Great for regular users",
     popular: true,
   },
   {
-    name: "Pro Pack",
-    tokens: 100,
-    description: "Best for planners and businesses",
+    name: "Business Pack",
+    tokens: 150,
+    description: "Ideal for growing businesses",
     popular: false,
   },
   {
-    name: "Business Pack",
-    tokens: 250,
-    description: "Ideal for agencies or bulk outreach",
+    name: "Enterprise Pack",
+    tokens: 500,
+    description: "For large-scale operations",
     popular: false,
   }
 ];
@@ -97,12 +107,13 @@ export const SUBSCRIPTION_PLANS = [
     tokenPrice: 0.45,
     discount: "10%",
     features: [
-      "Discounted token prices (RM0.45/token)",
+      "Discounted token pricing",
       "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Basic email templates",
       "Mobile-friendly interface",
+      "100 lifetime tokens included",
     ],
     popular: false,
     icon: "Coins",
@@ -114,14 +125,16 @@ export const SUBSCRIPTION_PLANS = [
     tokenPrice: 0.40,
     discount: "20%",
     features: [
-      "Discounted token prices (RM0.40/token)",
+      "Discounted token pricing",
       "Advanced email templates",
+      "Telegram messaging",
       "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Priority support",
       "Custom branding",
       "Bulk contact import",
+      "Unlimited tokens",
     ],
     popular: true,
     icon: "Zap",
@@ -133,8 +146,9 @@ export const SUBSCRIPTION_PLANS = [
     tokenPrice: 0.35,
     discount: "30%",
     features: [
-      "Discounted token prices (RM0.35/token)",
+      "Discounted token pricing",
       "Premium email templates",
+      "Telegram messaging",
       "Smart contact management",
       "Event scheduling",
       "Email tracking",
@@ -143,6 +157,7 @@ export const SUBSCRIPTION_PLANS = [
       "API access",
       "Dedicated account manager",
       "White-label options",
+      "Unlimited everything",
     ],
     popular: false,
     icon: "Crown",

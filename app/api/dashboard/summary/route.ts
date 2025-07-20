@@ -37,12 +37,8 @@ export async function GET(request: Request) {
       )
     }
 
-    // Get user profile
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
+    // Get user profile from auth
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser()
 
     if (userError) {
       console.error('Error fetching user:', userError)
@@ -98,10 +94,10 @@ export async function GET(request: Request) {
     return new NextResponse(
       JSON.stringify({
         user: {
-          id: user.id,
-          email: user.email,
-          full_name: user.full_name,
-          created_at: user.created_at,
+          id: authUser?.id,
+          email: authUser?.email,
+          full_name: null, // We don't have this in auth user
+          created_at: authUser?.created_at,
         },
         stats: {
           events: eventCount || 0,

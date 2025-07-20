@@ -4,13 +4,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send } from "lucide-react"
+import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send, Crown, Zap, User } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
+import { useSubscription } from "@/lib/use-subscription"
 
 export function DashboardNav() {
   const pathname = usePathname()
   const { supabase, user } = useSupabase()
+  const { subscription } = useSubscription()
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -136,6 +138,30 @@ export function DashboardNav() {
           </Button>
         </Link>
       )}
+      
+      {/* Subscription Status Indicator */}
+      {subscription && (
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 text-sm">
+            {subscription.tier === 'free' && <User className="h-4 w-4 text-gray-500" />}
+            {subscription.tier === 'basic' && <Coins className="h-4 w-4 text-blue-500" />}
+            {subscription.tier === 'pro' && <Zap className="h-4 w-4 text-orange-500" />}
+            {subscription.tier === 'enterprise' && <Crown className="h-4 w-4 text-purple-500" />}
+            <span className="font-medium capitalize">{subscription.tier}</span>
+            {subscription.status === 'trial' && (
+              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                Trial
+              </span>
+            )}
+          </div>
+          {subscription.tier === 'basic' && subscription.totalTokensPurchased > 0 && (
+            <div className="mt-1 text-xs text-gray-500">
+              {subscription.totalTokensPurchased}/100 tokens used
+            </div>
+          )}
+        </div>
+      )}
+      
       <Button
         variant="ghost"
         className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"

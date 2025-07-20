@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle } from "lucide-react"
+import { canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
 import PhoneImport from "@/components/phone-import"
@@ -99,6 +100,12 @@ export default function ContactsPage() {
   const [editingLink, setEditingLink] = useState<OnboardingLink | null>(null)
   const [isEditLinkDialogOpen, setIsEditLinkDialogOpen] = useState(false)
   const [isDeletingLink, setIsDeletingLink] = useState(false)
+  const [contactLimitCheck, setContactLimitCheck] = useState<{ 
+    allowed: boolean; 
+    currentCount: number; 
+    maxAllowed: number; 
+    tier: string;
+  } | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -157,6 +164,7 @@ export default function ContactsPage() {
     fetchCategories()
     fetchOnboardingLinks()
     generateShareableLink()
+    checkContactLimit()
   }, [user, router])
 
   const fetchContacts = async () => {
@@ -196,6 +204,16 @@ export default function ContactsPage() {
       setOnboardingLinks(data)
     } catch (error: any) {
       console.error('Error fetching onboarding links:', error)
+    }
+  }
+
+  const checkContactLimit = async () => {
+    try {
+      if (!user) return
+      const limitCheck = await canCreateContact()
+      setContactLimitCheck(limitCheck)
+    } catch (error) {
+      console.error('Error checking contact limit:', error)
     }
   }
 
@@ -383,7 +401,14 @@ export default function ContactsPage() {
         body: JSON.stringify(contactData),
       })
 
-      if (!response.ok) throw new Error("Failed to add contact")
+      if (!response.ok) {
+        const errorData = await response.json()
+        if (errorData.limitReached) {
+          const upgradeRec = getLimitUpgradeRecommendation(errorData.tier, 'contacts')
+          throw new Error(`${errorData.error} ${upgradeRec ? upgradeRec.reason : ''}`)
+        }
+        throw new Error(errorData.error || "Failed to add contact")
+      }
 
       toast({
         title: "Success",
@@ -494,8 +519,40 @@ export default function ContactsPage() {
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Contacts</h1>
-          <p className="text-gray-600 text-sm md:text-base">Manage your event contacts and categories</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Contacts</h1>
+              <p className="text-gray-600 text-sm md:text-base">Manage your event contacts and categories</p>
+            </div>
+            {contactLimitCheck && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">
+                  {contactLimitCheck.currentCount}/{contactLimitCheck.maxAllowed === -1 ? '∞' : contactLimitCheck.maxAllowed} contacts
+                </span>
+                {contactLimitCheck.maxAllowed !== -1 && (
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        (contactLimitCheck.currentCount / contactLimitCheck.maxAllowed) > 0.8 ? 'bg-red-500' :
+                        (contactLimitCheck.currentCount / contactLimitCheck.maxAllowed) > 0.6 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(100, (contactLimitCheck.currentCount / contactLimitCheck.maxAllowed) * 100)}%` }}
+                    />
+                  </div>
+                )}
+                {!contactLimitCheck.allowed && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    onClick={() => window.open('/pricing', '_blank')}
+                  >
+                    Upgrade
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons - Mobile Responsive */}

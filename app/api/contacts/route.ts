@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { canCreateContact } from '@/lib/subscription-limits'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,6 +123,28 @@ export async function POST(request: Request) {
         JSON.stringify({ error: 'First name and email are required' }),
         { 
           status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    // Check contact creation limit
+    const limitCheck = await canCreateContact()
+    
+    if (!limitCheck.allowed) {
+      const limitInfo = limitCheck.maxAllowed === -1 ? 'unlimited' : limitCheck.maxAllowed
+      return new NextResponse(
+        JSON.stringify({ 
+          error: `Contact limit reached. You can only create up to ${limitInfo} contacts with your current plan.`,
+          limitReached: true,
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          tier: limitCheck.tier
+        }),
+        { 
+          status: 403,
           headers: {
             'Content-Type': 'application/json',
           },

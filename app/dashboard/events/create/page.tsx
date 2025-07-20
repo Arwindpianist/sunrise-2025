@@ -21,7 +21,8 @@ import {
 import { emailTemplates, type EmailTemplateVars } from "@/components/email-templates"
 import { telegramTemplates, type TelegramTemplateVars } from "@/components/telegram-templates"
 import { format } from "date-fns"
-import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight } from "lucide-react"
+import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight, AlertTriangle } from "lucide-react"
+import { canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
 
 const stripePromise = typeof window !== 'undefined' && window.location.protocol === 'https:' 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -108,6 +109,7 @@ export default function CreateEventPage() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(true)
   const [contactCount, setContactCount] = useState(0)
   const [userBalance, setUserBalance] = useState(0)
+  const [eventLimitCheck, setEventLimitCheck] = useState<{ allowed: boolean; currentCount: number; maxAllowed: number; tier: string } | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedMethods, setSelectedMethods] = useState<string[]>([])
   const [formData, setFormData] = useState({
@@ -138,6 +140,7 @@ export default function CreateEventPage() {
     } else {
       fetchUserBalance()
       fetchCategories()
+      checkEventLimit()
     }
   }, [user, router])
 
@@ -288,6 +291,16 @@ export default function CreateEventPage() {
     }
   }
 
+  const checkEventLimit = async () => {
+    try {
+      if (!user) return
+      const limitCheck = await canCreateEvent()
+      setEventLimitCheck(limitCheck)
+    } catch (error) {
+      console.error('Error checking event limit:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -295,6 +308,19 @@ export default function CreateEventPage() {
       toast({
         title: "No Contacts",
         description: "Please add some contacts before creating an event.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check event creation limit
+    if (eventLimitCheck && !eventLimitCheck.allowed) {
+      const limitInfo = eventLimitCheck.maxAllowed === -1 ? 'unlimited' : eventLimitCheck.maxAllowed
+      const upgradeRec = getLimitUpgradeRecommendation(eventLimitCheck.tier as any, 'events')
+      
+      toast({
+        title: "Event Limit Reached",
+        description: `You can only create up to ${limitInfo} events with your current plan. ${upgradeRec ? upgradeRec.reason : ''}`,
         variant: "destructive",
       })
       return
@@ -927,6 +953,30 @@ export default function CreateEventPage() {
                         <p className="text-red-600 text-sm">
                           You need {contactCount - userBalance} more tokens to create this event.
                         </p>
+                      </div>
+                    )}
+
+                    {eventLimitCheck && !eventLimitCheck.allowed && (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-orange-800 font-medium text-sm md:text-base">Event Limit Reached</p>
+                            <p className="text-orange-600 text-sm">
+                              You have reached your event limit ({eventLimitCheck.currentCount}/{eventLimitCheck.maxAllowed === -1 ? 'Unlimited' : eventLimitCheck.maxAllowed}).
+                              {getLimitUpgradeRecommendation(eventLimitCheck.tier as any, 'events')?.reason}
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 border-orange-300 text-orange-700 hover:bg-orange-100"
+                              onClick={() => router.push('/pricing')}
+                            >
+                              Upgrade Plan
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
