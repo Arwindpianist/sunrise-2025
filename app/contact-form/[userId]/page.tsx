@@ -15,13 +15,11 @@ import {
 } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Users, Mail, Phone, Calendar, MessageSquare } from "lucide-react"
+import { Users, Mail, Phone, Calendar, MessageSquare, Bot } from "lucide-react"
 import { use } from "react"
 
 interface UserProfile {
   id: string
-  first_name?: string
-  last_name?: string
   full_name?: string
   email?: string
 }
@@ -34,10 +32,10 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [categories, setCategories] = useState<any[]>([])
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
+    full_name: "",
     email: "",
     phone: "",
+    telegram_chat_id: "",
     category: "__no_category__",
     notes: "",
   })
@@ -60,8 +58,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
         // Set a basic user profile as fallback
         setUserProfile({
           id: userId,
-          first_name: undefined,
-          last_name: undefined,
+          full_name: undefined,
           email: undefined,
         })
       }
@@ -70,8 +67,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
       // Set a basic user profile as fallback
       setUserProfile({
         id: userId,
-        first_name: undefined,
-        last_name: undefined,
+        full_name: undefined,
         email: undefined,
       })
     } finally {
@@ -103,6 +99,9 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
         },
         body: JSON.stringify({
           ...formData,
+          // Split full_name into first_name and last_name for database compatibility
+          first_name: formData.full_name.split(' ')[0] || '',
+          last_name: formData.full_name.split(' ').slice(1).join(' ') || '',
           category: formData.category === "__no_category__" ? "" : formData.category,
           user_id: userId,
         }),
@@ -120,10 +119,10 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
 
       // Reset form
       setFormData({
-        first_name: "",
-        last_name: "",
+        full_name: "",
         email: "",
         phone: "",
+        telegram_chat_id: "",
         category: "__no_category__",
         notes: "",
       })
@@ -160,11 +159,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
     )
   }
 
-  const userName = userProfile ? 
-    userProfile.full_name || 
-    `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 
-    (userProfile.email ? userProfile.email.split('@')[0] : `User ${userId.slice(0, 8)}`) : 
-    `User ${userId.slice(0, 8)}`
+  const userName = userProfile?.full_name || userProfile?.email?.split('@')[0] || `User ${userId.slice(0, 8)}`
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
@@ -198,35 +193,20 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
           
           <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="first_name" className="text-sm font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    First Name *
-                  </label>
-                  <Input
-                    id="first_name"
-                    name="first_name"
-                    value={formData.first_name}
-                    onChange={handleChange}
-                    placeholder="Enter your first name"
-                    className="text-base"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="last_name" className="text-sm font-medium">
-                    Last Name
-                  </label>
-                  <Input
-                    id="last_name"
-                    name="last_name"
-                    value={formData.last_name}
-                    onChange={handleChange}
-                    placeholder="Enter your last name"
-                    className="text-base"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label htmlFor="full_name" className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4 flex-shrink-0" />
+                  Full Name *
+                </label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  className="text-base"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -266,6 +246,36 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                 <p className="text-xs text-gray-500">
                   Optional - for urgent event updates or reminders
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="telegram_chat_id" className="text-sm font-medium flex items-center gap-2">
+                  <Bot className="h-4 w-4 flex-shrink-0" />
+                  Telegram Chat ID
+                </label>
+                <Input
+                  id="telegram_chat_id"
+                  name="telegram_chat_id"
+                  value={formData.telegram_chat_id}
+                  onChange={handleChange}
+                  placeholder="e.g., 123456789"
+                  className="text-base"
+                />
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    <strong>How to find your Telegram Chat ID:</strong>
+                    <br />
+                    1. Open Telegram and search for "@userinfobot"
+                    <br />
+                    2. Start a chat with the bot by clicking "Start"
+                    <br />
+                    3. The bot will reply with your Chat ID (a number like 123456789)
+                    <br />
+                    4. Copy that number and paste it above
+                    <br />
+                    <em>This allows {userName} to send you Telegram messages for events</em>
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">

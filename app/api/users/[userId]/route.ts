@@ -260,3 +260,59 @@ export async function DELETE(
     )
   }
 } 
+
+export async function GET(
+  request: Request,
+  { params }: { params: { userId: string } }
+) {
+  try {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const { userId } = params
+
+    // Fetch user profile from users table
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .eq('id', userId)
+      .single()
+
+    if (userError) {
+      console.error('Error fetching user:', userError)
+      return new NextResponse(
+        JSON.stringify({ error: 'User not found' }),
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    return new NextResponse(
+      JSON.stringify({
+        id: userData.id,
+        full_name: userData.full_name,
+        email: userData.email
+      }),
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+  } catch (error: any) {
+    console.error('Error in user GET:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+  }
+} 
