@@ -38,6 +38,11 @@ interface ContactInfo {
   email?: string[]
   tel?: string[]
   address?: string[]
+  icon?: string[]
+  url?: string[]
+  organization?: string[]
+  title?: string[]
+  note?: string[]
 }
 
 interface ContactSelectOptions {
@@ -61,7 +66,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
   const [selectedCategory, setSelectedCategory] = useState<string>("__no_category__")
   const [isUploading, setIsUploading] = useState(false)
   const [previewData, setPreviewData] = useState<any[]>([])
-  const [importMethod, setImportMethod] = useState<'native' | 'file' | 'share'>('native')
+  const [importMethod, setImportMethod] = useState<'native' | 'file' | 'share' | 'google'>('native')
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [isShareSupported, setIsShareSupported] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -82,12 +87,13 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     const isSecure = window.location.protocol === 'https:'
     const isLocalhost = window.location.hostname === 'localhost'
+    const isDev = window.location.hostname === '127.0.0.1'
     
-    // Contacts API requires HTTPS and mobile (allow localhost for development)
-    const contactsSupported = hasContactsAPI && (isSecure || isLocalhost) && isMobile
+    // Contacts API requires HTTPS and mobile (allow localhost/127.0.0.1 for development)
+    const contactsSupported = hasContactsAPI && (isSecure || isLocalhost || isDev) && isMobile
     
-    // Web Share API requires HTTPS and mobile (allow localhost for development)
-    const shareSupported = hasShareAPI && (isSecure || isLocalhost) && isMobile
+    // Web Share API requires HTTPS and mobile (allow localhost/127.0.0.1 for development)
+    const shareSupported = hasShareAPI && (isSecure || isLocalhost || isDev) && isMobile
     
     setIsNativeSupported(!!contactsSupported)
     setIsShareSupported(!!shareSupported)
@@ -97,9 +103,13 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       shareAPI: hasShareAPI,
       isMobile,
       isSecure,
+      isLocalhost,
+      isDev,
       contactsSupported,
       shareSupported,
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
+      protocol: window.location.protocol,
+      hostname: window.location.hostname
     })
   }, [])
 
@@ -114,8 +124,9 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     }
 
     try {
+      // Request more contact properties for better data
       const contacts = await navigator.contacts.select(
-        ['name', 'email', 'tel'],
+        ['name', 'email', 'tel', 'organization', 'title', 'note'],
         { multiple: true }
       )
 
@@ -127,28 +138,73 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         return
       }
 
-      // Process native contacts
+      // Process native contacts with enhanced data extraction
       const processedContacts = contacts.map(contact => {
         const name = contact.name?.[0] || 'Unknown'
         const nameParts = name.split(' ')
+        
+        // Extract first and last name more intelligently
+        let firstName = nameParts[0] || 'Unknown'
+        let lastName = nameParts.slice(1).join(' ') || undefined
+        
+        // If no last name but we have organization, use it as a hint
+        if (!lastName && contact.organization?.[0]) {
+          lastName = contact.organization[0]
+        }
+        
+        // Create notes from available data
+        const notes = []
+        if (contact.organization?.[0]) notes.push(`Organization: ${contact.organization[0]}`)
+        if (contact.title?.[0]) notes.push(`Title: ${contact.title[0]}`)
+        if (contact.note?.[0]) notes.push(`Note: ${contact.note[0]}`)
+        
         return {
-          first_name: nameParts[0] || 'Unknown',
-          last_name: nameParts.slice(1).join(' ') || undefined,
+          first_name: firstName,
+          last_name: lastName,
           email: contact.email?.[0] || undefined,
           phone: contact.tel?.[0] || undefined,
+          notes: notes.length > 0 ? notes.join(' | ') : undefined,
         }
       })
 
-      setPreviewData(processedContacts.slice(0, 5))
+      // Filter out contacts without email or phone
+      const validContacts = processedContacts.filter(contact => 
+        contact.email || contact.phone
+      )
+
+      if (validContacts.length === 0) {
+        toast({
+          title: "No Valid Contacts",
+          description: "Selected contacts must have at least an email or phone number.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setPreviewData(validContacts.slice(0, 5))
       
       // Import the contacts
-      await importContacts(processedContacts)
+      await importContacts(validContacts)
       
     } catch (error: any) {
       console.error('Native contact import error:', error)
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to import contacts from phone"
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Permission denied. Please allow access to your contacts."
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Contact picker is not supported on this device or browser."
+      } else if (error.name === 'AbortError') {
+        errorMessage = "Contact selection was cancelled."
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       toast({
         title: "Import Failed",
-        description: error.message || "Failed to import contacts from phone",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -185,6 +241,28 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           variant: "destructive",
         })
       }
+    }
+  }
+
+  const handleGoogleImport = async () => {
+    try {
+      // Open Google Contacts export page
+      const googleContactsUrl = 'https://contacts.google.com/export'
+      window.open(googleContactsUrl, '_blank')
+      
+      toast({
+        title: "Google Contacts Export",
+        description: "Please export your contacts as CSV and upload the file here.",
+      })
+      
+      // Switch to file upload method
+      setImportMethod('file')
+    } catch (error: any) {
+      toast({
+        title: "Google Import Failed",
+        description: "Failed to open Google Contacts",
+        variant: "destructive",
+      })
     }
   }
 
@@ -467,6 +545,16 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               <Upload className="h-4 w-4 mr-2" />
               Upload File (.vcf/.csv)
             </Button>
+
+            {/* Google Contacts Import */}
+            <Button
+              variant={importMethod === 'google' ? 'default' : 'outline'}
+              onClick={() => setImportMethod('google')}
+              className="w-full justify-start"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Google Contacts
+            </Button>
           </div>
 
           {/* Native Contact Import */}
@@ -548,6 +636,59 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   onClick={handleShareImport}
                 >
                   Share Contacts
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Google Contacts Import */}
+          {importMethod === 'google' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  Export your Google Contacts and upload the CSV file here.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Category (Optional)</label>
+                <Select value={selectedCategory || "__no_category__"} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__no_category__">No category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsDialogOpen(false)
+                    resetForm()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleGoogleImport}
+                >
+                  Export from Google
                 </Button>
               </div>
             </div>
