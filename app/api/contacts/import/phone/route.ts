@@ -153,12 +153,28 @@ export async function POST(request: Request) {
       )
     }
 
+    // Filter contacts that have required fields
+    const validContacts = contacts.filter(contact => 
+      contact.first_name && 
+      contact.email // Email is required by database schema
+    )
+
+    if (validContacts.length === 0) {
+      return new NextResponse(
+        JSON.stringify({ error: 'No valid contacts found. All contacts must have an email address.' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     // Prepare contacts for insertion
-    const contactsToInsert = contacts.map(contact => ({
+    const contactsToInsert = validContacts.map(contact => ({
       user_id: session.user.id,
       first_name: contact.first_name,
       last_name: contact.last_name || null,
-      email: contact.email || null,
+      email: contact.email, // Email is required
       phone: contact.phone || null,
       category: category || contact.category || 'other',
       notes: contact.notes || null,

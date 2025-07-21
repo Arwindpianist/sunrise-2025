@@ -40,9 +40,6 @@ interface ContactInfo {
   address?: string[]
   icon?: string[]
   url?: string[]
-  organization?: string[]
-  title?: string[]
-  note?: string[]
 }
 
 interface ContactSelectOptions {
@@ -124,9 +121,9 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     }
 
     try {
-      // Request more contact properties for better data
+      // Request contact properties (only use supported ones)
       const contacts = await navigator.contacts.select(
-        ['name', 'email', 'tel', 'organization', 'title', 'note'],
+        ['name', 'email', 'tel'],
         { multiple: true }
       )
 
@@ -138,47 +135,45 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         return
       }
 
-      // Process native contacts with enhanced data extraction
+      // Process native contacts with basic data extraction
       const processedContacts = contacts.map(contact => {
         const name = contact.name?.[0] || 'Unknown'
         const nameParts = name.split(' ')
         
-        // Extract first and last name more intelligently
+        // Extract first and last name
         let firstName = nameParts[0] || 'Unknown'
         let lastName = nameParts.slice(1).join(' ') || undefined
-        
-        // If no last name but we have organization, use it as a hint
-        if (!lastName && contact.organization?.[0]) {
-          lastName = contact.organization[0]
-        }
-        
-        // Create notes from available data
-        const notes = []
-        if (contact.organization?.[0]) notes.push(`Organization: ${contact.organization[0]}`)
-        if (contact.title?.[0]) notes.push(`Title: ${contact.title[0]}`)
-        if (contact.note?.[0]) notes.push(`Note: ${contact.note[0]}`)
         
         return {
           first_name: firstName,
           last_name: lastName,
           email: contact.email?.[0] || undefined,
           phone: contact.tel?.[0] || undefined,
-          notes: notes.length > 0 ? notes.join(' | ') : undefined,
         }
       })
 
-      // Filter out contacts without email or phone
+      // Filter out contacts without email (required by database)
       const validContacts = processedContacts.filter(contact => 
-        contact.email || contact.phone
+        contact.email
       )
 
       if (validContacts.length === 0) {
         toast({
           title: "No Valid Contacts",
-          description: "Selected contacts must have at least an email or phone number.",
+          description: "Selected contacts must have an email address. Phone-only contacts cannot be imported.",
           variant: "destructive",
         })
         return
+      }
+
+      // Show warning if some contacts were filtered out
+      const invalidContacts = processedContacts.filter(contact => !contact.email)
+      if (invalidContacts.length > 0) {
+        toast({
+          title: "Some Contacts Skipped",
+          description: `${invalidContacts.length} contacts without email addresses were skipped. Only contacts with email addresses can be imported.`,
+          variant: "default",
+        })
       }
 
       setPreviewData(validContacts.slice(0, 5))
@@ -564,6 +559,9 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <p className="text-sm text-blue-800">
                   This will open your phone's contact picker to select contacts directly.
                 </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  <strong>Note:</strong> Only contacts with email addresses can be imported.
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -717,6 +715,9 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   </Button>
                   <p className="text-sm text-gray-500 mt-2">
                     Supports .vcf and .csv files
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    <strong>Note:</strong> Only contacts with email addresses can be imported.
                   </p>
                 </div>
                 {selectedFile && (

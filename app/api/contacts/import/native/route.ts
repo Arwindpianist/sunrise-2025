@@ -57,12 +57,12 @@ export async function POST(request: Request) {
     // Validate and process contacts
     const validContacts = contacts.filter(contact => 
       contact.first_name && 
-      (contact.email || contact.phone)
+      contact.email // Email is required by database schema
     )
 
     if (validContacts.length === 0) {
       return new NextResponse(
-        JSON.stringify({ error: 'No valid contacts found' }),
+        JSON.stringify({ error: 'No valid contacts found. All contacts must have an email address.' }),
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       user_id: session.user.id,
       first_name: contact.first_name,
       last_name: contact.last_name || null,
-      email: contact.email || null,
+      email: contact.email, // Email is required
       phone: contact.phone || null,
       category: category || contact.category || 'other',
       notes: contact.notes || null,
