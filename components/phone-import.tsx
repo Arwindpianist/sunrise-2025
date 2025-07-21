@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { Upload, FileText, Smartphone, Users, Share2, AlertCircle, ExternalLink } from "lucide-react"
+import { Upload, FileText, Smartphone, Users, Share2, AlertCircle, ExternalLink, Plus } from "lucide-react"
 
 interface Category {
   id: string
@@ -172,11 +172,14 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         let firstName = nameParts[0] || 'Unknown'
         let lastName = nameParts.slice(1).join(' ') || undefined
         
+        const rawPhone = contact.tel?.[0] || undefined
+        const cleanedPhone = cleanPhoneNumber(rawPhone)
+        
         return {
           first_name: firstName,
           last_name: lastName,
           email: contact.email?.[0] || undefined,
-          phone: contact.tel?.[0] || undefined,
+          phone: cleanedPhone,
         }
       })
 
@@ -480,11 +483,14 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       const columns = parseCSVRow(line)
       
       if (columns.length > 0) {
+        const rawPhone = columns[phoneIndex] || undefined
+        const cleanedPhone = cleanPhoneNumber(rawPhone)
+        
         contacts.push({
           first_name: columns[firstNameIndex] || 'Unknown',
           last_name: columns[lastNameIndex] || undefined,
           email: columns[emailIndex] || undefined,
-          phone: columns[phoneIndex] || undefined,
+          phone: cleanedPhone,
         })
       }
     }
@@ -516,6 +522,22 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     
     // Remove quotes from the beginning and end of each column
     return columns.map(col => col.replace(/^"|"$/g, ''))
+  }
+
+  // Helper function to clean and extract the first phone number from multiple numbers
+  const cleanPhoneNumber = (phoneString?: string): string | undefined => {
+    if (!phoneString) return undefined
+    
+    // Split by the Google Contacts separator " ::: "
+    const phoneNumbers = phoneString.split(' ::: ')
+    
+    // Take the first phone number and clean it
+    const firstPhone = phoneNumbers[0]?.trim()
+    
+    if (!firstPhone) return undefined
+    
+    // Remove any extra whitespace and normalize
+    return firstPhone.replace(/\s+/g, ' ').trim()
   }
 
   const importContacts = async (contacts: any[]) => {
@@ -614,26 +636,26 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       if (!open) resetForm()
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full sm:w-auto">
-          <Smartphone className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Import from Phone</span>
-          <span className="sm:hidden">Import Contacts</span>
+        <Button variant="outline" size="sm" className="h-12 md:h-10">
+          <Plus className="h-4 w-4 mr-2" />
+          <span className="hidden md:inline">Add Contacts</span>
+          <span className="md:hidden">Add</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">Import Contacts from Phone</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Add Contacts</DialogTitle>
           <DialogDescription className="text-sm">
-            Choose how you'd like to import contacts from your phone.
+            Choose how you'd like to add contacts to your list.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Import Method Selection */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">📱 Import Method</label>
+            <label className="text-sm font-medium text-gray-700">📋 Add Method</label>
             
-            {/* Google Contacts Import - Most Recommended */}
+            {/* Google Contacts Export - Most Recommended */}
             <div className="space-y-2">
               <Button
                 variant={importMethod === 'google' ? 'default' : 'outline'}
@@ -643,7 +665,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <FileText className="h-5 w-5 mr-3 flex-shrink-0" />
                 <div className="flex flex-col items-start">
                   <span className="font-medium">Google Contacts Export</span>
-                  <span className="text-xs text-gray-500">Most reliable method</span>
+                  <span className="text-xs text-gray-500">Export CSV from Google Contacts</span>
                 </div>
                 <div className="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                   Recommended
@@ -686,63 +708,51 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               </div>
             </Button>
 
-            {/* Native Contact Access */}
-            <div className="space-y-2">
-              <Button
-                variant={importMethod === 'native' ? 'default' : 'outline'}
-                onClick={() => setImportMethod('native')}
-                className="w-full justify-start h-12 text-left"
-                disabled={!isNativeSupported}
-              >
-                <Users className="h-5 w-5 mr-3 flex-shrink-0" />
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Direct Contact Picker</span>
-                  <span className="text-xs text-gray-500">Select from phone contacts</span>
-                </div>
-                {!isNativeSupported && (
-                  <AlertCircle className="h-4 w-4 ml-auto text-orange-500 flex-shrink-0" />
-                )}
-              </Button>
-              {!isNativeSupported && (
-                <div className="ml-4 space-y-1 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="text-xs text-orange-700 font-medium">
-                    ⚠️ Not available on this device
-                  </p>
-                  <p className="text-xs text-orange-600">
-                    Requires HTTPS and mobile browser. Try Google export or file upload instead.
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Native Contact Access - Mobile Only */}
+            {isNativeSupported && (
+              <div className="space-y-2">
+                <Button
+                  variant={importMethod === 'native' ? 'default' : 'outline'}
+                  onClick={() => setImportMethod('native')}
+                  className="w-full justify-start h-12 text-left"
+                >
+                  <Users className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Select from Phone</span>
+                    <span className="text-xs text-gray-500">Choose contacts directly from your phone</span>
+                  </div>
+                </Button>
+              </div>
+            )}
 
-            {/* Web Share API */}
-            <div className="space-y-2">
-              <Button
-                variant={importMethod === 'share' ? 'default' : 'outline'}
-                onClick={() => setImportMethod('share')}
-                className="w-full justify-start h-12 text-left"
-                disabled={!isShareSupported}
-              >
-                <Share2 className="h-5 w-5 mr-3 flex-shrink-0" />
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Share from Contacts App</span>
-                  <span className="text-xs text-gray-500">Use phone's share menu</span>
-                </div>
-                {!isShareSupported && (
-                  <AlertCircle className="h-4 w-4 ml-auto text-orange-500 flex-shrink-0" />
-                )}
-              </Button>
-              {!isShareSupported && (
-                <div className="ml-4 space-y-1 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="text-xs text-orange-700 font-medium">
-                    ⚠️ Not available on this device
-                  </p>
-                  <p className="text-xs text-orange-600">
-                    Requires HTTPS and mobile browser. Try Google export or file upload instead.
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Web Share API - Mobile Only */}
+            {isShareSupported && (
+              <div className="space-y-2">
+                <Button
+                  variant={importMethod === 'share' ? 'default' : 'outline'}
+                  onClick={() => setImportMethod('share')}
+                  className="w-full justify-start h-12 text-left"
+                >
+                  <Share2 className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Share from Contacts App</span>
+                    <span className="text-xs text-gray-500">Use your phone's share feature</span>
+                  </div>
+                </Button>
+              </div>
+            )}
+
+            {/* Desktop Notice */}
+            {!isNativeSupported && !isShareSupported && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-700 font-medium">
+                  💡 Desktop Tips
+                </p>
+                <p className="text-xs text-blue-600">
+                  Use Google Contacts export or file upload for the best experience on desktop.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Native Contact Import */}

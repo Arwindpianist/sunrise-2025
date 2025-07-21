@@ -98,11 +98,14 @@ function parseCSV(csvContent: string): ImportedContact[] {
     const columns = parseCSVRow(line)
     
     if (columns.length > 0) {
+      const rawPhone = columns[phoneIndex] || undefined
+      const cleanedPhone = cleanPhoneNumber(rawPhone)
+      
       const contact: ImportedContact = {
         first_name: columns[firstNameIndex] || 'Unknown',
         last_name: columns[lastNameIndex] || undefined,
         email: columns[emailIndex] || undefined,
-        phone: columns[phoneIndex] || undefined,
+        phone: cleanedPhone,
         notes: columns[notesIndex] || undefined,
       }
       
@@ -140,6 +143,22 @@ function parseCSVRow(row: string): string[] {
   
   // Remove quotes from the beginning and end of each column
   return columns.map(col => col.replace(/^"|"$/g, ''))
+}
+
+// Helper function to clean and extract the first phone number from multiple numbers
+function cleanPhoneNumber(phoneString?: string): string | undefined {
+  if (!phoneString) return undefined
+  
+  // Split by the Google Contacts separator " ::: "
+  const phoneNumbers = phoneString.split(' ::: ')
+  
+  // Take the first phone number and clean it
+  const firstPhone = phoneNumbers[0]?.trim()
+  
+  if (!firstPhone) return undefined
+  
+  // Remove any extra whitespace and normalize
+  return firstPhone.replace(/\s+/g, ' ').trim()
 }
 
 export async function POST(request: Request) {

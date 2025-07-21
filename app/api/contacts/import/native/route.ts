@@ -70,13 +70,29 @@ export async function POST(request: Request) {
       )
     }
 
+    // Helper function to clean and extract the first phone number from multiple numbers
+    const cleanPhoneNumber = (phoneString?: string): string | null => {
+      if (!phoneString) return null
+      
+      // Split by the Google Contacts separator " ::: "
+      const phoneNumbers = phoneString.split(' ::: ')
+      
+      // Take the first phone number and clean it
+      const firstPhone = phoneNumbers[0]?.trim()
+      
+      if (!firstPhone) return null
+      
+      // Remove any extra whitespace and normalize
+      return firstPhone.replace(/\s+/g, ' ').trim()
+    }
+
     // Prepare contacts for insertion
     const contactsToInsert = validContacts.map(contact => ({
       user_id: session.user.id,
       first_name: contact.first_name,
       last_name: contact.last_name || null,
       email: contact.email, // Email is required
-      phone: contact.phone || null,
+      phone: cleanPhoneNumber(contact.phone) || null,
       category: category || contact.category || 'other',
       notes: contact.notes || null,
     }))

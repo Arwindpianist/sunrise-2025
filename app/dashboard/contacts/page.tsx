@@ -350,20 +350,7 @@ export default function ContactsPage() {
     setFilteredContacts(filtered)
   }
 
-  const handleImportGoogle = async () => {
-    try {
-      const response = await fetch("/api/oauth/google/initiate")
-      if (!response.ok) throw new Error("Failed to initiate Google import")
-      const data = await response.json()
-      window.location.href = data.authUrl
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to import from Google",
-        variant: "destructive",
-      })
-    }
-  }
+
 
   const handleDeleteContact = async (contactId: string) => {
     if (!confirm("Are you sure you want to delete this contact?")) return
@@ -651,12 +638,13 @@ export default function ContactsPage() {
 
         {/* Action Buttons - Mobile Responsive */}
         <div className="mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-12 md:h-10">
                   <LinkIcon className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Share</span>
+                  <span className="hidden md:inline">Share Form</span>
+                  <span className="md:hidden">Share</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -688,6 +676,7 @@ export default function ContactsPage() {
                 <Button variant="outline" size="sm" className="h-12 md:h-10">
                   <Settings className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Categories</span>
+                  <span className="md:hidden">Categories</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -708,22 +697,13 @@ export default function ContactsPage() {
               categories={categories} 
               onImportComplete={fetchContacts}
             />
-            
-            <Button 
-              onClick={handleImportGoogle} 
-              size="sm" 
-              className="h-12 md:h-10"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              <span className="hidden md:inline">Google</span>
-            </Button>
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="h-12 md:h-10 col-span-2 md:col-span-1">
+                <Button size="sm" className="h-12 md:h-10">
                   <Plus className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Add Contact</span>
-                  <span className="md:hidden">Add</span>
+                  <span className="hidden md:inline">Add Manually</span>
+                  <span className="md:hidden">Manual</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
