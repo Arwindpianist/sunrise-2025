@@ -86,10 +86,30 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     const isLocalhost = window.location.hostname === 'localhost'
     const isDev = window.location.hostname === '127.0.0.1'
     
-    // Contacts API requires HTTPS and mobile (allow localhost/127.0.0.1 for development)
-    const contactsSupported = hasContactsAPI && (isSecure || isLocalhost || isDev) && isMobile
+    // Check for specific browser support
+    const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent)
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+    const isFirefox = /Firefox/.test(navigator.userAgent)
+    const isEdge = /Edge/.test(navigator.userAgent)
     
-    // Web Share API requires HTTPS and mobile (allow localhost/127.0.0.1 for development)
+    // Contacts API support varies by browser
+    let contactsSupported = false
+    if (hasContactsAPI && (isSecure || isLocalhost || isDev) && isMobile) {
+      // Chrome on Android has good support
+      if (isChrome && /Android/.test(navigator.userAgent)) {
+        contactsSupported = true
+      }
+      // Safari on iOS has limited support
+      else if (isSafari && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        contactsSupported = true
+      }
+      // Firefox and Edge have limited support
+      else if (isFirefox || isEdge) {
+        contactsSupported = true
+      }
+    }
+    
+    // Web Share API support
     const shareSupported = hasShareAPI && (isSecure || isLocalhost || isDev) && isMobile
     
     setIsNativeSupported(!!contactsSupported)
@@ -102,6 +122,10 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       isSecure,
       isLocalhost,
       isDev,
+      isChrome,
+      isSafari,
+      isFirefox,
+      isEdge,
       contactsSupported,
       shareSupported,
       userAgent: navigator.userAgent,
@@ -121,6 +145,10 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     }
 
     try {
+      console.log('Attempting to open contact selector...')
+      console.log('Navigator contacts:', navigator.contacts)
+      console.log('Available methods:', Object.getOwnPropertyNames(navigator.contacts))
+      
       // Request contact properties (only use supported ones)
       const contacts = await navigator.contacts.select(
         ['name', 'email', 'tel'],
@@ -183,18 +211,30 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       
     } catch (error: any) {
       console.error('Native contact import error:', error)
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
       
       // Provide more specific error messages
       let errorMessage = "Failed to import contacts from phone"
+      let showFallback = false
       
       if (error.name === 'NotAllowedError') {
         errorMessage = "Permission denied. Please allow access to your contacts."
+        showFallback = true
       } else if (error.name === 'NotSupportedError') {
         errorMessage = "Contact picker is not supported on this device or browser."
+        showFallback = true
       } else if (error.name === 'AbortError') {
         errorMessage = "Contact selection was cancelled."
+      } else if (error.message && error.message.includes('unable to open contact selector')) {
+        errorMessage = "Unable to open contact selector. This may be due to browser restrictions or device limitations."
+        showFallback = true
       } else if (error.message) {
         errorMessage = error.message
+        showFallback = true
       }
       
       toast({
@@ -202,6 +242,17 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         description: errorMessage,
         variant: "destructive",
       })
+
+      // Show fallback options if appropriate
+      if (showFallback) {
+        setTimeout(() => {
+          toast({
+            title: "Try Alternative Methods",
+            description: "You can try Google Contacts export or file upload instead.",
+            variant: "default",
+          })
+        }, 2000)
+      }
     }
   }
 
@@ -258,6 +309,24 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         description: "Failed to open Google Contacts",
         variant: "destructive",
       })
+    }
+  }
+
+  const testContactsAPI = async () => {
+    console.log('Testing Contacts API...')
+    console.log('navigator.contacts:', navigator.contacts)
+    
+    if (!navigator.contacts) {
+      console.log('Contacts API not available')
+      return
+    }
+    
+    try {
+      console.log('Testing with minimal properties...')
+      const testContacts = await navigator.contacts.select(['name'], { multiple: false })
+      console.log('Test successful:', testContacts)
+    } catch (error) {
+      console.error('Test failed:', error)
     }
   }
 
@@ -548,7 +617,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               className="w-full justify-start"
             >
               <FileText className="h-4 w-4 mr-2" />
-              Google Contacts
+              Google Contacts (Recommended)
             </Button>
           </div>
 
@@ -562,6 +631,15 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <p className="text-xs text-blue-600 mt-1">
                   <strong>Note:</strong> Only contacts with email addresses can be imported.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={testContactsAPI}
+                  className="mt-2 text-xs"
+                >
+                  Test Contacts API
+                </Button>
               </div>
               
               <div className="space-y-2">
