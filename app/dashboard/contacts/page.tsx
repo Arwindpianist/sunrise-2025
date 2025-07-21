@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle } from "lucide-react"
 import { canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
@@ -642,31 +642,117 @@ export default function ContactsPage() {
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-12 md:h-10">
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Share Form</span>
-                  <span className="md:hidden">Share</span>
+                  <User className="h-4 w-4 mr-2" />
+                  <span className="hidden md:inline">Contact Form</span>
+                  <span className="md:hidden">Contact</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Share Contact Form</DialogTitle>
+                  <DialogTitle>📋 Contact Collection Form</DialogTitle>
                   <DialogDescription>
-                    Share this link with your contacts to let them add their details:
+                    Share this simple form to let people add themselves to your contact list. Perfect for collecting contact information from events, social media, or your website.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex gap-2">
-                  <Input value={shareableLink} readOnly />
-                  <Button
-                    onClick={() => {
-                      navigator.clipboard.writeText(shareableLink)
-                      toast({
-                        title: "Copied!",
-                        description: "Link copied to clipboard",
-                      })
-                    }}
-                  >
-                    Copy
-                  </Button>
+                
+                <div className="space-y-6">
+                  {/* What is this form? */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">📋 What is this form?</h3>
+                    <p className="text-sm text-blue-800 mb-3">
+                      This is a public form that allows people to add themselves to your contact list. 
+                      When someone fills it out, their information is automatically added to your contacts 
+                      and they can optionally get their Telegram Chat ID for messaging.
+                    </p>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      <p>✅ <strong>Easy for them:</strong> Simple form, no account needed</p>
+                      <p>✅ <strong>Secure:</strong> Only you can see the submitted information</p>
+                      <p>✅ <strong>Telegram Ready:</strong> Optional Chat ID collection</p>
+                    </div>
+                  </div>
+
+                  {/* How to use it */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-green-900 mb-2">🚀 How to get people to sign up</h3>
+                    <div className="text-sm text-green-800 space-y-3">
+                      <div>
+                        <p className="font-medium mb-1">1. Share the link:</p>
+                        <div className="flex gap-2">
+                          <Input value={shareableLink} readOnly className="text-xs" />
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(shareableLink)
+                              toast({
+                                title: "Copied!",
+                                description: "Link copied to clipboard",
+                              })
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium mb-1">2. Share it everywhere:</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-white p-2 rounded border">
+                            <p className="font-medium">📱 Social Media</p>
+                            <p>Post in stories, bio, or posts</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="font-medium">💬 Messaging</p>
+                            <p>Send via WhatsApp, Telegram</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="font-medium">📧 Email</p>
+                            <p>Include in newsletters</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="font-medium">🌐 Website</p>
+                            <p>Add to your website</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="font-medium mb-1">3. Make it compelling:</p>
+                        <div className="bg-white p-3 rounded border text-xs space-y-2">
+                          <p><strong>Example messages:</strong></p>
+                          <ul className="space-y-1 text-green-700">
+                            <li>• "Join my contact list to get event updates!"</li>
+                            <li>• "Stay connected - add yourself to my contacts"</li>
+                            <li>• "Get notified about upcoming events and offers"</li>
+                            <li>• "Quick 30-second form to stay in touch"</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What happens next */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-purple-900 mb-2">📈 What happens when they sign up?</h3>
+                    <div className="text-sm text-purple-800 space-y-2">
+                      <p>✅ <strong>Instant addition:</strong> They're added to your contacts immediately</p>
+                      <p>✅ <strong>Category assignment:</strong> You can organize them into categories</p>
+                      <p>✅ <strong>Event invitations:</strong> Send them event invites via email or Telegram</p>
+                      <p>✅ <strong>Bulk messaging:</strong> Send updates to multiple contacts at once</p>
+                      <p>✅ <strong>Contact management:</strong> Edit, organize, and manage their info</p>
+                    </div>
+                  </div>
+
+                  {/* Tips */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-orange-900 mb-2">💡 Pro Tips</h3>
+                    <div className="text-sm text-orange-800 space-y-2">
+                      <p>🎯 <strong>Be specific:</strong> Tell people exactly what they'll get (event updates, exclusive offers, etc.)</p>
+                      <p>⏰ <strong>Set expectations:</strong> Mention how often you'll contact them</p>
+                      <p>🔒 <strong>Privacy assurance:</strong> Let them know their info is safe and won't be shared</p>
+                      <p>📱 <strong>Mobile-friendly:</strong> The form works great on phones - perfect for sharing!</p>
+                    </div>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -836,22 +922,23 @@ export default function ContactsPage() {
             <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-12 md:h-10">
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Onboarding</span>
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <span className="hidden md:inline">Telegram Setup</span>
+                  <span className="md:hidden">Telegram</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Create Onboarding Link</DialogTitle>
+                  <DialogTitle>📱 Telegram Setup Links</DialogTitle>
                   <DialogDescription>
-                    Create a shareable link that allows people to easily add themselves to your contact list with Telegram integration.
+                    Create special links that help people get their Telegram Chat ID and add themselves to your contact list. Perfect for enabling Telegram messaging features.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-6">
                   {/* Onboarding Links List */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Your Onboarding Links</h3>
+                    <h3 className="text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {onboardingLinks.length === 0 ? (
                         <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
@@ -914,7 +1001,7 @@ export default function ContactsPage() {
 
                   {/* Create New Link Form */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold mb-3">Create New Link</h3>
+                    <h3 className="text-lg font-semibold mb-3">Create New Telegram Setup Link</h3>
                     <form onSubmit={async (e) => {
                       e.preventDefault()
                       try {
