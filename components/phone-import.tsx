@@ -500,7 +500,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
 
       toast({
         title: "Success",
-        description: `Successfully imported ${result.imported} contacts`,
+        description: result.message || `Successfully imported ${result.imported} contacts`,
       })
 
       setIsDialogOpen(false)
@@ -540,7 +540,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
 
       toast({
         title: "Success",
-        description: `Successfully imported ${result.imported} contacts`,
+        description: result.message || `Successfully imported ${result.imported} contacts`,
       })
 
       setIsDialogOpen(false)

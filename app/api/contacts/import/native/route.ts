@@ -81,35 +81,57 @@ export async function POST(request: Request) {
       notes: contact.notes || null,
     }))
 
+    // Remove duplicates within the batch (same email addresses)
+    const uniqueContacts = contactsToInsert.filter((contact, index, self) => 
+      index === self.findIndex(c => c.email?.toLowerCase() === contact.email?.toLowerCase())
+    )
+
+    // Check for existing contacts in database to avoid conflicts
+    const existingEmails = await supabase
+      .from('contacts')
+      .select('email')
+      .eq('user_id', session.user.id)
+      .in('email', uniqueContacts.map(c => c.email?.toLowerCase()).filter(Boolean))
+
+    const existingEmailSet = new Set(
+      existingEmails.data?.map(row => row.email.toLowerCase()) || []
+    )
+
+    // Filter out contacts that already exist
+    const newContacts = uniqueContacts.filter(contact => 
+      contact.email && !existingEmailSet.has(contact.email.toLowerCase())
+    )
+
+    const duplicateCount = uniqueContacts.length - newContacts.length
+
     // Insert contacts in batches
     const batchSize = 100
     let insertedCount = 0
-    let duplicateCount = 0
 
-    for (let i = 0; i < contactsToInsert.length; i += batchSize) {
-      const batch = contactsToInsert.slice(i, i + batchSize)
+    for (let i = 0; i < newContacts.length; i += batchSize) {
+      const batch = newContacts.slice(i, i + batchSize)
       
-      const { error: insertError } = await supabase
-        .from('contacts')
-        .upsert(batch, {
-          onConflict: 'user_id,email',
-          ignoreDuplicates: false
-        })
+      if (batch.length > 0) {
+        const { error: insertError } = await supabase
+          .from('contacts')
+          .insert(batch)
 
-      if (insertError) {
-        console.error('Error inserting contacts batch:', insertError)
-        // Continue with other batches even if one fails
-      } else {
-        insertedCount += batch.length
+        if (insertError) {
+          console.error('Error inserting contacts batch:', insertError)
+          // Continue with other batches even if one fails
+        } else {
+          insertedCount += batch.length
+        }
       }
     }
 
     return new NextResponse(
       JSON.stringify({ 
-        message: `Successfully imported ${insertedCount} contacts`,
+        message: `Successfully imported ${insertedCount} contacts${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`,
         imported: insertedCount,
         duplicates: duplicateCount,
-        total: validContacts.length
+        total: validContacts.length,
+        skipped: duplicateCount
       }),
       { 
         status: 200,
