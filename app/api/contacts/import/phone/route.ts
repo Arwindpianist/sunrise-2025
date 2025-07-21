@@ -66,31 +66,80 @@ function parseCSV(csvContent: string): ImportedContact[] {
   const contacts: ImportedContact[] = []
   const lines = csvContent.split('\n')
   
-  // Skip header row
-  const dataLines = lines.slice(1)
+  if (lines.length < 2) {
+    return contacts
+  }
   
-  for (const line of dataLines) {
+  // Parse header row to find column indices
+  const headerLine = lines[0]
+  const headers = parseCSVRow(headerLine)
+  
+  // Find column indices for Google Contacts format
+  const firstNameIndex = headers.findIndex(h => h === 'First Name')
+  const lastNameIndex = headers.findIndex(h => h === 'Last Name')
+  const emailIndex = headers.findIndex(h => h === 'E-mail 1 - Value')
+  const phoneIndex = headers.findIndex(h => h === 'Phone 1 - Value')
+  const notesIndex = headers.findIndex(h => h === 'Notes')
+  
+  console.log('CSV Headers found:', {
+    firstNameIndex,
+    lastNameIndex,
+    emailIndex,
+    phoneIndex,
+    notesIndex,
+    headers: headers.slice(0, 10) // Log first 10 headers for debugging
+  })
+  
+  // Process data rows
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]
     if (!line.trim()) continue
     
-    const columns = line.split(',').map(col => col.trim().replace(/"/g, ''))
+    const columns = parseCSVRow(line)
     
-    if (columns.length >= 2) {
+    if (columns.length > 0) {
       const contact: ImportedContact = {
-        first_name: columns[0] || 'Unknown',
-        last_name: columns[1] || undefined,
-        email: columns[2] || undefined,
-        phone: columns[3] || undefined,
-        category: columns[4] || undefined,
-        notes: columns[5] || undefined,
+        first_name: columns[firstNameIndex] || 'Unknown',
+        last_name: columns[lastNameIndex] || undefined,
+        email: columns[emailIndex] || undefined,
+        phone: columns[phoneIndex] || undefined,
+        notes: columns[notesIndex] || undefined,
       }
       
-      if (contact.first_name !== 'Unknown' || contact.email || contact.phone) {
+      // Only add contacts that have at least a first name or email
+      if (contact.first_name !== 'Unknown' || contact.email) {
         contacts.push(contact)
       }
     }
   }
   
   return contacts
+}
+
+// Helper function to properly parse CSV rows (handles quoted fields with commas)
+function parseCSVRow(row: string): string[] {
+  const columns: string[] = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i]
+    
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      columns.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  
+  // Add the last column
+  columns.push(current.trim())
+  
+  // Remove quotes from the beginning and end of each column
+  return columns.map(col => col.replace(/^"|"$/g, ''))
 }
 
 export async function POST(request: Request) {
@@ -153,15 +202,27 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log('Parsed contacts:', contacts.slice(0, 3)) // Log first 3 contacts for debugging
+    
     // Filter contacts that have required fields
     const validContacts = contacts.filter(contact => 
       contact.first_name && 
       contact.email // Email is required by database schema
     )
 
+    console.log('Valid contacts:', validContacts.slice(0, 3)) // Log first 3 valid contacts
+    console.log('Total contacts parsed:', contacts.length)
+    console.log('Total valid contacts:', validContacts.length)
+
     if (validContacts.length === 0) {
       return new NextResponse(
-        JSON.stringify({ error: 'No valid contacts found. All contacts must have an email address.' }),
+        JSON.stringify({ 
+          error: 'No valid contacts found. All contacts must have an email address.',
+          debug: {
+            totalParsed: contacts.length,
+            sampleContacts: contacts.slice(0, 3)
+          }
+        }),
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json' },

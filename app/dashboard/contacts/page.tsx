@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -98,6 +99,10 @@ export default function ContactsPage() {
     max_uses: 100,
   })
   const [editingLink, setEditingLink] = useState<OnboardingLink | null>(null)
+  const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set())
+  const [isBatchEditDialogOpen, setIsBatchEditDialogOpen] = useState(false)
+  const [batchEditCategory, setBatchEditCategory] = useState<string>("__no_category__")
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false)
   const [isEditLinkDialogOpen, setIsEditLinkDialogOpen] = useState(false)
   const [isDeletingLink, setIsDeletingLink] = useState(false)
   const [contactLimitCheck, setContactLimitCheck] = useState<{ 
@@ -510,6 +515,95 @@ export default function ContactsPage() {
       notes: contact.notes || "",
     })
     setIsEditDialogOpen(true)
+  }
+
+  const handleSelectContact = (contactId: string) => {
+    const newSelected = new Set(selectedContacts)
+    if (newSelected.has(contactId)) {
+      newSelected.delete(contactId)
+    } else {
+      newSelected.add(contactId)
+    }
+    setSelectedContacts(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedContacts.size === filteredContacts.length) {
+      setSelectedContacts(new Set())
+    } else {
+      setSelectedContacts(new Set(filteredContacts.map(c => c.id)))
+    }
+  }
+
+  const handleBatchEditCategory = async () => {
+    if (selectedContacts.size === 0) return
+
+    setIsSubmitting(true)
+    try {
+      const categoryValue = batchEditCategory === "__no_category__" ? null : batchEditCategory
+      
+      const { error } = await supabase
+        .from('contacts')
+        .update({ category: categoryValue })
+        .in('id', Array.from(selectedContacts))
+
+      if (error) {
+        throw error
+      }
+
+      toast({
+        title: "Success",
+        description: `Updated category for ${selectedContacts.size} contact${selectedContacts.size > 1 ? 's' : ''}`,
+      })
+
+      setSelectedContacts(new Set())
+      setIsBatchEditDialogOpen(false)
+      fetchContacts()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update contacts",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedContacts.size === 0) return
+
+    if (!confirm(`Are you sure you want to delete ${selectedContacts.size} contact${selectedContacts.size > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsBatchDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .in('id', Array.from(selectedContacts))
+
+      if (error) {
+        throw error
+      }
+
+      toast({
+        title: "Success",
+        description: `Deleted ${selectedContacts.size} contact${selectedContacts.size > 1 ? 's' : ''}`,
+      })
+
+      setSelectedContacts(new Set())
+      fetchContacts()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete contacts",
+        variant: "destructive",
+      })
+    } finally {
+      setIsBatchDeleting(false)
+    }
   }
 
   if (!user) return null
@@ -1050,8 +1144,60 @@ export default function ContactsPage() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Select All Checkbox */}
+            {filteredContacts.length > 0 && (
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                <input
+                  type="checkbox"
+                  id="select-all"
+                  checked={selectedContacts.size === filteredContacts.length && filteredContacts.length > 0}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                />
+                <label htmlFor="select-all" className="text-sm text-gray-700 cursor-pointer">
+                  Select all ({filteredContacts.length} contacts)
+                </label>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Batch Operations */}
+        {selectedContacts.size > 0 && (
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-orange-800">
+                    {selectedContacts.size} contact{selectedContacts.size > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsBatchEditDialogOpen(true)}
+                    className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Category
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBatchDelete}
+                    disabled={isBatchDeleting}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {isBatchDeleting ? "Deleting..." : "Delete Selected"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Contacts Grid - Mobile Card Layout */}
         {isLoading ? (
@@ -1081,23 +1227,31 @@ export default function ContactsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredContacts.map((contact) => (
-              <Card key={contact.id} className="hover:shadow-md transition-shadow">
+              <Card key={contact.id} className={`hover:shadow-md transition-shadow ${selectedContacts.has(contact.id) ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {contact.first_name} {contact.last_name}
-                      </h3>
-                      {contact.category && (
-                        <span 
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white mt-1"
-                          style={{ 
-                            backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
-                          }}
-                        >
-                          {contact.category}
-                        </span>
-                      )}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedContacts.has(contact.id)}
+                        onChange={() => handleSelectContact(contact.id)}
+                        className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 mt-1 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {contact.first_name} {contact.last_name}
+                        </h3>
+                        {contact.category && (
+                          <span 
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white mt-1"
+                            style={{ 
+                              backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
+                            }}
+                          >
+                            {contact.category}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1336,6 +1490,64 @@ export default function ContactsPage() {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Batch Edit Category Dialog */}
+        <Dialog open={isBatchEditDialogOpen} onOpenChange={setIsBatchEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Category for {selectedContacts.size} Contact{selectedContacts.size > 1 ? 's' : ''}</DialogTitle>
+              <DialogDescription>
+                Select a new category for the selected contacts.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="batch_category">Category</Label>
+                <Select
+                  value={batchEditCategory}
+                  onValueChange={setBatchEditCategory}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__no_category__">No category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsBatchEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleBatchEditCategory} 
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Updating..." : "Update Category"}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

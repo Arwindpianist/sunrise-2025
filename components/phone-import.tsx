@@ -457,24 +457,65 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
   const parseCSVPreview = (content: string): any[] => {
     const contacts: any[] = []
     const lines = content.split('\n')
-    const dataLines = lines.slice(1, 6) // First 5 data rows
     
-    for (const line of dataLines) {
+    if (lines.length < 2) {
+      return contacts
+    }
+    
+    // Parse header row to find column indices
+    const headerLine = lines[0]
+    const headers = parseCSVRow(headerLine)
+    
+    // Find column indices for Google Contacts format
+    const firstNameIndex = headers.findIndex(h => h === 'First Name')
+    const lastNameIndex = headers.findIndex(h => h === 'Last Name')
+    const emailIndex = headers.findIndex(h => h === 'E-mail 1 - Value')
+    const phoneIndex = headers.findIndex(h => h === 'Phone 1 - Value')
+    
+    // Process first 5 data rows for preview
+    for (let i = 1; i < Math.min(6, lines.length); i++) {
+      const line = lines[i]
       if (!line.trim()) continue
       
-      const columns = line.split(',').map(col => col.trim().replace(/"/g, ''))
+      const columns = parseCSVRow(line)
       
-      if (columns.length >= 2) {
+      if (columns.length > 0) {
         contacts.push({
-          first_name: columns[0] || 'Unknown',
-          last_name: columns[1] || undefined,
-          email: columns[2] || undefined,
-          phone: columns[3] || undefined,
+          first_name: columns[firstNameIndex] || 'Unknown',
+          last_name: columns[lastNameIndex] || undefined,
+          email: columns[emailIndex] || undefined,
+          phone: columns[phoneIndex] || undefined,
         })
       }
     }
     
     return contacts
+  }
+
+  // Helper function to properly parse CSV rows (handles quoted fields with commas)
+  const parseCSVRow = (row: string): string[] => {
+    const columns: string[] = []
+    let current = ''
+    let inQuotes = false
+    
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i]
+      
+      if (char === '"') {
+        inQuotes = !inQuotes
+      } else if (char === ',' && !inQuotes) {
+        columns.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    
+    // Add the last column
+    columns.push(current.trim())
+    
+    // Remove quotes from the beginning and end of each column
+    return columns.map(col => col.replace(/^"|"$/g, ''))
   }
 
   const importContacts = async (contacts: any[]) => {
