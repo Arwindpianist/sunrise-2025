@@ -269,11 +269,21 @@ export default function BalancePage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error("No active session")
 
+      // Map pack name to pack ID
+      const packIdMap: Record<string, string> = {
+        'Starter Pack': 'mini',
+        'Popular Pack': 'plus', 
+        'Business Pack': 'pro',
+        'Enterprise Pack': 'business'
+      }
+      const packId = packIdMap[pack.name]
+
       const { data, error } = await supabase.functions.invoke<PaymentResponse>('create-payment', {
         body: {
           amount: pack.tokens.toString(),
           type: 'credits',
           userTier: userTier,
+          packId: packId,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
