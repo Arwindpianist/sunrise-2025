@@ -312,6 +312,48 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     }
   }
 
+  const openGoogleContactsGuide = () => {
+    // Create a comprehensive guide modal or open detailed instructions
+    const guideSteps = [
+      "1. Go to https://contacts.google.com",
+      "2. Sign in with your Google account", 
+      "3. Click 'Export' in the left sidebar",
+      "4. Select 'Google CSV' format",
+      "5. Choose which contacts to export",
+      "6. Click 'Export' to download the file",
+      "7. Upload the CSV file here"
+    ]
+    
+    const guideText = guideSteps.join('\n\n')
+    
+    // Show detailed instructions
+    toast({
+      title: "Google Contacts Export Guide",
+      description: "Check the console for detailed steps",
+      variant: "default",
+    })
+    
+    console.log('📱 Google Contacts Export Guide:')
+    console.log('================================')
+    console.log(guideText)
+    console.log('================================')
+    
+    // Also show in an alert for easy copying
+    alert(`📱 Google Contacts Export Guide:\n\n${guideText}`)
+  }
+
+  const openDetailedGuide = () => {
+    // Open the detailed guide in a new tab
+    const guideUrl = '/GOOGLE_CONTACTS_GUIDE.md'
+    window.open(guideUrl, '_blank')
+    
+    toast({
+      title: "Detailed Guide Opened",
+      description: "Check the new tab for comprehensive instructions",
+      variant: "default",
+    })
+  }
+
   const testContactsAPI = async () => {
     console.log('Testing Contacts API...')
     console.log('navigator.contacts:', navigator.contacts)
@@ -611,14 +653,36 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
             </Button>
 
             {/* Google Contacts Import */}
-            <Button
-              variant={importMethod === 'google' ? 'default' : 'outline'}
-              onClick={() => setImportMethod('google')}
-              className="w-full justify-start"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Google Contacts (Recommended)
-            </Button>
+            <div className="space-y-2">
+              <Button
+                variant={importMethod === 'google' ? 'default' : 'outline'}
+                onClick={() => setImportMethod('google')}
+                className="w-full justify-start"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Google Contacts (Recommended)
+              </Button>
+              <div className="space-y-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={openGoogleContactsGuide}
+                  className="w-full text-xs text-blue-600 hover:text-blue-800"
+                >
+                  📖 Quick Guide
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={openDetailedGuide}
+                  className="w-full text-xs text-blue-600 hover:text-blue-800"
+                >
+                  📋 Detailed Guide
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Native Contact Import */}
@@ -720,10 +784,30 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           {/* Google Contacts Import */}
           {importMethod === 'google' && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  Export your Google Contacts and upload the CSV file here.
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-medium text-blue-800 mb-2">Google Contacts Export</h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  Export your contacts from Google Contacts and upload the CSV file here.
                 </p>
+                
+                <div className="space-y-3">
+                  <Button onClick={handleGoogleImport} className="w-full">
+                    Open Google Contacts Export
+                  </Button>
+                  
+                  <div className="text-xs text-blue-600 bg-blue-100 p-3 rounded">
+                    <strong>📋 Step-by-Step Guide:</strong>
+                    <ol className="list-decimal list-inside mt-1 space-y-1">
+                      <li>Click "Open Google Contacts Export" above</li>
+                      <li>Sign in to your Google account</li>
+                      <li>Click "Export" in the left sidebar</li>
+                      <li>Select "Google CSV" format</li>
+                      <li>Choose "All contacts" or specific groups</li>
+                      <li>Click "Export" to download</li>
+                      <li>Upload the CSV file below</li>
+                    </ol>
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -764,7 +848,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   className="flex-1"
                   onClick={handleGoogleImport}
                 >
-                  Export from Google
+                  Open Google Contacts
                 </Button>
               </div>
             </div>
