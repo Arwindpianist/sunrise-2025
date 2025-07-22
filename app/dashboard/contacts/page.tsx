@@ -915,28 +915,28 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto p-4 sm:p-6">
-                <DialogHeader className="mb-6">
+                <DialogHeader className="mb-4">
                   <DialogTitle className="text-lg sm:text-xl">📱 Telegram Setup Links</DialogTitle>
                   <DialogDescription className="text-sm">
-                    Create special links that help people get their Telegram Chat ID and add themselves to your contact list. Perfect for enabling Telegram messaging features.
+                    Create links for contacts to add themselves with Telegram Chat ID.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Onboarding Links List */}
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold mb-4">Your Telegram Setup Links</h3>
-                    <div className="space-y-4 max-h-60 overflow-y-auto">
+                    <h3 className="text-base sm:text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
+                    <div className="space-y-3 max-h-48 overflow-y-auto">
                       {onboardingLinks.length === 0 ? (
                         <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
                       ) : (
                         onboardingLinks.map((link) => (
-                          <div key={link.id} className="p-4 border rounded-lg bg-gray-50">
-                            <div className="space-y-3">
+                          <div key={link.id} className="p-3 border rounded-lg bg-gray-50">
+                            <div className="space-y-2">
                               <div className="flex-1">
                                 <h4 className="font-medium text-base">{link.title}</h4>
                                 <p className="text-sm text-gray-600 mt-1">{link.description}</p>
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-xs text-gray-500 mt-1">
                                   {link.current_uses} of {link.max_uses} uses • 
                                   Created {new Date(link.created_at).toLocaleDateString()}
                                   {link.expires_at && (
@@ -994,12 +994,12 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   </div>
 
                   {/* Create New Link Form */}
-                  <div className="border-t pt-6">
+                  <div className="border-t pt-4">
                     {onboardingLinks.length > 0 ? (
                       <button
                         type="button"
                         onClick={() => setIsCreateFormOpen(!isCreateFormOpen)}
-                        className="flex items-center justify-between w-full text-left mb-4 hover:bg-gray-50 p-3 rounded-lg transition-colors"
+                        className="flex items-center justify-between w-full text-left mb-3 hover:bg-gray-50 p-2 rounded-lg transition-colors"
                       >
                         <h3 className="text-lg font-semibold">Create New Telegram Setup Link</h3>
                         {isCreateFormOpen ? (
@@ -1045,8 +1045,8 @@ Your info will stay private and only be used if I need to contact you. Thank You
                             variant: "destructive",
                           })
                         }
-                      }} className="space-y-4">
-                        <div className="space-y-4">
+                      }} className="space-y-3">
+                        <div className="space-y-3">
                           <div className="space-y-2">
                             <Label htmlFor="title">Title</Label>
                             <Input
@@ -1090,7 +1090,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                           />
                         </div>
                         
-                        <Button type="submit" className="w-full h-12">
+                        <Button type="submit" className="w-full h-11">
                           <LinkIcon className="mr-2 h-4 w-4" />
                           Create Onboarding Link
                         </Button>
