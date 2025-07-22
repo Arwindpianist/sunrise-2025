@@ -642,7 +642,7 @@ export default function ContactsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
+                <Button size="sm" className="h-12 sm:h-10 text-xs sm:text-sm bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200">
                   <User className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Invite Contacts</span>
                   <span className="md:hidden">Invite</span>
@@ -746,7 +746,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
             
             <Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm border-gray-300 hover:bg-gray-50 text-gray-700">
                   <Settings className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Categories</span>
                   <span className="md:hidden">Categories</span>
@@ -766,14 +766,17 @@ Your info will stay private and only be used if I need to contact you. Thank You
               </DialogContent>
             </Dialog>
 
-            <PhoneImport 
-              categories={categories} 
-              onImportComplete={fetchContacts}
-            />
+            <div className="relative">
+              <PhoneImport 
+                categories={categories} 
+                onImportComplete={fetchContacts}
+              />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm border-gray-300 hover:bg-gray-50 text-gray-700">
                   <Plus className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Add Manually</span>
                   <span className="md:hidden">Manual</span>
@@ -908,7 +911,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
 
             <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm border-gray-300 hover:bg-gray-50 text-gray-700">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Telegram Setup</span>
                   <span className="md:hidden">Telegram</span>

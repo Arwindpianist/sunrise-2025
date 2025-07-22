@@ -636,7 +636,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       if (!open) resetForm()
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
+        <Button size="sm" className="h-12 sm:h-10 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200">
           <Plus className="h-4 w-4 mr-2" />
           <span className="hidden md:inline">Import Contact</span>
           <span className="md:hidden">Import</span>
