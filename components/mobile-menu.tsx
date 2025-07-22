@@ -18,6 +18,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname()
   const { user, supabase } = useSupabase()
   const [mounted, setMounted] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -40,11 +41,13 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     }
   }
 
-  // Prevent body scroll when menu is open
+  // Handle slide-in animation
   useEffect(() => {
     if (isOpen) {
+      setIsVisible(true)
       document.body.style.overflow = 'hidden'
     } else {
+      setIsVisible(false)
       document.body.style.overflow = 'unset'
     }
 
@@ -64,7 +67,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       />
       
                 {/* Navigation Panel */}
-          <div className="absolute right-0 top-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden transform transition-transform duration-300 ease-out" style={{ transform: 'translateX(0)' }}>
+          <div className={`absolute right-0 top-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden transform transition-transform duration-300 ease-out ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Subtle gradient overlays for liquid glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
