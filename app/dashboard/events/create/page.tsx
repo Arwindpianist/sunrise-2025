@@ -259,12 +259,12 @@ export default function CreateEventPage() {
         totalCost += count || 0
       }
       if (selectedMethods.includes('telegram')) {
-        // For Telegram, we need to count only contacts with phone numbers
+        // For Telegram, we need to count only contacts with telegram chat IDs
         let telegramContactsQuery = supabase
           .from('contacts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', session.user.id)
-          .not('phone', 'is', null)
+          .not('telegram_chat_id', 'is', null)
 
         if (formData.category && formData.category !== "all") {
           telegramContactsQuery = telegramContactsQuery.eq('category', formData.category)

@@ -79,21 +79,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get pending event contacts with phone numbers
+    // Get pending event contacts with telegram chat IDs
     const { data: eventContacts, error: eventContactsError } = await supabase
       .from("event_contacts")
       .select(`
         *,
         contacts (
           id,
-          phone,
+          telegram_chat_id,
           first_name,
           last_name
         )
       `)
       .eq("event_id", eventId)
       .eq("status", "pending")
-      .not("contacts.phone", "is", null)
+      .not("contacts.telegram_chat_id", "is", null)
 
     if (eventContactsError) {
       console.error("Error fetching event contacts:", eventContactsError)
@@ -108,13 +108,13 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(`Found ${eventContacts?.length || 0} pending event contacts with phone numbers for event ${eventId}`)
+    console.log(`Found ${eventContacts?.length || 0} pending event contacts with telegram chat IDs for event ${eventId}`)
 
     // Send Telegram messages to each contact
     for (const eventContact of eventContacts) {
       try {
         const contact = eventContact.contacts
-        console.log(`Sending Telegram message to ${contact.phone} for event ${eventId}`)
+        console.log(`Sending Telegram message to chat_id: ${contact.telegram_chat_id} for event ${eventId}`)
         
         // Format event date properly
         const eventDate = new Date(event.event_date)
@@ -137,9 +137,8 @@ export async function POST(request: Request) {
           .replace(/\{\{hostName\}\}/g, session.user.user_metadata?.full_name || "Your Host")
           .replace(/\{\{customMessage\}\}/g, event.description || "")
 
-        // For now, we'll use a test approach - send to the configured chat ID
-        // In production, you would need to store actual Telegram chat IDs for each contact
-        const chatId = TELEGRAM_CHAT_ID || contact.phone
+        // Use the contact's telegram chat ID
+        const chatId = contact.telegram_chat_id
         
         console.log(`Attempting to send Telegram message to chat_id: ${chatId}`)
         console.log(`Message content: ${telegramMessage}`)
@@ -168,7 +167,7 @@ export async function POST(request: Request) {
         const responseData = await telegramResponse.json()
         console.log("Telegram API response:", responseData)
 
-        console.log(`Telegram message sent successfully to ${contact.phone}`)
+        console.log(`Telegram message sent successfully to chat_id: ${contact.telegram_chat_id}`)
 
         // Update event contact status
         const { error: updateError } = await supabase
