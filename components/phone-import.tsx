@@ -746,10 +746,10 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                  <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                  <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
                    <span className="font-medium text-sm truncate w-full">Google Contacts Export</span>
-                   <span className="text-xs text-gray-500 truncate w-full">Export CSV from Google Contacts</span>
+                   <span className="text-xs font-light text-gray-200 truncate w-full">Export CSV from Google Contacts</span>
                  </div>
-                 <div className="ml-1 bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded-full flex-shrink-0">
-                   <span className="hidden sm:inline">Recommended</span>
+                 <div className="ml-1 bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded-full flex-shrink-0 hidden sm:block">
+                   <span>Recommended</span>
                  </div>
                </Button>
               {importMethod === 'google' && (
