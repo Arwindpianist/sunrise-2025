@@ -132,9 +132,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
-                </div>
+                <div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-border pointer-events-none" style={{ borderWidth: '1px' }}></div>
               )}
               {/* Dynamic color border based on content */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-orange-500/30 via-rose-500/30 to-pink-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -154,9 +152,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/features" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
-                </div>
+                <div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-border pointer-events-none" style={{ borderWidth: '1px' }}></div>
               )}
               {/* Dynamic color border based on content - Features theme */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-indigo-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -176,9 +172,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/pricing" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
-                </div>
+                <div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-border pointer-events-none" style={{ borderWidth: '1px' }}></div>
               )}
               {/* Dynamic color border based on content - Pricing theme */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-green-500/30 via-teal-500/30 to-cyan-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -204,9 +198,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   >
                     {/* Active state border */}
                     {pathname === "/dashboard" && (
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
-                        <div className="w-full h-full rounded-2xl bg-transparent"></div>
-                      </div>
+                      <div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-border pointer-events-none" style={{ borderWidth: '1px' }}></div>
                     )}
                     {/* Dynamic color border based on content - Dashboard theme */}
                     <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-rose-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
