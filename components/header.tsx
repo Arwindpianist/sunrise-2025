@@ -124,80 +124,69 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white/80 backdrop-blur-xl border-l border-white/30 shadow-2xl relative overflow-hidden">
-                {/* Background gradient overlay for color reflection effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 pointer-events-none"></div>
-                <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/8 via-rose-500/8 to-pink-500/8 pointer-events-none"></div>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white border-l border-gray-200 shadow-2xl z-50">
                 <SheetHeader className="pb-6 relative z-10">
                   <SheetTitle className="text-xl font-semibold text-gray-800 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Navigation Menu
                   </SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col space-y-3 mt-8 relative z-10">
+                <nav className="flex flex-col space-y-2 mt-8">
                   <Link
                     href="/"
-                    className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                       pathname === "/" 
-                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
-                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                        ? "bg-orange-500 text-white" 
+                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                    <span className="relative z-10">Home</span>
+                    Home
                   </Link>
                   <Link
                     href="/features"
-                    className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                       pathname === "/features" 
-                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
-                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                        ? "bg-orange-500 text-white" 
+                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-rose-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                    <span className="relative z-10">Features</span>
+                    Features
                   </Link>
                   <Link
                     href="/pricing"
-                    className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                       pathname === "/pricing" 
-                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
-                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                        ? "bg-orange-500 text-white" 
+                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                    <span className="relative z-10">Pricing</span>
+                    Pricing
                   </Link>
                   {user && (
                     <>
-                      <div className="border-t border-gray-200/50 pt-6 mt-6 relative z-10">
-                        <div className="px-6 py-4 rounded-full bg-white/70 backdrop-blur-md border border-gray-200/50 mb-4 shadow-lg relative overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-                          <p className="text-sm font-medium text-gray-800 relative z-10">
-                            Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                          </p>
-                        </div>
+                      <div className="border-t border-gray-200 pt-4 mt-4">
+                        <p className="text-sm text-gray-600 mb-4 px-4">
+                          Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                        </p>
                         <Link
                           href="/dashboard"
-                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-gray-700 hover:text-gray-800 hover:bg-white/80 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-gray-200/50 hover:border-gray-300/50 relative overflow-hidden"
+                          className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:text-orange-500 hover:bg-gray-50 rounded-lg transition-colors"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                          <User className="h-4 w-4 mr-3 relative z-10" />
-                          <span className="relative z-10">Dashboard</span>
+                          <User className="h-4 w-4 mr-3" />
+                          Dashboard
                         </Link>
                         <button
                           onClick={() => {
                             handleSignOut()
                             setIsMobileMenuOpen(false)
                           }}
-                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/80 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-red-200/50 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden"
+                          className="flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors mt-2 w-full text-left"
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-orange-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                          <LogOut className="h-4 w-4 mr-3 relative z-10" />
-                          <span className="relative z-10">Sign Out</span>
+                          <LogOut className="h-4 w-4 mr-3" />
+                          Sign Out
                         </button>
                       </div>
                     </>
