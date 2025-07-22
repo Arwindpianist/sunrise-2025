@@ -735,12 +735,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
             {/* Google Contacts Export - Most Recommended */}
             <div className="space-y-2">
                              <Button
-                 variant={importMethod === 'google' ? 'default' : 'outline'}
+                 variant="outline"
                  onClick={() => setImportMethod('google')}
                  className={`w-full justify-start h-12 text-left px-3 ${
                    importMethod === 'google' 
                      ? 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0' 
-                     : 'border-orange-300 hover:border-orange-400'
+                     : 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0'
                  }`}
                >
                  <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -750,7 +750,6 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                  </div>
                  <div className="ml-1 bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded-full flex-shrink-0">
                    <span className="hidden sm:inline">Recommended</span>
-                   <span className="sm:hidden">Rec</span>
                  </div>
                </Button>
               {importMethod === 'google' && (
@@ -817,12 +816,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
 
             {/* Manual Entry */}
             <Button
-              variant={importMethod === 'manual' ? 'default' : 'outline'}
+              variant="outline"
               onClick={() => setImportMethod('manual')}
               className={`w-full justify-start h-12 text-left px-3 ${
                 importMethod === 'manual' 
                   ? 'bg-black hover:bg-gray-800 text-white border-0' 
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'bg-black hover:bg-gray-800 text-white border-0'
               }`}
             >
               <User className="h-4 w-4 mr-2 flex-shrink-0" />
