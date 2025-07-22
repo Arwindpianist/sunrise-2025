@@ -743,6 +743,11 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 </div>
               </DialogContent>
             </Dialog>
+
+            <PhoneImport 
+              categories={categories} 
+              onImportComplete={fetchContacts}
+            />
             
             <Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}>
               <DialogTrigger asChild>
@@ -765,11 +770,6 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 }} />
               </DialogContent>
             </Dialog>
-
-            <PhoneImport 
-              categories={categories} 
-              onImportComplete={fetchContacts}
-            />
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
