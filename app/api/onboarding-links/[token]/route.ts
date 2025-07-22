@@ -115,9 +115,9 @@ export async function POST(request: Request, { params }: { params: { token: stri
     const { first_name, last_name, email, phone, telegram_chat_id, notes } = await request.json()
 
     // Validate required fields
-    if (!first_name || !email) {
+    if (!first_name || !email || !telegram_chat_id) {
       return new NextResponse(
-        JSON.stringify({ error: "First name and email are required" }),
+        JSON.stringify({ error: "First name, email, and Telegram Chat ID are required" }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -133,17 +133,22 @@ export async function POST(request: Request, { params }: { params: { token: stri
       .eq("email", email)
       .single()
 
-    if (existingContact) {
+        if (existingContact) {
       // Update existing contact with new information
+      // Always update telegram_chat_id if provided, even if it was null before
+      const updateData: any = {
+        first_name,
+        last_name: last_name || "",
+        phone: phone || null,
+        notes: notes || null,
+      }
+      
+      // Always update telegram_chat_id since it's required for this onboarding
+      updateData.telegram_chat_id = telegram_chat_id
+      
       const { error: updateError } = await supabase
         .from("contacts")
-        .update({
-          first_name,
-          last_name: last_name || "",
-          phone: phone || null,
-          telegram_chat_id: telegram_chat_id || null,
-          notes: notes || null,
-        })
+        .update(updateData)
         .eq("id", existingContact.id)
 
       if (updateError) {
@@ -166,7 +171,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
           last_name: last_name || "",
           email,
           phone: phone || null,
-          telegram_chat_id: telegram_chat_id || null,
+          telegram_chat_id: telegram_chat_id, // Required field
           notes: notes || null,
           category: "general",
         })
@@ -178,7 +183,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
           { 
             status: 500,
             headers: { "Content-Type": "application/json" },
-          }
+        }
         )
       }
     }
@@ -195,7 +200,9 @@ export async function POST(request: Request, { params }: { params: { token: stri
 
     return new NextResponse(
       JSON.stringify({ 
-        message: "Contact added successfully",
+        message: existingContact 
+          ? "Contact updated successfully with Telegram ID" 
+          : "Contact created successfully",
         action: existingContact ? "updated" : "created"
       }),
       { 

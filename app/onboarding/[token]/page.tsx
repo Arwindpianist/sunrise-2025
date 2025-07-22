@@ -81,10 +81,10 @@ export default function OnboardingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.first_name || !formData.email) {
+    if (!formData.first_name || !formData.email || !formData.telegram_chat_id) {
       toast({
         title: "Required Fields",
-        description: "First name and email are required",
+        description: "First name, email, and Telegram Chat ID are required",
         variant: "destructive",
       })
       return
@@ -110,7 +110,7 @@ export default function OnboardingPage() {
       setIsSuccess(true)
       toast({
         title: "Success!",
-        description: `Contact ${data.action} successfully`,
+        description: data.message || `Contact ${data.action} successfully`,
       })
     } catch (error: any) {
       console.error("Error submitting form:", error)
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Success!</h1>
             <p className="text-gray-600 mb-6">
-              You've been successfully added to the contact list. You'll now receive event invitations and updates.
+              You've been successfully added to the contact list with your Telegram ID. You'll now receive event invitations and updates via both email and Telegram.
             </p>
             <Button
               onClick={() => window.close()}
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                 <div className="space-y-2">
                   <Label htmlFor="telegram_chat_id" className="flex items-center">
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    Telegram Chat ID
+                    Telegram Chat ID *
                     <Button
                       type="button"
                       variant="outline"
@@ -289,6 +289,7 @@ export default function OnboardingPage() {
                       value={formData.telegram_chat_id}
                       onChange={(e) => handleInputChange("telegram_chat_id", e.target.value)}
                       placeholder="Enter your Telegram Chat ID"
+                      required
                     />
                     <Button
                       type="button"
