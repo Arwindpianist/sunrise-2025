@@ -17,54 +17,54 @@ const faqData: FAQItem[] = [
   // Pricing & Plans
   {
     question: "What are the different subscription tiers and their prices?",
-    answer: "We offer 4 flexible tiers: Free (RM0/month), Basic (RM29/month), Pro (RM79/month), and Enterprise (RM199/month). Each tier is designed to grow with your needs.",
+    answer: "We offer 4 flexible tiers: Free (RM0/month), Basic (RM9.90/month), Pro (RM29.90/month), and Enterprise (RM79.90/month). Each tier is designed to grow with your needs.",
     category: "pricing"
   },
   {
     question: "What's included in the Free tier?",
-    answer: "Free tier includes: 5 events per month, 50 contacts, 100 messages per month, basic email templates, and core event management features.",
+    answer: "Free tier includes: 15 trial tokens, basic email templates, core event management features, and access to all email templates (birthday, wedding, etc.). Perfect for trying out Sunrise.",
     category: "pricing"
   },
   {
     question: "Why should I upgrade from Free to a paid tier?",
-    answer: "Paid tiers unlock: unlimited events, unlimited contacts, priority support, custom branding, advanced templates, API access, and much higher message limits.",
+    answer: "Paid tiers unlock: discounted token pricing (10-30% savings), Telegram messaging (Pro+), custom branding (Pro+), API access (Enterprise), priority support, and unlimited tokens (Pro+).",
     category: "pricing"
   },
   {
     question: "Do you offer annual billing with discounts?",
-    answer: "Yes! Save 20% with annual billing: Basic (RM279/year), Pro (RM759/year), Enterprise (RM1,909/year).",
+    answer: "Currently we offer monthly billing with no long-term contracts. You can upgrade or downgrade anytime with no penalties.",
     category: "pricing"
   },
   // Limits & Usage
   {
-    question: "What are the message limits for each tier?",
-    answer: "Free: 100 messages/month, Basic: 1,000 messages/month, Pro: 10,000 messages/month, Enterprise: 100,000 messages/month.",
+    question: "How does the token system work?",
+    answer: "Tokens are used to send messages. Free users get 15 trial tokens. Basic users get 100 lifetime tokens included, Pro users get unlimited tokens, and Enterprise users get unlimited everything. Token prices: Free RM0.50, Basic RM0.45 (10% off), Pro RM0.40 (20% off), Enterprise RM0.35 (30% off).",
     category: "limits"
   },
   {
-    question: "How many contacts can I manage?",
-    answer: "Free: 50 contacts, Basic: 500 contacts, Pro: 5,000 contacts, Enterprise: Unlimited contacts.",
+    question: "What are the token packages available?",
+    answer: "We offer 4 token packages: Starter Pack (25 tokens), Popular Pack (75 tokens), Business Pack (150 tokens), and Enterprise Pack (500 tokens). Subscription tiers get discounted rates on all packages.",
     category: "limits"
   },
   {
-    question: "How many events can I create per month?",
-    answer: "Free: 5 events, Basic: 25 events, Pro: 100 events, Enterprise: Unlimited events.",
+    question: "Can I buy additional tokens?",
+    answer: "Yes! All paid tiers can purchase additional tokens at discounted rates. Free users cannot buy tokens - they need to upgrade to Basic or higher to purchase tokens.",
     category: "limits"
   },
   // Features & Customization
   {
     question: "Which tiers support custom branding and templates?",
-    answer: "Pro and Enterprise tiers include full custom branding: your logo, colors, fonts, and custom email templates. Basic tier includes template customization.",
+    answer: "Pro and Enterprise tiers include full custom branding: your logo, colors, fonts, and custom email templates. Basic tier includes all email templates but no custom branding.",
     category: "features"
   },
   {
     question: "Do you offer API access?",
-    answer: "API access is available on Pro and Enterprise tiers for integration with your existing systems.",
+    answer: "API access is available on Enterprise tier only. This allows integration with your existing systems and white-label options.",
     category: "features"
   },
   {
     question: "What messaging channels are supported?",
-    answer: "All tiers support email and Telegram. SMS is available on Pro and Enterprise tiers.",
+    answer: "All tiers support email messaging. Telegram messaging is available on Pro and Enterprise tiers only.",
     category: "features"
   },
   // Subscription & Billing
@@ -86,12 +86,17 @@ const faqData: FAQItem[] = [
   // Support & Service
   {
     question: "What kind of support do you offer?",
-    answer: "Free: Email support (48-hour response), Basic: Email + chat support (24-hour response), Pro: Priority support (4-hour response), Enterprise: Dedicated account manager + 24/7 support.",
+    answer: "Free and Basic: Email support. Pro: Priority support. Enterprise: Dedicated account manager and priority support.",
     category: "support"
   },
   {
     question: "Is my data secure?",
     answer: "Absolutely! We use enterprise-grade security: SSL encryption, GDPR compliance, regular backups, and secure data centers.",
+    category: "support"
+  },
+  {
+    question: "What happens when I run out of tokens?",
+    answer: "Free users cannot buy more tokens and need to upgrade. Basic users can buy more tokens until they reach their 100 token lifetime limit, then need to upgrade to Pro for unlimited tokens. Pro and Enterprise users can buy unlimited tokens.",
     category: "support"
   }
 ]
@@ -205,27 +210,27 @@ export default function FAQPage() {
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">5 events per month</span>
+                  <span className="text-sm">15 trial tokens</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">50 contacts</span>
+                  <span className="text-sm">All email templates</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">100 messages per month</span>
+                  <span className="text-sm">Core event management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic email templates</span>
+                  <span className="text-sm">Mobile-friendly interface</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <X className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-gray-500">Custom branding</span>
+                  <span className="text-sm text-gray-500">Token purchasing</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <X className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-gray-500">API access</span>
+                  <span className="text-sm text-gray-500">Telegram messaging</span>
                 </div>
               </CardContent>
             </Card>
@@ -237,33 +242,33 @@ export default function FAQPage() {
               </div>
               <CardHeader className="text-center">
                 <CardTitle className="text-xl">Basic</CardTitle>
-                <div className="text-3xl font-bold text-gray-800">RM29</div>
+                <div className="text-3xl font-bold text-gray-800">RM9.90</div>
                 <div className="text-gray-600">per month</div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">25 events per month</span>
+                  <span className="text-sm">100 lifetime tokens included</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">500 contacts</span>
+                  <span className="text-sm">Discounted token pricing (10% off)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">1,000 messages per month</span>
+                  <span className="text-sm">All email templates</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Template customization</span>
+                  <span className="text-sm">Smart contact management</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Email + chat support</span>
+                  <span className="text-sm">Event scheduling & tracking</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <X className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-gray-500">Custom branding</span>
+                  <span className="text-sm text-gray-500">Telegram messaging</span>
                 </div>
               </CardContent>
             </Card>
@@ -275,21 +280,21 @@ export default function FAQPage() {
               </div>
               <CardHeader className="text-center">
                 <CardTitle className="text-xl">Pro</CardTitle>
-                <div className="text-3xl font-bold text-gray-800">RM79</div>
+                <div className="text-3xl font-bold text-gray-800">RM29.90</div>
                 <div className="text-gray-600">per month</div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">100 events per month</span>
+                  <span className="text-sm">Unlimited tokens</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">5,000 contacts</span>
+                  <span className="text-sm">Discounted token pricing (20% off)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">10,000 messages per month</span>
+                  <span className="text-sm">Telegram messaging</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -297,11 +302,11 @@ export default function FAQPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">API access</span>
+                  <span className="text-sm">Priority support</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Priority support</span>
+                  <span className="text-sm">Bulk contact import</span>
                 </div>
               </CardContent>
             </Card>
@@ -313,25 +318,21 @@ export default function FAQPage() {
               </div>
               <CardHeader className="text-center">
                 <CardTitle className="text-xl">Enterprise</CardTitle>
-                <div className="text-3xl font-bold text-gray-800">RM199</div>
+                <div className="text-3xl font-bold text-gray-800">RM79.90</div>
                 <div className="text-gray-600">per month</div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited events</span>
+                  <span className="text-sm">Unlimited everything</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited contacts</span>
+                  <span className="text-sm">Discounted token pricing (30% off)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">100,000 messages per month</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Full custom branding</span>
+                  <span className="text-sm">API access</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -339,7 +340,11 @@ export default function FAQPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">24/7 support</span>
+                  <span className="text-sm">White-label options</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Priority support</span>
                 </div>
               </CardContent>
             </Card>
@@ -355,7 +360,7 @@ export default function FAQPage() {
               </h2>
               <p className="text-xl mb-6 opacity-90">
                 Join thousands of event organizers who've upgraded from free to paid plans. 
-                Start with Basic at RM29/month and scale as you grow.
+                Start with Basic at RM9.90/month and scale as you grow.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/pricing">
