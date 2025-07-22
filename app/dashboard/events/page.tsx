@@ -164,19 +164,33 @@ export default function EventsPage() {
         throw contactsError
       }
 
-      // Create event contacts
-      const eventContacts = contacts.map((contact) => ({
-        event_id: eventId,
-        contact_id: contact.id,
-        status: "pending",
-      }))
-
-      const { error: eventContactsError } = await supabase
+      // Check if event contacts already exist
+      const { data: existingEventContacts, error: existingError } = await supabase
         .from("event_contacts")
-        .insert(eventContacts)
+        .select("contact_id")
+        .eq("event_id", eventId)
 
-      if (eventContactsError) {
-        throw eventContactsError
+      if (existingError) {
+        throw existingError
+      }
+
+      // Only create event contacts if they don't already exist
+      if (!existingEventContacts || existingEventContacts.length === 0) {
+        const eventContacts = contacts.map((contact) => ({
+          event_id: eventId,
+          contact_id: contact.id,
+          status: "pending",
+        }))
+
+        const { error: eventContactsError } = await supabase
+          .from("event_contacts")
+          .insert(eventContacts)
+
+        if (eventContactsError) {
+          throw eventContactsError
+        }
+      } else {
+        console.log(`Event contacts already exist for event ${eventId}`)
       }
 
       // Send emails if enabled
