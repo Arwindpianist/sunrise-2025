@@ -737,6 +737,8 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               </div>
             )}
 
+
+
             {/* Desktop Notice */}
             {!isNativeSupported && !isShareSupported && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
