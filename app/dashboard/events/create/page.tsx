@@ -628,24 +628,24 @@ export default function CreateEventPage() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       {/* Onboarding Modal */}
       <Dialog open={showOnboardingModal} onOpenChange={setShowOnboardingModal}>
-        <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center">
+        <DialogContent className="w-[95vw] max-w-md sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-4">
+          <DialogHeader className="px-4 sm:px-0">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-center">
               🎉 Welcome to Event Creation!
             </DialogTitle>
-            <DialogDescription className="text-center text-lg">
+            <DialogDescription className="text-center text-sm sm:text-lg">
               Choose how you'd like to send your event invitations
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="py-4 sm:py-6 px-4 sm:px-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {getCommunicationMethods(userTier).map((method: CommunicationMethod) => (
                 <button
                   key={method.id}
                   onClick={() => method.available && handleMethodSelection(method.id)}
                   disabled={!method.available}
-                  className={`p-6 border-2 rounded-xl text-left transition-all ${
+                  className={`p-4 sm:p-6 border-2 rounded-xl text-left transition-all min-h-[120px] sm:min-h-[140px] ${
                     selectedMethods.includes(method.id)
                       ? "border-orange-500 bg-orange-50 shadow-lg"
                       : method.available
@@ -653,27 +653,27 @@ export default function CreateEventPage() {
                       : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
                   }`}
                 >
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className={`p-2 rounded-lg ${
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
                       selectedMethods.includes(method.id) 
                         ? "bg-orange-100 text-orange-600" 
                         : "bg-gray-100 text-gray-600"
                     }`}>
                       {method.icon}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{method.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-base sm:text-lg truncate">{method.name}</h3>
                       {method.comingSoon && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
                           Coming Soon
                         </span>
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600">{method.description}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 line-clamp-3">{method.description}</p>
                   {!method.available && method.comingSoon && (
-                    <div className="mt-3 flex items-center text-sm text-blue-600">
-                      <Zap className="h-4 w-4 mr-1" />
+                    <div className="mt-2 sm:mt-3 flex items-center text-xs sm:text-sm text-blue-600">
+                      <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       We're working on this!
                     </div>
                   )}
@@ -683,32 +683,34 @@ export default function CreateEventPage() {
 
             {/* Upgrade Prompt for Free/Basic Users */}
             {(userTier === "free" || userTier === "basic") && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg border border-orange-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <h3 className="font-semibold text-orange-800">Unlock More Features</h3>
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-orange-100 to-rose-100 rounded-lg border border-orange-200 mx-4 sm:mx-0">
+                <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-orange-800 text-sm sm:text-base">Unlock More Features</h3>
+                    <p className="text-xs sm:text-sm text-orange-700 mt-1">
+                      {userTier === "free" 
+                        ? "Upgrade to Basic to unlock Telegram messaging and more features."
+                        : "Upgrade to Pro to unlock Telegram messaging and unlimited events."
+                      }
+                    </p>
+                    <Button
+                      onClick={() => router.push('/pricing')}
+                      size="sm"
+                      className="mt-2 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white text-xs sm:text-sm"
+                    >
+                      View Plans
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-sm text-orange-700 mb-3">
-                  {userTier === "free" 
-                    ? "Upgrade to Basic to unlock Telegram messaging and more features."
-                    : "Upgrade to Pro to unlock Telegram messaging and unlimited events."
-                  }
-                </p>
-                <Button
-                  onClick={() => router.push('/pricing')}
-                  size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
-                >
-                  View Plans
-                </Button>
               </div>
             )}
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 sm:mt-6 text-center px-4 sm:px-0">
               <Button
                 onClick={handleContinueToForm}
                 disabled={selectedMethods.length === 0}
-                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-semibold"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-semibold text-sm sm:text-base"
               >
                 Continue to Event Creation
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -719,13 +721,13 @@ export default function CreateEventPage() {
       </Dialog>
 
       {/* Main Form */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Create New Event</h1>
-                <p className="text-gray-600 text-sm md:text-base">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">Create New Event</h1>
+                <p className="text-gray-600 text-xs sm:text-sm md:text-base">
                   {selectedMethods.includes('email') && selectedMethods.includes('telegram') 
                     ? "Sending via Email & Telegram"
                     : selectedMethods.includes('email')
@@ -740,6 +742,7 @@ export default function CreateEventPage() {
                 variant="outline"
                 onClick={() => setShowOnboardingModal(true)}
                 size="sm"
+                className="w-full sm:w-auto text-xs sm:text-sm"
               >
                 Change Method
               </Button>
@@ -747,8 +750,8 @@ export default function CreateEventPage() {
           </div>
 
           <Card className="bg-white/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <CardContent className="p-4 sm:p-6">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 {/* Basic Event Information */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Event Details</h2>
@@ -834,7 +837,7 @@ export default function CreateEventPage() {
 
                     <div className="space-y-4">
                       <Label>Email Template</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                         {emailTemplates.map((template) => {
                           // Free users can only use generic template
                           const isDisabled = userTier === "free" && template.key !== "generic"
@@ -846,7 +849,7 @@ export default function CreateEventPage() {
                               type="button"
                               onClick={() => !isDisabled && handleEmailTemplateSelect(template.key)}
                               disabled={isDisabled}
-                              className={`p-4 border-2 rounded-lg text-left transition-all ${
+                              className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-all min-h-[80px] sm:min-h-[100px] ${
                                 isSelected
                                   ? "border-orange-500 bg-orange-50"
                                   : isDisabled
@@ -854,10 +857,10 @@ export default function CreateEventPage() {
                                   : "border-gray-200 hover:border-gray-300"
                               }`}
                             >
-                              <div className="font-medium text-sm flex items-center justify-between">
-                                {template.label}
+                              <div className="font-medium text-xs sm:text-sm flex items-center justify-between">
+                                <span className="truncate">{template.label}</span>
                                 {isDisabled && (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0 ml-1">
                                     Basic+
                                   </span>
                                 )}
@@ -880,7 +883,7 @@ export default function CreateEventPage() {
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div>
+                            <div className="min-w-0 flex-1">
                               <p className="text-blue-800 font-medium text-sm">Advanced Templates Unavailable</p>
                               <p className="text-blue-600 text-xs">
                                 Advanced email templates are available for Basic plans and above. Upgrade to access birthday, wedding, meeting, and other specialized templates.
@@ -889,7 +892,7 @@ export default function CreateEventPage() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100 text-xs"
                                 onClick={() => router.push('/pricing')}
                               >
                                 View Plans
@@ -951,19 +954,19 @@ export default function CreateEventPage() {
                     
                     <div className="space-y-4">
                       <Label>Telegram Template</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                         {telegramTemplates.map((template) => (
                           <button
                             key={template.key}
                             type="button"
                             onClick={() => handleTelegramTemplateSelect(template.key)}
-                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                            className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-all min-h-[80px] sm:min-h-[100px] ${
                               selectedTelegramTemplate === template.key
                                 ? "border-blue-500 bg-blue-50"
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
-                            <div className="font-medium text-sm">{template.label}</div>
+                            <div className="font-medium text-xs sm:text-sm truncate">{template.label}</div>
                             <div className="text-xs text-gray-500 mt-1">
                               {template.key === "birthday" && "🎉"}
                               {template.key === "openHouse" && "🏡"}
@@ -1063,7 +1066,7 @@ export default function CreateEventPage() {
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <p className="text-blue-800 font-medium text-sm">Schedule Send Unavailable</p>
                             <p className="text-blue-600 text-xs">
                               Schedule send is available for Basic plans and above. Upgrade to schedule your events in advance.
@@ -1072,7 +1075,7 @@ export default function CreateEventPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100"
+                              className="mt-2 border-blue-300 text-blue-700 hover:bg-blue-100 text-xs"
                               onClick={() => router.push('/pricing')}
                             >
                               View Plans
@@ -1097,27 +1100,27 @@ export default function CreateEventPage() {
                 {/* Cost Summary */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Cost Summary</h2>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
-                      <div>
-                        <p className="font-medium text-sm md:text-base">Current Balance</p>
-                        <p className="text-sm text-muted-foreground">{userBalance} tokens</p>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex justify-between items-center p-3 sm:p-4 bg-white/50 rounded-lg backdrop-blur-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base">Current Balance</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">{userBalance} tokens</p>
                       </div>
-                      <p className="text-xl md:text-2xl font-bold text-orange-500">
+                      <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-500 flex-shrink-0 ml-2">
                         RM{(userBalance * PRICE_PER_EMAIL).toFixed(2)}
                       </p>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-white/50 rounded-lg backdrop-blur-sm">
-                      <div>
-                        <p className="font-medium text-sm md:text-base">Event Cost</p>
-                        <p className="text-sm text-muted-foreground">
+                    <div className="flex justify-between items-center p-3 sm:p-4 bg-white/50 rounded-lg backdrop-blur-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base">Event Cost</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {selectedMethods.includes('email') && selectedMethods.includes('telegram') ? `${contactCount} messages (email + telegram)` : 
                            selectedMethods.includes('email') ? `${contactCount} emails` : 
                            selectedMethods.includes('telegram') ? `${contactCount} telegram messages` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
                         </p>
                       </div>
-                      <p className="text-xl md:text-2xl font-bold text-orange-500">
+                      <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-500 flex-shrink-0 ml-2">
                         RM{totalCost.toFixed(2)}
                       </p>
                     </div>
@@ -1132,12 +1135,12 @@ export default function CreateEventPage() {
                     )}
 
                     {eventLimitCheck && !eventLimitCheck.allowed && (
-                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
                         <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-orange-800 font-medium text-sm md:text-base">Event Limit Reached</p>
-                            <p className="text-orange-600 text-sm">
+                          <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-orange-800 font-medium text-sm sm:text-base">Event Limit Reached</p>
+                            <p className="text-orange-600 text-xs sm:text-sm">
                               You have reached your event limit ({eventLimitCheck.currentCount}/{eventLimitCheck.maxAllowed === -1 ? 'Unlimited' : eventLimitCheck.maxAllowed}).
                               {getLimitUpgradeRecommendation(eventLimitCheck.tier as any, 'events')?.reason}
                             </p>
@@ -1145,7 +1148,7 @@ export default function CreateEventPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="mt-2 border-orange-300 text-orange-700 hover:bg-orange-100"
+                              className="mt-2 border-orange-300 text-orange-700 hover:bg-orange-100 text-xs"
                               onClick={() => router.push('/pricing')}
                             >
                               Upgrade Plan
@@ -1157,19 +1160,19 @@ export default function CreateEventPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => router.push('/dashboard/events')}
-                    className="flex-1 h-12 md:h-10"
+                    className="flex-1 h-12 sm:h-10 text-sm sm:text-base"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={isLoading || contactCount === 0}
-                    className="flex-1 h-12 md:h-10 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                    className="flex-1 h-12 sm:h-10 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-sm sm:text-base"
                   >
                     {isLoading ? "Creating..." : "Create Event"}
                   </Button>
@@ -1182,32 +1185,32 @@ export default function CreateEventPage() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm">
-          <DialogHeader>
-            <DialogTitle>Purchase Additional Tokens</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-4">
+          <DialogHeader className="px-4 sm:px-0">
+            <DialogTitle className="text-lg sm:text-xl">Purchase Additional Tokens</DialogTitle>
+            <DialogDescription className="text-sm">
               Purchase additional tokens to create this event. You need {contactCount} tokens to send messages to all contacts in the selected category.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 px-4 sm:px-0">
             <div className="mb-4 text-center">
-              <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+              <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                 RM {totalCost.toFixed(2)}
               </p>
-              <p className="text-muted-foreground">{contactCount} tokens needed</p>
+              <p className="text-muted-foreground text-sm">{contactCount} tokens needed</p>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Button 
                 onClick={handlePayment}
                 disabled={isLoading}
-                className="w-full h-12 md:h-10 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                className="w-full h-12 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-sm sm:text-base"
               >
                 {isLoading ? "Processing..." : "Purchase Tokens"}
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => setShowPaymentDialog(false)}
-                className="w-full h-12 md:h-10"
+                className="w-full h-12 text-sm sm:text-base"
               >
                 Cancel
               </Button>
@@ -1218,28 +1221,28 @@ export default function CreateEventPage() {
 
       {/* Template Preview Dialog */}
       <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-        <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm">
-          <DialogHeader>
-            <DialogTitle>Template Preview</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-4">
+          <DialogHeader className="px-4 sm:px-0">
+            <DialogTitle className="text-lg sm:text-xl">Template Preview</DialogTitle>
+            <DialogDescription className="text-sm">
               Preview how your message will look when sent to recipients.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 px-4 sm:px-0">
             {selectedMethods.includes('email') && selectedEmailTemplate && (
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Email Template</h3>
+              <div className="mb-4 sm:mb-6">
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">Email Template</h3>
                 <div 
-                  className="border rounded-lg p-4 max-h-96 overflow-y-auto"
+                  className="border rounded-lg p-3 sm:p-4 max-h-64 sm:max-h-96 overflow-y-auto text-xs sm:text-sm"
                   dangerouslySetInnerHTML={{ __html: getEmailTemplatePreview() }}
                 />
               </div>
             )}
             {selectedMethods.includes('telegram') && selectedTelegramTemplate && (
               <div>
-                <h3 className="font-semibold mb-2">Telegram Template</h3>
-                <div className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">
-                  <pre className="whitespace-pre-wrap text-sm">{getTelegramTemplatePreview()}</pre>
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">Telegram Template</h3>
+                <div className="border rounded-lg p-3 sm:p-4 max-h-64 sm:max-h-96 overflow-y-auto bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-xs sm:text-sm">{getTelegramTemplatePreview()}</pre>
                 </div>
               </div>
             )}
@@ -1247,6 +1250,7 @@ export default function CreateEventPage() {
               <Button 
                 variant="outline"
                 onClick={() => setShowTemplatePreview(false)}
+                className="text-sm sm:text-base"
               >
                 Close Preview
               </Button>

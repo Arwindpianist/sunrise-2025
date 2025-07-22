@@ -146,4 +146,34 @@
     /* Ensure divs render properly in email preview */
     display: block;
   }
+  
+  /* Mobile-specific utilities */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Ensure touch-friendly button sizes on mobile */
+  @media (max-width: 640px) {
+    button, 
+    [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Improve form element spacing on mobile */
+    input, 
+    textarea, 
+    select {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Better modal spacing on mobile */
+    [data-radix-dialog-content] {
+      margin: 1rem;
+      max-height: calc(100vh - 2rem);
+    }
+  }
 }
