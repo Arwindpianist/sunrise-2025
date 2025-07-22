@@ -643,9 +643,9 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[90vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
-        <DialogHeader className="px-4 sm:px-6 text-center">
-          <DialogTitle className="text-lg sm:text-xl">Add Contacts</DialogTitle>
-          <DialogDescription className="text-sm">
+        <DialogHeader className="px-4 sm:px-6">
+          <DialogTitle className="text-lg sm:text-xl text-center">Add Contacts</DialogTitle>
+          <DialogDescription className="text-sm text-center">
             Choose how you'd like to add contacts to your list.
           </DialogDescription>
         </DialogHeader>
@@ -653,7 +653,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         <div className="space-y-4 px-4 sm:px-6 pb-4">
           {/* Import Method Selection */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 text-center block">📋 Add Method</label>
+            <label className="text-sm font-medium text-gray-700">📋 Add Method</label>
             
             {/* Google Contacts Export - Most Recommended */}
             <div className="space-y-2">
@@ -862,29 +862,27 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           {/* Google Contacts Import */}
           {importMethod === 'google' && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-                <div className="flex items-start space-x-2 sm:space-x-3">
-                  <div className="bg-blue-100 p-1.5 sm:p-2 rounded-full flex-shrink-0">
-                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <div className="text-center mb-4">
+                  <div className="bg-blue-100 p-3 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-blue-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">Google Contacts Export</h3>
-                    <p className="text-xs sm:text-sm text-blue-700 mb-3 sm:mb-4">
-                      Export your contacts from Google Contacts and upload the CSV file here.
-                    </p>
-                    
-                    <Button onClick={handleGoogleImport} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Open Google Contacts
-                    </Button>
-                  </div>
+                  <h3 className="font-semibold text-blue-800 text-lg mb-2">Google Contacts Export</h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    Export your contacts from Google Contacts and upload the CSV file here.
+                  </p>
+                  
+                  <Button onClick={handleGoogleImport} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-sm">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Google Contacts
+                  </Button>
                 </div>
                 
-                <div className="mt-3 sm:mt-4 bg-white border border-blue-200 rounded-lg p-2 sm:p-3">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-blue-600 font-medium text-xs sm:text-sm">📋 Quick Steps:</span>
+                <div className="bg-white border border-blue-200 rounded-lg p-4">
+                  <div className="text-center mb-3">
+                    <span className="text-blue-600 font-medium text-sm">📋 Quick Steps:</span>
                   </div>
-                  <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                  <ol className="text-xs text-blue-700 space-y-2 list-decimal list-inside text-left">
                     <li>Click "Open Google Contacts" above</li>
                     <li>Sign in to your Google account</li>
                     <li>Look for "Export" in the left sidebar</li>
