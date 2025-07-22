@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle, MessageSquare } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle, MessageSquare, ChevronDown, ChevronUp } from "lucide-react"
 import { canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
@@ -105,6 +105,7 @@ export default function ContactsPage() {
   const [isBatchDeleting, setIsBatchDeleting] = useState(false)
   const [isEditLinkDialogOpen, setIsEditLinkDialogOpen] = useState(false)
   const [isDeletingLink, setIsDeletingLink] = useState(false)
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [contactLimitCheck, setContactLimitCheck] = useState<{ 
     allowed: boolean; 
     currentCount: number; 
@@ -994,88 +995,107 @@ Your info will stay private and only be used if I need to contact you. Thank You
 
                   {/* Create New Link Form */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold mb-4">Create New Telegram Setup Link</h3>
-                    <form onSubmit={async (e) => {
-                      e.preventDefault()
-                      try {
-                        const response = await fetch("/api/onboarding-links", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(onboardingFormData),
-                        })
+                    {onboardingLinks.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsCreateFormOpen(!isCreateFormOpen)}
+                        className="flex items-center justify-between w-full text-left mb-4 hover:bg-gray-50 p-3 rounded-lg transition-colors"
+                      >
+                        <h3 className="text-lg font-semibold">Create New Telegram Setup Link</h3>
+                        {isCreateFormOpen ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                        )}
+                      </button>
+                    ) : (
+                      <h3 className="text-lg font-semibold mb-4">Create New Telegram Setup Link</h3>
+                    )}
+                    
+                    {(onboardingLinks.length === 0 || isCreateFormOpen) && (
+                      <form onSubmit={async (e) => {
+                        e.preventDefault()
+                        try {
+                          const response = await fetch("/api/onboarding-links", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(onboardingFormData),
+                          })
+                          
+                          if (!response.ok) throw new Error("Failed to create link")
+                          
+                          toast({
+                            title: "Success!",
+                            description: "Onboarding link created successfully",
+                          })
+                          
+                          setOnboardingFormData({
+                            title: "",
+                            description: "",
+                            expires_at: "",
+                            max_uses: 100,
+                          })
+                          
+                          setIsCreateFormOpen(false)
+                          fetchOnboardingLinks()
+                        } catch (error: any) {
+                          toast({
+                            title: "Error",
+                            description: error.message || "Failed to create link",
+                            variant: "destructive",
+                          })
+                        }
+                      }} className="space-y-4">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="title">Title</Label>
+                            <Input
+                              id="title"
+                              value={onboardingFormData.title}
+                              onChange={(e) => setOnboardingFormData(prev => ({ ...prev, title: e.target.value }))}
+                              placeholder="e.g., Join My Events"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="max_uses">Max Uses</Label>
+                            <Input
+                              id="max_uses"
+                              type="number"
+                              value={onboardingFormData.max_uses}
+                              onChange={(e) => setOnboardingFormData(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 100 }))}
+                              min="1"
+                              max="1000"
+                            />
+                          </div>
+                        </div>
                         
-                        if (!response.ok) throw new Error("Failed to create link")
-                        
-                        toast({
-                          title: "Success!",
-                          description: "Onboarding link created successfully",
-                        })
-                        
-                        setOnboardingFormData({
-                          title: "",
-                          description: "",
-                          expires_at: "",
-                          max_uses: 100,
-                        })
-                        
-                        fetchOnboardingLinks()
-                      } catch (error: any) {
-                        toast({
-                          title: "Error",
-                          description: error.message || "Failed to create link",
-                          variant: "destructive",
-                        })
-                      }
-                    }} className="space-y-4">
-                      <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="title">Title</Label>
-                          <Input
-                            id="title"
-                            value={onboardingFormData.title}
-                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g., Join My Events"
+                          <Label htmlFor="description">Description</Label>
+                          <Textarea
+                            id="description"
+                            value={onboardingFormData.description}
+                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="e.g., Join my contact list to receive event invitations and updates"
+                            rows={3}
                           />
                         </div>
+                        
                         <div className="space-y-2">
-                          <Label htmlFor="max_uses">Max Uses</Label>
+                          <Label htmlFor="expires_at">Expires At (Optional)</Label>
                           <Input
-                            id="max_uses"
-                            type="number"
-                            value={onboardingFormData.max_uses}
-                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, max_uses: parseInt(e.target.value) || 100 }))}
-                            min="1"
-                            max="1000"
+                            id="expires_at"
+                            type="datetime-local"
+                            value={onboardingFormData.expires_at}
+                            onChange={(e) => setOnboardingFormData(prev => ({ ...prev, expires_at: e.target.value }))}
                           />
                         </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={onboardingFormData.description}
-                          onChange={(e) => setOnboardingFormData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="e.g., Join my contact list to receive event invitations and updates"
-                          rows={3}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="expires_at">Expires At (Optional)</Label>
-                        <Input
-                          id="expires_at"
-                          type="datetime-local"
-                          value={onboardingFormData.expires_at}
-                          onChange={(e) => setOnboardingFormData(prev => ({ ...prev, expires_at: e.target.value }))}
-                        />
-                      </div>
-                      
-                      <Button type="submit" className="w-full h-12">
-                        <LinkIcon className="mr-2 h-4 w-4" />
-                        Create Onboarding Link
-                      </Button>
-                    </form>
+                        
+                        <Button type="submit" className="w-full h-12">
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Create Onboarding Link
+                        </Button>
+                      </form>
+                    )}
                   </div>
                 </div>
               </DialogContent>
