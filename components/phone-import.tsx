@@ -642,7 +642,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           <span className="md:hidden">Add</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto sm:mx-0">
         <DialogHeader className="px-4 sm:px-0">
           <DialogTitle className="text-lg sm:text-xl">Add Contacts</DialogTitle>
           <DialogDescription className="text-sm">
@@ -650,7 +650,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 px-4 sm:px-0">
+        <div className="space-y-4 px-4 sm:px-0 pb-4">
           {/* Import Method Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">📋 Add Method</label>

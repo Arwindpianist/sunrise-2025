@@ -172,8 +172,9 @@
     
     /* Better modal spacing on mobile */
     [data-radix-dialog-content] {
-      margin: 1rem auto;
-      max-height: calc(100vh - 2rem);
+      margin: 0.5rem;
+      max-width: calc(100vw - 1rem);
+      max-height: calc(100vh - 1rem);
       left: 50% !important;
       transform: translateX(-50%) !important;
     }
@@ -183,6 +184,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    /* Better text sizing for mobile dialogs */
+    [data-radix-dialog-content] h2 {
+      font-size: 1.125rem;
+      line-height: 1.75rem;
+    }
+
+    [data-radix-dialog-content] p {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
     }
   }
 }
