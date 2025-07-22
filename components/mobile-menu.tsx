@@ -19,6 +19,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { user, supabase } = useSupabase()
   const [mounted, setMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -44,10 +45,18 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   // Handle slide-in animation
   useEffect(() => {
     if (isOpen) {
-      setIsVisible(true)
+      setShouldRender(true)
+      // Small delay to ensure component is rendered before animation starts
+      setTimeout(() => {
+        setIsVisible(true)
+      }, 10)
       document.body.style.overflow = 'hidden'
     } else {
       setIsVisible(false)
+      // Wait for animation to complete before unmounting
+      setTimeout(() => {
+        setShouldRender(false)
+      }, 500)
       document.body.style.overflow = 'unset'
     }
 
@@ -56,7 +65,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     }
   }, [isOpen])
 
-  if (!mounted || !isOpen) return null
+  if (!mounted || !shouldRender) return null
 
   const menuContent = (
     <div className="fixed inset-0 z-[9999] md:hidden">
