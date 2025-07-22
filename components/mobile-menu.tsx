@@ -87,7 +87,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       />
       
                                 {/* Navigation Panel */}
-          <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] backdrop-blur-[2px] border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden rounded-l-3xl transform transition-all duration-500 ease-out`} style={{ left: 'calc(100vw - 300px)', right: 'auto', transform: isVisible ? 'translateX(0)' : 'translateX(100%)', opacity: isVisible ? '1' : '0' }}>
+          <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] backdrop-blur-[4px] border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden rounded-l-3xl transform transition-all duration-500 ease-out`} style={{ left: 'calc(100vw - 300px)', right: 'auto', transform: isVisible ? 'translateX(0)' : 'translateX(100%)', opacity: isVisible ? '1' : '0' }}>
             {/* Top area background for better header contrast */}
             <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
             {/* Dynamic color refraction overlays */}
