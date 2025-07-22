@@ -124,12 +124,12 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white/10 backdrop-blur-2xl border-l border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.1)] relative overflow-hidden">
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white/80 backdrop-blur-xl border-l border-white/30 shadow-2xl relative overflow-hidden">
                 {/* Background gradient overlay for color reflection effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
-                <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/8 via-rose-500/8 to-pink-500/8 pointer-events-none"></div>
                 <SheetHeader className="pb-6 relative z-10">
-                  <SheetTitle className="text-xl font-semibold text-white/90 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent drop-shadow-sm">
+                  <SheetTitle className="text-xl font-semibold text-gray-800 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Navigation Menu
                   </SheetTitle>
                 </SheetHeader>
@@ -138,8 +138,8 @@ export default function Header() {
                     href="/"
                     className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
                       pathname === "/" 
-                        ? "bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
-                        : "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/20"
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -150,8 +150,8 @@ export default function Header() {
                     href="/features"
                     className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
                       pathname === "/features" 
-                        ? "bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
-                        : "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/20"
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -162,8 +162,8 @@ export default function Header() {
                     href="/pricing"
                     className={`px-6 py-4 rounded-full text-sm font-medium transition-all duration-500 hover:scale-105 relative overflow-hidden ${
                       pathname === "/pricing" 
-                        ? "bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]" 
-                        : "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/20"
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 backdrop-blur-md text-gray-800 border border-orange-200/50 shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -172,16 +172,16 @@ export default function Header() {
                   </Link>
                   {user && (
                     <>
-                      <div className="border-t border-white/10 pt-6 mt-6 relative z-10">
-                        <div className="px-6 py-4 rounded-full bg-white/15 backdrop-blur-md border border-white/20 mb-4 shadow-[0_0_15px_rgba(255,255,255,0.05)] relative overflow-hidden">
+                      <div className="border-t border-gray-200/50 pt-6 mt-6 relative z-10">
+                        <div className="px-6 py-4 rounded-full bg-white/70 backdrop-blur-md border border-gray-200/50 mb-4 shadow-lg relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-                          <p className="text-sm font-medium text-white/90 relative z-10">
+                          <p className="text-sm font-medium text-gray-800 relative z-10">
                             Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
                           </p>
                         </div>
                         <Link
                           href="/dashboard"
-                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/15 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-white/10 hover:border-white/20 relative overflow-hidden"
+                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-gray-700 hover:text-gray-800 hover:bg-white/80 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-gray-200/50 hover:border-gray-300/50 relative overflow-hidden"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
@@ -193,7 +193,7 @@ export default function Header() {
                             handleSignOut()
                             setIsMobileMenuOpen(false)
                           }}
-                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-red-300 hover:text-red-200 hover:bg-red-500/10 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-red-500/20 hover:border-red-500/30 mt-3 w-full text-left relative overflow-hidden"
+                          className="flex items-center px-6 py-4 rounded-full text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/80 hover:backdrop-blur-md transition-all duration-500 hover:scale-105 border border-red-200/50 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-orange-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
                           <LogOut className="h-4 w-4 mr-3 relative z-10" />
