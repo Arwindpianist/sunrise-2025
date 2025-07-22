@@ -93,9 +93,11 @@ export default function EventsPage() {
               .select("*", { count: "exact", head: true })
               .eq("user_id", session.user.id)
 
-            if (event.category) {
+            // Handle "general" category (which means "all contacts")
+            if (event.category && event.category !== "general") {
               contactsQuery = contactsQuery.eq("category", event.category)
             }
+            // If category is "general" or null, don't filter by category (get all contacts)
 
             const { count } = await contactsQuery
             return { ...event, contact_count: count || 0 }
@@ -147,7 +149,8 @@ export default function EventsPage() {
         .eq("user_id", session.user.id)
 
       // Filter by category if event has a category (no category means "all")
-      if (event.category) {
+      // Note: "general" category means "all contacts", so don't filter
+      if (event.category && event.category !== "general") {
         contactsQuery = contactsQuery.eq("category", event.category)
       }
 
@@ -270,7 +273,8 @@ export default function EventsPage() {
         .select("*", { count: "exact", head: true })
         .eq("user_id", session.user.id)
 
-      if (originalEvent.category) {
+      // Note: "general" category means "all contacts", so don't filter
+      if (originalEvent.category && originalEvent.category !== "general") {
         countContactsQuery = countContactsQuery.eq("category", originalEvent.category)
       }
 
@@ -289,7 +293,8 @@ export default function EventsPage() {
           .eq("user_id", session.user.id)
           .not("telegram_chat_id", "is", null)
 
-        if (originalEvent.category) {
+        // Note: "general" category means "all contacts", so don't filter
+        if (originalEvent.category && originalEvent.category !== "general") {
           telegramContactsQuery = telegramContactsQuery.eq("category", originalEvent.category)
         }
 

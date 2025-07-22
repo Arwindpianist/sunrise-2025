@@ -435,7 +435,8 @@ export default function CreateEventPage() {
         .eq("user_id", session.user.id)
 
       // Filter by category if event has a category (no category means "all")
-      if (formData.category && formData.category !== "all") {
+      // Note: "general" category means "all contacts", so don't filter
+      if (formData.category && formData.category !== "all" && formData.category !== "general") {
         contactsQuery = contactsQuery.eq("category", formData.category)
       }
 

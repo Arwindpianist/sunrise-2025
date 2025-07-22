@@ -103,7 +103,8 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         .eq("user_id", session.user.id)
 
       // Filter by category if event has a category (no category means "all")
-      if (event && event.category) {
+      // Note: "general" category means "all contacts", so don't filter
+      if (event && event.category && event.category !== "general") {
         contactsQuery = contactsQuery.eq("category", event.category)
       }
 
@@ -238,7 +239,8 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
           .eq("user_id", session.user.id)
           .not("telegram_chat_id", "is", null)
 
-        if (event.category) {
+        // Note: "general" category means "all contacts", so don't filter
+        if (event.category && event.category !== "general") {
           telegramContactsQuery = telegramContactsQuery.eq("category", event.category)
         }
 
@@ -287,7 +289,8 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         .select("*")
         .eq("user_id", session.user.id)
 
-      if (event.category) {
+      // Note: "general" category means "all contacts", so don't filter
+      if (event.category && event.category !== "general") {
         getContactsQuery = getContactsQuery.eq("category", event.category)
       }
 

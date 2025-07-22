@@ -145,7 +145,8 @@ export async function POST(request: Request) {
         .eq("user_id", session.user.id)
 
       // Filter by category if event has a category (no category means "all")
-      if (event.category) {
+      // Note: "general" category means "all contacts", so don't filter
+      if (event.category && event.category !== "general") {
         contactsQuery = contactsQuery.eq("category", event.category)
       }
 
