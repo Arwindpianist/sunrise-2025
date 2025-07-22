@@ -428,6 +428,44 @@ export default function CreateEventPage() {
         throw eventError
       }
 
+      // Get contacts for the event based on the event's category
+      let contactsQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", session.user.id)
+
+      // Filter by category if event has a category (no category means "all")
+      if (formData.category && formData.category !== "all") {
+        contactsQuery = contactsQuery.eq("category", formData.category)
+      }
+
+      const { data: contacts, error: contactsError } = await contactsQuery
+
+      if (contactsError) {
+        throw contactsError
+      }
+
+      if (!contacts || contacts.length === 0) {
+        throw new Error("No contacts found for this event")
+      }
+
+      // Create event contacts immediately
+      const eventContacts = contacts.map((contact) => ({
+        event_id: event.id,
+        contact_id: contact.id,
+        status: "pending",
+      }))
+
+      const { error: eventContactsError } = await supabase
+        .from("event_contacts")
+        .insert(eventContacts)
+
+      if (eventContactsError) {
+        throw eventContactsError
+      }
+
+      console.log(`Created ${eventContacts.length} event contacts for event ${event.id}`)
+
       // Deduct tokens from user balance
       const { error: balanceError } = await supabase
         .from('user_balances')

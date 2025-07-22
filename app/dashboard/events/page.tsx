@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { format, isValid } from "date-fns"
-import { Plus, Send, Trash2, Eye, Calendar, MapPin, Tag, Clock, RotateCcw } from "lucide-react"
+import { Plus, Send, Trash2, Eye, Calendar, MapPin, Tag, Clock, RotateCcw, Users } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ interface Event {
   scheduled_send_time: string
   created_at: string
   category?: string
+  contact_count?: number
 }
 
 const formatDate = (dateString: string, formatStr: string) => {
@@ -82,7 +83,30 @@ export default function EventsPage() {
         throw error
       }
 
-      setEvents(data || [])
+      // Add contact count for each event
+      const eventsWithContactCount = await Promise.all(
+        (data || []).map(async (event) => {
+          try {
+            // Count contacts for this event
+            let contactsQuery = supabase
+              .from("contacts")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", session.user.id)
+
+            if (event.category) {
+              contactsQuery = contactsQuery.eq("category", event.category)
+            }
+
+            const { count } = await contactsQuery
+            return { ...event, contact_count: count || 0 }
+          } catch (error) {
+            console.error(`Error counting contacts for event ${event.id}:`, error)
+            return { ...event, contact_count: 0 }
+          }
+        })
+      )
+
+      setEvents(eventsWithContactCount)
     } catch (error: any) {
       console.error("Error fetching events:", error)
       toast({
@@ -561,6 +585,13 @@ export default function EventsPage() {
                         <Tag className="h-4 w-4 mr-2 flex-shrink-0" />
                         <span className="capitalize">{event.category ? event.category : "All Contacts"}</span>
                       </div>
+                      
+                      {event.status === "draft" && (
+                        <div className="flex items-center text-sm text-blue-600">
+                          <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span>Ready to send to {event.contact_count || 0} contacts</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-gray-200">
