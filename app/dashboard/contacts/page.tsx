@@ -644,8 +644,8 @@ export default function ContactsPage() {
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <User className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Contact Form</span>
-                  <span className="md:hidden">Contact</span>
+                  <span className="hidden md:inline">Invite Contacts</span>
+                  <span className="md:hidden">Invite</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
@@ -775,8 +775,8 @@ Your info will stay private and only be used if I need to contact you. Thank You
               <DialogTrigger asChild>
                 <Button size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  <span className="hidden md:inline">Add Manually</span>
-                  <span className="md:hidden">Manual</span>
+                  <span className="hidden md:inline">Import Contact</span>
+                  <span className="md:hidden">Import</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
