@@ -67,7 +67,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       />
       
                 {/* Navigation Panel */}
-          <div className={`absolute right-0 top-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden transform transition-transform duration-300 ease-out ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className={`absolute top-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden transition-all duration-300 ease-out`} style={{ right: isVisible ? '0' : '-100%' }}>
         {/* Subtle gradient overlays for liquid glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
