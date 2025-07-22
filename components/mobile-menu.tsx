@@ -9,6 +9,14 @@ import { useSupabase } from "@/components/providers/supabase-provider"
 import { LogOut, User, X } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 
+// Custom CSS for shimmer animation
+const shimmerStyle = `
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+`
+
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
@@ -68,7 +76,9 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   if (!mounted || !shouldRender) return null
 
   const menuContent = (
-    <div className="fixed inset-0 z-[9999] md:hidden">
+    <>
+      <style>{shimmerStyle}</style>
+      <div className="fixed inset-0 z-[9999] md:hidden">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/10 transition-opacity duration-500 ease-out"
@@ -76,11 +86,22 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         onClick={onClose}
       />
       
-                {/* Navigation Panel */}
+                                {/* Navigation Panel */}
           <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] backdrop-blur-xs border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden rounded-l-3xl transform transition-all duration-500 ease-out`} style={{ left: 'calc(100vw - 300px)', right: 'auto', transform: isVisible ? 'translateX(0)' : 'translateX(100%)', opacity: isVisible ? '1' : '0' }}>
-        {/* Subtle gradient overlays for liquid glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
-        <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
+            {/* Dynamic color refraction overlays */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 via-purple-500/8 to-pink-500/8 pointer-events-none transition-all duration-700"></div>
+            <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/6 via-rose-500/6 to-pink-500/6 pointer-events-none transition-all duration-700"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-green-500/4 via-teal-500/4 to-cyan-500/4 pointer-events-none transition-all duration-700"></div>
+            <div className="absolute inset-0 bg-gradient-to-bl from-yellow-500/3 via-orange-500/3 to-red-500/3 pointer-events-none transition-all duration-700"></div>
+            {/* Animated color shifts */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none animate-pulse"></div>
+            {/* Dynamic color refraction based on content */}
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/3 via-orange-500/3 via-yellow-500/3 via-green-500/3 via-blue-500/3 via-purple-500/3 to-pink-500/3 pointer-events-none opacity-60"></div>
+            {/* Moving light reflection */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" style={{ 
+              animation: 'shimmer 3s ease-in-out infinite',
+              backgroundPosition: '200% 0'
+            }}></div>
         
         <div className="relative z-10 p-6">
           <div className="flex items-center justify-between mb-8">
@@ -187,6 +208,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         </div>
       </div>
     </div>
+    </>
   )
 
   // Use portal to render at document body level
