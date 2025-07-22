@@ -914,7 +914,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   <span className="md:hidden">Telegram</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto p-4 sm:p-6">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto p-4 sm:p-6">
                 <DialogHeader className="mb-4">
                   <DialogTitle className="text-lg sm:text-xl">📱 Telegram Setup Links</DialogTitle>
                   <DialogDescription className="text-sm">
@@ -926,7 +926,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   {/* Onboarding Links List */}
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
-                    <div className="space-y-3 max-h-48 overflow-y-auto">
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
                       {onboardingLinks.length === 0 ? (
                         <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
                       ) : (
