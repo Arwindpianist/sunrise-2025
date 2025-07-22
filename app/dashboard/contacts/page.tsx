@@ -597,21 +597,21 @@ export default function ContactsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Contacts</h1>
-              <p className="text-gray-600 text-sm md:text-base">Manage your event contacts and categories</p>
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">Contacts</h1>
+              <p className="text-gray-600 text-xs sm:text-sm md:text-base">Manage your event contacts and categories</p>
             </div>
             {contactLimitCheck && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
                 <span className="text-gray-600">
                   {contactLimitCheck.currentCount}/{contactLimitCheck.maxAllowed === -1 ? '∞' : contactLimitCheck.maxAllowed} contacts
                 </span>
                 {contactLimitCheck.maxAllowed !== -1 && (
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all ${
                         (contactLimitCheck.currentCount / contactLimitCheck.maxAllowed) > 0.8 ? 'bg-red-500' :
@@ -625,7 +625,7 @@ export default function ContactsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs sm:text-sm"
                     onClick={() => window.open('/pricing', '_blank')}
                   >
                     Upgrade
@@ -637,27 +637,27 @@ export default function ContactsPage() {
         </div>
 
         {/* Action Buttons - Mobile Responsive */}
-        <div className="mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 md:h-10">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <User className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Contact Form</span>
                   <span className="md:hidden">Contact</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>📋 Contact Collection Form</DialogTitle>
-                  <DialogDescription>
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+                <DialogHeader className="px-4 sm:px-0">
+                  <DialogTitle className="text-lg sm:text-xl">📋 Contact Collection Form</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Share this simple form to let people add themselves to your contact list. Perfect for collecting contact information from events, social media, or your website.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 px-4 sm:px-0">
                   {/* Quick Overview */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
                     <h3 className="font-semibold text-blue-900 mb-2">📋 Quick Overview</h3>
                     <p className="text-sm text-blue-800 mb-3">
                       A simple form that lets people add themselves to your contact list. Perfect for collecting contacts from events, social media, or your website.
@@ -668,9 +668,9 @@ export default function ContactsPage() {
                   </div>
 
                   {/* Share Link */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                     <h3 className="font-semibold text-green-900 mb-2">🔗 Share Your Form</h3>
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-3">
                       <Input value={shareableLink} readOnly className="text-xs" />
                       <Button
                         size="sm"
@@ -681,6 +681,7 @@ export default function ContactsPage() {
                             description: "Link copied to clipboard",
                           })
                         }}
+                        className="text-xs sm:text-sm"
                       >
                         Copy
                       </Button>
@@ -697,7 +698,7 @@ export default function ContactsPage() {
                   </div>
 
                   {/* Quick Tips */}
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
                     <h3 className="font-semibold text-orange-900 mb-2">💡 Quick Tips</h3>
                     <div className="text-xs text-orange-800 space-y-1">
                       <p>• Tell people what they'll receive (updates, invites)</p>
@@ -711,16 +712,16 @@ export default function ContactsPage() {
             
             <Dialog open={isCategoryManagerOpen} onOpenChange={setIsCategoryManagerOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 md:h-10">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <Settings className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Categories</span>
                   <span className="md:hidden">Categories</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Manage Contact Categories</DialogTitle>
-                  <DialogDescription>
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+                <DialogHeader className="px-4 sm:px-0">
+                  <DialogTitle className="text-lg sm:text-xl">Manage Contact Categories</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Create and manage custom categories to organize your contacts.
                   </DialogDescription>
                 </DialogHeader>
@@ -738,20 +739,20 @@ export default function ContactsPage() {
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="h-12 md:h-10">
+                <Button size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <Plus className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Add Manually</span>
                   <span className="md:hidden">Manual</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Contact</DialogTitle>
-                  <DialogDescription>
+              <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
+                <DialogHeader className="px-4 sm:px-0">
+                  <DialogTitle className="text-lg sm:text-xl">Add New Contact</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Fill in the contact details below.
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleAddContact} className="space-y-4">
+                <form onSubmit={handleAddContact} className="space-y-4 px-4 sm:px-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="first_name" className="text-sm font-medium">
@@ -862,7 +863,7 @@ export default function ContactsPage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full h-12 text-sm sm:text-base" disabled={isSubmitting}>
                     {isSubmitting ? "Adding..." : "Add Contact"}
                   </Button>
                 </form>
@@ -873,24 +874,24 @@ export default function ContactsPage() {
 
             <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-12 md:h-10">
+                <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   <span className="hidden md:inline">Telegram Setup</span>
                   <span className="md:hidden">Telegram</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>📱 Telegram Setup Links</DialogTitle>
-                  <DialogDescription>
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+                <DialogHeader className="px-4 sm:px-0">
+                  <DialogTitle className="text-lg sm:text-xl">📱 Telegram Setup Links</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Create special links that help people get their Telegram Chat ID and add themselves to your contact list. Perfect for enabling Telegram messaging features.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-6">
+                <div className="space-y-6 px-4 sm:px-0">
                   {/* Onboarding Links List */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
+                    <h3 className="text-base sm:text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {onboardingLinks.length === 0 ? (
                         <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
@@ -1042,15 +1043,15 @@ export default function ContactsPage() {
 
             {/* Edit Onboarding Link Dialog */}
             <Dialog open={isEditLinkDialogOpen} onOpenChange={setIsEditLinkDialogOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Edit Onboarding Link</DialogTitle>
-                  <DialogDescription>
+              <DialogContent className="w-[95vw] max-w-2xl bg-white/95 backdrop-blur-sm mx-auto">
+                <DialogHeader className="px-4 sm:px-0">
+                  <DialogTitle className="text-lg sm:text-xl">Edit Onboarding Link</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Update the onboarding link details below.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <form onSubmit={handleEditLink} className="space-y-4">
+                <form onSubmit={handleEditLink} className="space-y-4 px-4 sm:px-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit_title">Title</Label>
@@ -1099,7 +1100,7 @@ export default function ContactsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 h-12 text-sm sm:text-base"
                       onClick={() => {
                         setIsEditLinkDialogOpen(false)
                         setEditingLink(null)
@@ -1113,7 +1114,7 @@ export default function ContactsPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="flex-1">
+                    <Button type="submit" className="flex-1 h-12 text-sm sm:text-base">
                       <Edit2 className="mr-2 h-4 w-4" />
                       Update Link
                     </Button>
@@ -1125,9 +1126,9 @@ export default function ContactsPage() {
         </div>
 
         {/* Search and Filter */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -1166,7 +1167,7 @@ export default function ContactsPage() {
             
             {/* Select All Checkbox */}
             {filteredContacts.length > 0 && (
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
                 <input
                   type="checkbox"
                   id="select-all"
@@ -1174,7 +1175,7 @@ export default function ContactsPage() {
                   onChange={handleSelectAll}
                   className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
                 />
-                <label htmlFor="select-all" className="text-sm text-gray-700 cursor-pointer">
+                <label htmlFor="select-all" className="text-xs sm:text-sm text-gray-700 cursor-pointer">
                   Select all ({filteredContacts.length} contacts)
                 </label>
               </div>
@@ -1184,12 +1185,12 @@ export default function ContactsPage() {
 
         {/* Batch Operations */}
         {selectedContacts.size > 0 && (
-          <Card className="mb-6 border-orange-200 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <Card className="mb-4 sm:mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-orange-800">
+                  <span className="text-xs sm:text-sm font-medium text-orange-800">
                     {selectedContacts.size} contact{selectedContacts.size > 1 ? 's' : ''} selected
                   </span>
                 </div>
@@ -1198,7 +1199,7 @@ export default function ContactsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsBatchEditDialogOpen(true)}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                    className="border-orange-300 text-orange-700 hover:bg-orange-100 text-xs sm:text-sm"
                   >
                     <Edit2 className="h-4 w-4 mr-2" />
                     Edit Category
@@ -1208,6 +1209,7 @@ export default function ContactsPage() {
                     size="sm"
                     onClick={handleBatchDelete}
                     disabled={isBatchDeleting}
+                    className="text-xs sm:text-sm"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     {isBatchDeleting ? "Deleting..." : "Delete Selected"}
@@ -1244,10 +1246,10 @@ export default function ContactsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredContacts.map((contact) => (
               <Card key={contact.id} className={`hover:shadow-md transition-shadow ${selectedContacts.has(contact.id) ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <input
@@ -1361,14 +1363,14 @@ export default function ContactsPage() {
 
         {/* Edit Contact Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Contact</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
+            <DialogHeader className="px-4 sm:px-0">
+              <DialogTitle className="text-lg sm:text-xl">Edit Contact</DialogTitle>
+              <DialogDescription className="text-sm">
                 Update the contact details below.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleEditContact} className="space-y-4">
+            <form onSubmit={handleEditContact} className="space-y-4 px-4 sm:px-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="edit_first_name" className="text-sm font-medium">
@@ -1496,7 +1498,7 @@ export default function ContactsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 h-12 text-sm sm:text-base"
                   onClick={() => {
                     setIsEditDialogOpen(false)
                     setEditingContact(null)
@@ -1504,7 +1506,7 @@ export default function ContactsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                <Button type="submit" className="flex-1 h-12 text-sm sm:text-base" disabled={isSubmitting}>
                   {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -1514,15 +1516,15 @@ export default function ContactsPage() {
 
         {/* Batch Edit Category Dialog */}
         <Dialog open={isBatchEditDialogOpen} onOpenChange={setIsBatchEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Category for {selectedContacts.size} Contact{selectedContacts.size > 1 ? 's' : ''}</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
+            <DialogHeader className="px-4 sm:px-0">
+              <DialogTitle className="text-lg sm:text-xl">Edit Category for {selectedContacts.size} Contact{selectedContacts.size > 1 ? 's' : ''}</DialogTitle>
+              <DialogDescription className="text-sm">
                 Select a new category for the selected contacts.
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
+            <div className="space-y-4 px-4 sm:px-0">
               <div className="space-y-2">
                 <Label htmlFor="batch_category">Category</Label>
                 <Select
@@ -1553,14 +1555,14 @@ export default function ContactsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 h-12 text-sm sm:text-base"
                   onClick={() => setIsBatchEditDialogOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleBatchEditCategory} 
-                  className="flex-1"
+                  className="flex-1 h-12 text-sm sm:text-base"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Updating..." : "Update Category"}
