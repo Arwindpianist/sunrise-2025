@@ -17,7 +17,9 @@ import {
   Clock,
   RefreshCw,
   Eye,
-  BarChart3
+  BarChart3,
+  MessageSquare,
+  DollarSign
 } from "lucide-react"
 
 interface Message {
@@ -30,6 +32,29 @@ interface Message {
   sent_at: string
   tokens_used: number
   cost: number
+}
+
+interface EventMessage {
+  event_id: string
+  event_title: string
+  sent_at: string
+  email_recipients: number
+  telegram_recipients: number
+  email_status: {
+    sent: number
+    delivered: number
+    failed: number
+    pending: number
+  }
+  telegram_status: {
+    sent: number
+    delivered: number
+    failed: number
+    pending: number
+  }
+  total_recipients: number
+  total_tokens: number
+  total_cost: number
 }
 
 interface MessageStats {
@@ -55,6 +80,7 @@ export default function MessagesPage() {
   const { supabase, user } = useSupabase()
   const [mounted, setMounted] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [eventMessages, setEventMessages] = useState<EventMessage[]>([])
   const [stats, setStats] = useState<MessageStats>({
     totalMessages: 0,
     totalRecipients: 0,
@@ -101,6 +127,7 @@ export default function MessagesPage() {
 
       if (!userEvents || userEvents.length === 0) {
         setMessages([])
+        setEventMessages([])
         calculateStats([])
         return
       }
@@ -169,6 +196,59 @@ export default function MessagesPage() {
         .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
 
       setMessages(allMessages)
+      
+      // Group messages by event
+      const eventMessageMap = new Map<string, EventMessage>()
+      
+      allMessages.forEach(message => {
+        const eventId = message.event_id
+        const existing = eventMessageMap.get(eventId)
+        
+        if (existing) {
+          // Update existing event message
+          if (message.channel === 'email') {
+            existing.email_recipients += message.recipient_count
+            existing.email_status[message.status]++
+          } else if (message.channel === 'telegram') {
+            existing.telegram_recipients += message.recipient_count
+            existing.telegram_status[message.status]++
+          }
+          existing.total_recipients += message.recipient_count
+          existing.total_tokens += message.tokens_used
+          existing.total_cost += message.cost
+        } else {
+          // Create new event message
+          const newEventMessage: EventMessage = {
+            event_id: eventId,
+            event_title: message.event_title,
+            sent_at: message.sent_at,
+            email_recipients: message.channel === 'email' ? message.recipient_count : 0,
+            telegram_recipients: message.channel === 'telegram' ? message.recipient_count : 0,
+            email_status: {
+              sent: message.channel === 'email' && message.status === 'sent' ? 1 : 0,
+              delivered: message.channel === 'email' && message.status === 'delivered' ? 1 : 0,
+              failed: message.channel === 'email' && message.status === 'failed' ? 1 : 0,
+              pending: message.channel === 'email' && message.status === 'pending' ? 1 : 0
+            },
+            telegram_status: {
+              sent: message.channel === 'telegram' && message.status === 'sent' ? 1 : 0,
+              delivered: message.channel === 'telegram' && message.status === 'delivered' ? 1 : 0,
+              failed: message.channel === 'telegram' && message.status === 'failed' ? 1 : 0,
+              pending: message.channel === 'telegram' && message.status === 'pending' ? 1 : 0
+            },
+            total_recipients: message.recipient_count,
+            total_tokens: message.tokens_used,
+            total_cost: message.cost
+          }
+          eventMessageMap.set(eventId, newEventMessage)
+        }
+      })
+      
+      // Convert map to array and sort by sent_at
+      const eventMessagesArray = Array.from(eventMessageMap.values())
+        .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+      
+      setEventMessages(eventMessagesArray)
       calculateStats(allMessages)
     } catch (error) {
       console.error('Error fetching messages:', error)
@@ -459,7 +539,7 @@ export default function MessagesPage() {
                 <RefreshCw className="h-8 w-8 text-gray-400 mx-auto mb-3 animate-spin" />
                 <p className="text-gray-600">Loading messages...</p>
               </div>
-            ) : messages.length === 0 ? (
+            ) : eventMessages.length === 0 ? (
               <div className="text-center py-8">
                 <Send className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-muted-foreground mb-4">No messages sent yet</p>
@@ -472,34 +552,71 @@ export default function MessagesPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => (
+                {eventMessages.map((eventMessage) => (
                   <div
-                    key={message.id}
+                    key={eventMessage.event_id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/50 rounded-lg backdrop-blur-sm hover:bg-white/70 transition-colors"
                   >
                     <div className="flex-1 min-w-0 mb-3 sm:mb-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`${getChannelColor(message.channel)}`}>
-                          {getChannelIcon(message.channel)}
+                        <div className="flex gap-1">
+                          {eventMessage.email_recipients > 0 && (
+                            <div className="text-blue-600">
+                              <Mail className="h-4 w-4" />
+                            </div>
+                          )}
+                          {eventMessage.telegram_recipients > 0 && (
+                            <div className="text-blue-500">
+                              <MessageSquare className="h-4 w-4" />
+                            </div>
+                          )}
                         </div>
                         <h3 className="font-medium text-gray-800 truncate">
-                          {message.event_title}
+                          {eventMessage.event_title}
                         </h3>
-                        {getStatusBadge(message.status)}
+                        <div className="flex gap-1">
+                          {eventMessage.email_recipients > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              Email: {eventMessage.email_recipients}
+                            </Badge>
+                          )}
+                          {eventMessage.telegram_recipients > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              Telegram: {eventMessage.telegram_recipients}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {message.recipient_count} recipients
+                          {eventMessage.total_recipients} total recipients
                         </span>
                         <span className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3" />
-                          {message.tokens_used} tokens
+                          {eventMessage.total_tokens} tokens
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {new Date(message.sent_at).toLocaleDateString()}
+                          {new Date(eventMessage.sent_at).toLocaleDateString()}
                         </span>
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          RM{eventMessage.total_cost.toFixed(2)}
+                        </span>
+                      </div>
+                      {/* Status breakdown */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {eventMessage.email_recipients > 0 && (
+                          <div className="text-xs text-gray-500">
+                            Email: {eventMessage.email_status.sent + eventMessage.email_status.delivered} sent, {eventMessage.email_status.failed} failed
+                          </div>
+                        )}
+                        {eventMessage.telegram_recipients > 0 && (
+                          <div className="text-xs text-gray-500">
+                            Telegram: {eventMessage.telegram_status.sent + eventMessage.telegram_status.delivered} sent, {eventMessage.telegram_status.failed} failed
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -507,7 +624,7 @@ export default function MessagesPage() {
                         variant="outline"
                         size="sm"
                         className="border-orange-500 text-orange-500 hover:bg-orange-50"
-                        onClick={() => router.push(`/dashboard/events/${message.event_id}`)}
+                        onClick={() => router.push(`/dashboard/events/${eventMessage.event_id}`)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View Event
@@ -516,11 +633,11 @@ export default function MessagesPage() {
                         variant="outline"
                         size="sm"
                         className="border-green-500 text-green-500 hover:bg-green-50"
-                        onClick={() => handleResendEvent(message.event_id)}
-                        disabled={resending === message.event_id}
+                        onClick={() => handleResendEvent(eventMessage.event_id)}
+                        disabled={resending === eventMessage.event_id}
                       >
-                        <RefreshCw className={`h-4 w-4 mr-1 ${resending === message.event_id ? 'animate-spin' : ''}`} />
-                        {resending === message.event_id ? 'Preparing...' : 'Re-send'}
+                        <RefreshCw className={`h-4 w-4 mr-1 ${resending === eventMessage.event_id ? 'animate-spin' : ''}`} />
+                        {resending === eventMessage.event_id ? 'Preparing...' : 'Re-send'}
                       </Button>
                     </div>
                   </div>
