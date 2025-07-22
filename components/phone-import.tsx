@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { Upload, FileText, Smartphone, Users, Share2, AlertCircle, ExternalLink, Plus } from "lucide-react"
+import { Upload, FileText, Smartphone, Users, Share2, AlertCircle, ExternalLink, Plus, User } from "lucide-react"
 
 interface Category {
   id: string
@@ -63,9 +63,17 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
   const [selectedCategory, setSelectedCategory] = useState<string>("__no_category__")
   const [isUploading, setIsUploading] = useState(false)
   const [previewData, setPreviewData] = useState<any[]>([])
-  const [importMethod, setImportMethod] = useState<'native' | 'file' | 'share' | 'google'>('native')
+  const [importMethod, setImportMethod] = useState<'native' | 'file' | 'share' | 'google' | 'manual'>('native')
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [isShareSupported, setIsShareSupported] = useState(false)
+  const [manualFormData, setManualFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    telegram_chat_id: '',
+    notes: ''
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Check for native APIs support
@@ -620,11 +628,77 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     }
   }
 
+  const handleManualAdd = async () => {
+    if (!manualFormData.first_name || !manualFormData.email) {
+      toast({
+        title: "Missing Required Fields",
+        description: "First name and email are required.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const contact = {
+        first_name: manualFormData.first_name,
+        last_name: manualFormData.last_name || undefined,
+        email: manualFormData.email,
+        phone: manualFormData.phone || undefined,
+        telegram_chat_id: manualFormData.telegram_chat_id || undefined,
+        notes: manualFormData.notes || undefined,
+      }
+
+      const response = await fetch('/api/contacts/import/native', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contacts: [contact],
+          category: selectedCategory === '__no_category__' ? '' : selectedCategory,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add contact')
+      }
+
+      toast({
+        title: "Success",
+        description: result.message || "Contact added successfully",
+      })
+
+      setIsDialogOpen(false)
+      resetForm()
+      onImportComplete()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add contact",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const resetForm = () => {
     setSelectedFile(null)
     setSelectedCategory("__no_category__")
     setPreviewData([])
     setImportMethod('native')
+    setManualFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      telegram_chat_id: '',
+      notes: ''
+    })
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -663,7 +737,11 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                              <Button
                  variant={importMethod === 'google' ? 'default' : 'outline'}
                  onClick={() => setImportMethod('google')}
-                 className="w-full justify-start h-12 text-left px-3"
+                 className={`w-full justify-start h-12 text-left px-3 ${
+                   importMethod === 'google' 
+                     ? 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0' 
+                     : 'border-orange-300 hover:border-orange-400'
+                 }`}
                >
                  <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                  <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
@@ -736,6 +814,23 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 </Button>
               </div>
             )}
+
+            {/* Manual Entry */}
+            <Button
+              variant={importMethod === 'manual' ? 'default' : 'outline'}
+              onClick={() => setImportMethod('manual')}
+              className={`w-full justify-start h-12 text-left px-3 ${
+                importMethod === 'manual' 
+                  ? 'bg-black hover:bg-gray-800 text-white border-0' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <User className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                <span className="font-medium text-sm truncate w-full">Add Manually</span>
+                <span className="text-xs text-gray-500 truncate w-full">Enter contact details one by one</span>
+              </div>
+            </Button>
 
 
 
@@ -1085,6 +1180,155 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                     <>
                       <Upload className="h-4 w-4 mr-2" />
                       Import Contacts
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Entry Import */}
+          {importMethod === 'manual' && (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">👤 Contact Details</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="first_name" className="text-sm font-medium">
+                      First Name *
+                    </label>
+                    <Input
+                      id="first_name"
+                      name="first_name"
+                      value={manualFormData.first_name}
+                      onChange={(e) => setManualFormData({...manualFormData, first_name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="last_name" className="text-sm font-medium">
+                      Last Name
+                    </label>
+                    <Input
+                      id="last_name"
+                      name="last_name"
+                      value={manualFormData.last_name}
+                      onChange={(e) => setManualFormData({...manualFormData, last_name: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email *
+                  </label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={manualFormData.email}
+                    onChange={(e) => setManualFormData({...manualFormData, email: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="text-sm font-medium">
+                    Phone
+                  </label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={manualFormData.phone}
+                    onChange={(e) => setManualFormData({...manualFormData, phone: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="telegram_chat_id" className="text-sm font-medium">
+                    Telegram Chat ID
+                  </label>
+                  <Input
+                    id="telegram_chat_id"
+                    name="telegram_chat_id"
+                    value={manualFormData.telegram_chat_id}
+                    onChange={(e) => setManualFormData({...manualFormData, telegram_chat_id: e.target.value})}
+                    placeholder="e.g., 123456789"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Optional: Allows sending Telegram messages to this contact
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="notes" className="text-sm font-medium">
+                    Notes
+                  </label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={manualFormData.notes}
+                    onChange={(e) => setManualFormData({...manualFormData, notes: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">🏷️ Category (Optional)</label>
+                <Select value={selectedCategory || "__no_category__"} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Choose a category for organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__no_category__">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-gray-200 rounded-full" />
+                        <span>No category</span>
+                      </div>
+                    </SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span>{category.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12 text-sm sm:text-base"
+                  onClick={() => {
+                    setIsDialogOpen(false)
+                    resetForm()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 h-12 bg-black hover:bg-gray-800 text-sm sm:text-base"
+                  onClick={handleManualAdd}
+                  disabled={!manualFormData.first_name || !manualFormData.email || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <User className="h-4 w-4 mr-2" />
+                      Add Contact
                     </>
                   )}
                 </Button>
