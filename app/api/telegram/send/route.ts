@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
     // Get the session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -112,6 +113,98 @@ export async function POST(request: Request) {
       status: ec.status,
       telegram_chat_id: ec.contacts?.telegram_chat_id 
     })))
+
+    // If no event contacts exist at all, we need to create them
+    if (!allEventContacts || allEventContacts.length === 0) {
+      console.log("No event contacts found. Creating event contacts for this event...")
+      
+      // Get event details to understand the category filter
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single()
+
+      if (eventError) {
+        console.error("Error fetching event:", eventError)
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to fetch event" }),
+          { 
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      }
+
+      // Get contacts for the event based on the event's category
+      let contactsQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", session.user.id)
+
+      // Filter by category if event has a category (no category means "all")
+      if (event.category) {
+        contactsQuery = contactsQuery.eq("category", event.category)
+      }
+
+      const { data: contacts, error: contactsError } = await contactsQuery
+
+      if (contactsError) {
+        console.error("Error fetching contacts:", contactsError)
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to fetch contacts" }),
+          { 
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      }
+
+      console.log(`Found ${contacts?.length || 0} contacts for event category: ${event.category || 'all'}`)
+
+      if (!contacts || contacts.length === 0) {
+        console.log("No contacts found for this event")
+        return new NextResponse(
+          JSON.stringify({ error: "No contacts found for this event" }),
+          { 
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      }
+
+      // Create event contacts
+      const eventContacts = contacts.map((contact) => ({
+        event_id: eventId,
+        contact_id: contact.id,
+        status: "pending",
+      }))
+
+      const { error: eventContactsError } = await supabase
+        .from("event_contacts")
+        .insert(eventContacts)
+
+      if (eventContactsError) {
+        console.error("Error creating event contacts:", eventContactsError)
+        return new NextResponse(
+          JSON.stringify({ error: "Failed to create event contacts" }),
+          { 
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      }
+
+      console.log(`Created ${eventContacts.length} event contacts`)
+    }
 
     // Get pending event contacts with telegram chat IDs
     const { data: eventContacts, error: eventContactsError } = await supabase
