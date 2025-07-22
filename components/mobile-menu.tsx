@@ -125,7 +125,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/" 
-                  ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
+                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
@@ -141,7 +141,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/features"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/features" 
-                  ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
+                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
@@ -157,7 +157,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/pricing"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/pricing" 
-                  ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
+                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
