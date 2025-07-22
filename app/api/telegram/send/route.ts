@@ -79,6 +79,40 @@ export async function POST(request: Request) {
       )
     }
 
+    // First, let's check what event contacts exist for this event (any status)
+    const { data: allEventContacts, error: allEventContactsError } = await supabase
+      .from("event_contacts")
+      .select(`
+        *,
+        contacts (
+          id,
+          telegram_chat_id,
+          first_name,
+          last_name
+        )
+      `)
+      .eq("event_id", eventId)
+
+    if (allEventContactsError) {
+      console.error("Error fetching all event contacts:", allEventContactsError)
+      return new NextResponse(
+        JSON.stringify({ error: "Failed to fetch event contacts" }),
+        { 
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      )
+    }
+
+    console.log(`Found ${allEventContacts?.length || 0} total event contacts for event ${eventId}`)
+    console.log("Event contacts statuses:", allEventContacts?.map(ec => ({ 
+      contact_id: ec.contact_id, 
+      status: ec.status,
+      telegram_chat_id: ec.contacts?.telegram_chat_id 
+    })))
+
     // Get pending event contacts with telegram chat IDs
     const { data: eventContacts, error: eventContactsError } = await supabase
       .from("event_contacts")
@@ -110,8 +144,37 @@ export async function POST(request: Request) {
 
     console.log(`Found ${eventContacts?.length || 0} pending event contacts with telegram chat IDs for event ${eventId}`)
 
+    // If no pending contacts found, check if we should process sent contacts (for retry scenarios)
+    let contactsToProcess = eventContacts
+    if (!eventContacts || eventContacts.length === 0) {
+      console.log("No pending contacts found, checking for sent contacts that might need retry...")
+      
+      // Get sent event contacts with telegram chat IDs
+      const { data: sentEventContacts, error: sentEventContactsError } = await supabase
+        .from("event_contacts")
+        .select(`
+          *,
+          contacts (
+            id,
+            telegram_chat_id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("event_id", eventId)
+        .eq("status", "sent")
+        .not("contacts.telegram_chat_id", "is", null)
+
+      if (sentEventContactsError) {
+        console.error("Error fetching sent event contacts:", sentEventContactsError)
+      } else {
+        console.log(`Found ${sentEventContacts?.length || 0} sent event contacts with telegram chat IDs`)
+        contactsToProcess = sentEventContacts || []
+      }
+    }
+
     // Send Telegram messages to each contact
-    for (const eventContact of eventContacts) {
+    for (const eventContact of contactsToProcess) {
       try {
         const contact = eventContact.contacts
         console.log(`Sending Telegram message to chat_id: ${contact.telegram_chat_id} for event ${eventId}`)
