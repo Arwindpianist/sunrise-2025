@@ -62,12 +62,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     <div className="fixed inset-0 z-[9999] md:hidden">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/10"
         onClick={onClose}
       />
       
                 {/* Navigation Panel */}
-          <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] bg-white/1 backdrop-blur-sm border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden rounded-l-3xl`} style={{ left: 'calc(100vw - 300px)', right: 'auto' }}>
+          <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] backdrop-blur-xs border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden rounded-l-3xl`} style={{ left: 'calc(100vw - 300px)', right: 'auto' }}>
         {/* Subtle gradient overlays for liquid glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
@@ -93,10 +93,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
-                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)]"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)]"
               }`}
               onClick={onClose}
             >
+              {/* Dynamic color border based on content */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-orange-500/30 via-rose-500/30 to-pink-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -107,10 +109,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/features" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
-                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)]"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)]"
               }`}
               onClick={onClose}
             >
+              {/* Dynamic color border based on content - Features theme */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-indigo-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-rose-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -121,10 +125,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/pricing" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-[0_8px_32px_rgba(251,146,60,0.3)]" 
-                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(0,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(0,255,255,0.25)]"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 shadow-[0_4px_20px_rgba(0,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(0,255,255,0.25)]"
               }`}
               onClick={onClose}
             >
+              {/* Dynamic color border based on content - Pricing theme */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-green-500/30 via-teal-500/30 to-cyan-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -141,9 +147,11 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </div>
                   <Link
                     href="/dashboard"
-                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-gray-800 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-xl transition-all duration-300 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] relative overflow-hidden"
+                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-gray-800 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-xl transition-all duration-300 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] relative overflow-hidden"
                     onClick={onClose}
                   >
+                    {/* Dynamic color border based on content - Dashboard theme */}
+                    <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-rose-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     {/* Rainbow refraction effect */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -152,8 +160,10 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/40 hover:backdrop-blur-xl transition-all duration-300 border border-red-200/30 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden shadow-[0_4px_20px_rgba(255,0,0,0.15)] hover:shadow-[0_12px_40px_rgba(255,0,0,0.25)]"
+                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/40 hover:backdrop-blur-xl transition-all duration-300 mt-3 w-full text-left relative overflow-hidden shadow-[0_4px_20px_rgba(255,0,0,0.15)] hover:shadow-[0_12px_40px_rgba(255,0,0,0.25)]"
                   >
+                    {/* Dynamic color border based on content - Sign Out theme */}
+                    <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-red-500/30 via-orange-500/30 to-yellow-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     {/* Rainbow refraction effect */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-orange-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
