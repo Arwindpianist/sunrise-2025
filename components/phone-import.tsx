@@ -642,15 +642,15 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           <span className="md:hidden">Add</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto sm:mx-0">
-        <DialogHeader className="px-4 sm:px-0">
+      <DialogContent className="w-[92vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto sm:mx-0">
+        <DialogHeader className="px-3 sm:px-0">
           <DialogTitle className="text-lg sm:text-xl">Add Contacts</DialogTitle>
           <DialogDescription className="text-sm">
             Choose how you'd like to add contacts to your list.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 px-4 sm:px-0 pb-4">
+        <div className="space-y-4 px-3 sm:px-0 pb-4">
           {/* Import Method Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">📋 Add Method</label>
@@ -660,15 +660,16 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               <Button
                 variant={importMethod === 'google' ? 'default' : 'outline'}
                 onClick={() => setImportMethod('google')}
-                className="w-full justify-start h-12 sm:h-14 text-left"
+                className="w-full justify-start h-12 sm:h-14 text-left px-3"
               >
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" />
-                <div className="flex flex-col items-start min-w-0 flex-1">
-                  <span className="font-medium text-sm sm:text-base truncate">Google Contacts Export</span>
-                  <span className="text-xs text-gray-500 truncate">Export CSV from Google Contacts</span>
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                  <span className="font-medium text-sm sm:text-base truncate w-full">Google Contacts Export</span>
+                  <span className="text-xs text-gray-500 truncate w-full">Export CSV from Google Contacts</span>
                 </div>
-                <div className="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
-                  Recommended
+                <div className="ml-2 bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="hidden sm:inline">Recommended</span>
+                  <span className="sm:hidden">Rec</span>
                 </div>
               </Button>
               {importMethod === 'google' && (
@@ -699,12 +700,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
             <Button
               variant={importMethod === 'file' ? 'default' : 'outline'}
               onClick={() => setImportMethod('file')}
-              className="w-full justify-start h-12 sm:h-14 text-left"
+              className="w-full justify-start h-12 sm:h-14 text-left px-3"
             >
-              <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" />
-              <div className="flex flex-col items-start min-w-0 flex-1">
-                <span className="font-medium text-sm sm:text-base truncate">Upload Contact File</span>
-                <span className="text-xs text-gray-500 truncate">VCF or CSV files</span>
+              <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+              <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                <span className="font-medium text-sm sm:text-base truncate w-full">Upload Contact File</span>
+                <span className="text-xs text-gray-500 truncate w-full">VCF or CSV files</span>
               </div>
             </Button>
 
@@ -714,12 +715,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <Button
                   variant={importMethod === 'native' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('native')}
-                  className="w-full justify-start h-12 sm:h-14 text-left"
+                  className="w-full justify-start h-12 sm:h-14 text-left px-3"
                 >
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" />
-                  <div className="flex flex-col items-start min-w-0 flex-1">
-                    <span className="font-medium text-sm sm:text-base truncate">Select from Phone</span>
-                    <span className="text-xs text-gray-500 truncate">Choose contacts directly from your phone</span>
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                  <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                    <span className="font-medium text-sm sm:text-base truncate w-full">Select from Phone</span>
+                    <span className="text-xs text-gray-500 truncate w-full">Choose contacts directly from your phone</span>
                   </div>
                 </Button>
               </div>
@@ -731,12 +732,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <Button
                   variant={importMethod === 'share' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('share')}
-                  className="w-full justify-start h-12 sm:h-14 text-left"
+                  className="w-full justify-start h-12 sm:h-14 text-left px-3"
                 >
-                  <Share2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" />
-                  <div className="flex flex-col items-start min-w-0 flex-1">
-                    <span className="font-medium text-sm sm:text-base truncate">Share from Contacts App</span>
-                    <span className="text-xs text-gray-500 truncate">Use your phone's share feature</span>
+                  <Share2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                  <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                    <span className="font-medium text-sm sm:text-base truncate w-full">Share from Contacts App</span>
+                    <span className="text-xs text-gray-500 truncate w-full">Use your phone's share feature</span>
                   </div>
                 </Button>
               </div>

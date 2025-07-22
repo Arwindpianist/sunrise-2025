@@ -177,6 +177,19 @@
       max-height: calc(100vh - 1rem);
       left: 50% !important;
       transform: translateX(-50%) !important;
+      overflow-x: hidden !important;
+    }
+
+    /* Ensure dialog content doesn't overflow */
+    [data-radix-dialog-content] * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Prevent text overflow in buttons */
+    [data-radix-dialog-content] button {
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     /* Ensure proper centering for all modals */
