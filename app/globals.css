@@ -172,12 +172,13 @@
     
     /* Better modal spacing on mobile */
     [data-radix-dialog-content] {
-      margin: 0.5rem;
-      max-width: calc(100vw - 1rem);
-      max-height: calc(100vh - 1rem);
+      margin: 1rem auto !important;
+      max-width: calc(100vw - 2rem) !important;
+      max-height: calc(100vh - 2rem) !important;
       left: 50% !important;
       transform: translateX(-50%) !important;
       overflow-x: hidden !important;
+      position: fixed !important;
     }
 
     /* Ensure dialog content doesn't overflow */
