@@ -12,7 +12,7 @@ import { useSubscription } from "@/lib/use-subscription"
 export function DashboardNav() {
   const pathname = usePathname()
   const { supabase, user } = useSupabase()
-  const { subscription } = useSubscription()
+  const { subscription, loading: subscriptionLoading } = useSubscription()
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -46,7 +46,7 @@ export function DashboardNav() {
     await supabase.auth.signOut()
   }
 
-  if (isLoading) {
+  if (isLoading || subscriptionLoading) {
     return null // or a loading spinner
   }
 
@@ -140,7 +140,7 @@ export function DashboardNav() {
       )}
       
       {/* Subscription Status Indicator */}
-      {subscription && (
+      {subscription && !subscriptionLoading && (
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 text-sm">
             {subscription.tier === 'free' && <User className="h-4 w-4 text-gray-500" />}

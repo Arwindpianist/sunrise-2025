@@ -42,8 +42,25 @@ export function useSubscription(): UseSubscriptionReturn {
       }
       
       const data = await response.json()
-      setSubscription(data)
+      
+      // Validate the data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid subscription data received')
+      }
+      
+      // Ensure all required fields are present
+      const validatedData = {
+        tier: data.tier || 'free',
+        status: data.status || 'inactive',
+        features: data.features || SUBSCRIPTION_FEATURES.free,
+        totalTokensPurchased: data.totalTokensPurchased || 0,
+        trialDaysRemaining: data.trialDaysRemaining,
+        current_period_end: data.current_period_end
+      }
+      
+      setSubscription(validatedData)
     } catch (err: any) {
+      console.error('Error fetching subscription:', err)
       setError(err.message)
       // Set default free tier if fetch fails
       setSubscription({
@@ -90,14 +107,14 @@ export function useSubscription(): UseSubscriptionReturn {
     fetchSubscription()
   }, [])
 
-  // Computed properties
-  const canUseTelegram = subscription ? canPerformAction(subscription.tier, 'use_telegram') : false
-  const canCustomizeTemplates = subscription ? canPerformAction(subscription.tier, 'customize_templates') : false
-  const canUseCustomBranding = subscription ? canPerformAction(subscription.tier, 'custom_branding') : false
-  const canUseAPI = subscription ? canPerformAction(subscription.tier, 'use_api') : false
-  const canBuyTokensValue = subscription ? canBuyTokens(subscription.tier, subscription.totalTokensPurchased) : false
+  // Computed properties - only compute if subscription is loaded and not null
+  const canUseTelegram = subscription && !loading && subscription.tier ? canPerformAction(subscription.tier, 'use_telegram') : false
+  const canCustomizeTemplates = subscription && !loading && subscription.tier ? canPerformAction(subscription.tier, 'customize_templates') : false
+  const canUseCustomBranding = subscription && !loading && subscription.tier ? canPerformAction(subscription.tier, 'custom_branding') : false
+  const canUseAPI = subscription && !loading && subscription.tier ? canPerformAction(subscription.tier, 'use_api') : false
+  const canBuyTokensValue = subscription && !loading && subscription.tier ? canBuyTokens(subscription.tier, subscription.totalTokensPurchased || 0) : false
   
-  const remainingTokenAllowance = subscription?.tier === 'basic' 
+  const remainingTokenAllowance = subscription?.tier === 'basic' && !loading && subscription?.totalTokensPurchased !== undefined
     ? Math.max(0, SUBSCRIPTION_FEATURES.basic.maxTokens - subscription.totalTokensPurchased)
     : -1
 
