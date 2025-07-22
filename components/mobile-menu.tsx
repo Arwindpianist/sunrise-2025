@@ -106,9 +106,9 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             }}></div>
         
         <div className="relative z-10 p-6">
-          <div className="flex items-center justify-between mb-8 bg-white/30 backdrop-blur-sm rounded-xl p-4 border border-white/40 shadow-[0_4px_16px_rgba(255,255,255,0.2)]">
+          <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-semibold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent drop-shadow-sm">
-              Navigation Menu
+              Sunrise
             </h2>
             <Button 
               variant="ghost" 
@@ -172,12 +172,9 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             {user && (
               <>
                 <div className="border-t border-white/20 pt-6 mt-6">
-                  <div className="px-5 py-4 rounded-2xl bg-white/50 backdrop-blur-md border border-white/30 mb-4 shadow-[0_6px_24px_rgba(255,255,255,0.2)] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-                    <p className="text-sm font-medium text-gray-800 relative z-10">
-                      Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium text-gray-900 mb-4 px-2 drop-shadow-sm">
+                    Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  </p>
                   <Link
                     href="/dashboard"
                     className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium bg-white/50 backdrop-blur-md text-gray-800 hover:text-gray-900 hover:bg-white/70 transition-all duration-300 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)] relative overflow-hidden"
