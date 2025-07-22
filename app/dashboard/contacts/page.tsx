@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle } from "lucide-react"
+import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle, MessageSquare } from "lucide-react"
 import { canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
@@ -683,9 +683,42 @@ export default function ContactsPage() {
                         }}
                         className="text-xs sm:text-sm"
                       >
-                        Copy
+                        Copy Link
                       </Button>
                     </div>
+                    
+                    {/* Pre-formatted Message */}
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-green-900 mb-2">📝 Pre-formatted Message</h4>
+                      <div className="bg-white border border-green-300 rounded p-3 text-xs">
+                        <p className="text-gray-700 mb-2">Copy this message to share with your contacts:</p>
+                        <div className="bg-gray-50 p-2 rounded border text-gray-800 font-mono text-xs leading-relaxed">
+                          Hi, I'm {user?.user_metadata?.full_name || 'updating my contact list'}. I'm updating my contact list and would appreciate it if you could fill in this short form with your details (email, phone number, and telegram id).<br/><br/>
+                          {shareableLink}<br/><br/>
+                          Your info will stay private and only be used if I need to contact you. Thank You {user?.user_metadata?.full_name || ''}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const message = `Hi, I'm ${user?.user_metadata?.full_name || 'updating my contact list'}. I'm updating my contact list and would appreciate it if you could fill in this short form with your details (email, phone number, and telegram id).
+
+${shareableLink}
+
+Your info will stay private and only be used if I need to contact you. Thank You ${user?.user_metadata?.full_name || ''}`
+                            navigator.clipboard.writeText(message)
+                            toast({
+                              title: "Copied!",
+                              description: "Message copied to clipboard",
+                            })
+                          }}
+                          className="mt-2 text-xs"
+                        >
+                          Copy Message
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="text-xs text-green-700">
                       <p className="font-medium mb-1">Share this link on:</p>
                       <div className="grid grid-cols-2 gap-1">
@@ -924,7 +957,27 @@ export default function ContactsPage() {
                                   }}
                                 >
                                   <Copy className="h-4 w-4 mr-1" />
-                                  Copy
+                                  Copy Link
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const url = `${window.location.origin}/onboarding/${link.token}`
+                                    const message = `Hi, I'm ${user?.user_metadata?.full_name || 'updating my contact list'}. I'm updating my contact list and would appreciate it if you could fill in this short form with your details (email, phone number, and telegram id).
+
+${url}
+
+Your info will stay private and only be used if I need to contact you. Thank You ${user?.user_metadata?.full_name || ''}`
+                                    navigator.clipboard.writeText(message)
+                                    toast({
+                                      title: "Copied!",
+                                      description: "Message copied to clipboard",
+                                    })
+                                  }}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  Copy Message
                                 </Button>
                                 <Button
                                   variant="outline"
