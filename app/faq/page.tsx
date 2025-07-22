@@ -22,7 +22,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "What's included in the Free tier?",
-    answer: "Free tier includes: 15 trial tokens, basic email templates, core event management features, and access to all email templates (birthday, wedding, etc.). Perfect for trying out Sunrise.",
+    answer: "Free tier includes: 15 trial tokens, generic email templates, core event management features, and mobile-friendly interface. Perfect for trying out Sunrise.",
     category: "pricing"
   },
   {
@@ -75,7 +75,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "Do you offer refunds?",
-    answer: "We offer a 30-day money-back guarantee for new subscribers. Contact our support team within 30 days for a full refund.",
+    answer: "We do not offer refunds. All purchases are final. Please review our features and pricing carefully before subscribing.",
     category: "billing"
   },
   {
@@ -214,7 +214,7 @@ export default function FAQPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">All email templates</span>
+                  <span className="text-sm">Generic email templates</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
@@ -369,7 +369,7 @@ export default function FAQPage() {
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-orange-500">
+                  <Button size="lg" className="bg-white text-orange-500 hover:bg-gray-100 border-white">
                     Start Free Trial
                   </Button>
                 </Link>
