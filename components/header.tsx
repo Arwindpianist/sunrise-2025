@@ -124,69 +124,80 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white border-l border-gray-200 shadow-2xl z-50">
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] z-50 relative overflow-hidden">
+                {/* Subtle gradient overlays for liquid glass effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
                 <SheetHeader className="pb-6 relative z-10">
                   <SheetTitle className="text-xl font-semibold text-gray-800 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Navigation Menu
                   </SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col space-y-2 mt-8">
+                <nav className="flex flex-col space-y-3 mt-8 relative z-10">
                   <Link
                     href="/"
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                       pathname === "/" 
-                        ? "bg-orange-500 text-white" 
-                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
+                        ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Home
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    <span className="relative z-10">Home</span>
                   </Link>
                   <Link
                     href="/features"
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                       pathname === "/features" 
-                        ? "bg-orange-500 text-white" 
-                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
+                        ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Features
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-rose-500/10 to-pink-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    <span className="relative z-10">Features</span>
                   </Link>
                   <Link
                     href="/pricing"
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                       pathname === "/pricing" 
-                        ? "bg-orange-500 text-white" 
-                        : "text-gray-600 hover:text-orange-500 hover:bg-gray-50"
+                        ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
+                        : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Pricing
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    <span className="relative z-10">Pricing</span>
                   </Link>
                   {user && (
                     <>
-                      <div className="border-t border-gray-200 pt-4 mt-4">
-                        <p className="text-sm text-gray-600 mb-4 px-4">
-                          Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                        </p>
+                      <div className="border-t border-white/20 pt-6 mt-6 relative z-10">
+                        <div className="px-5 py-4 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 mb-4 shadow-sm relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
+                          <p className="text-sm font-medium text-gray-800 relative z-10">
+                            Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                          </p>
+                        </div>
                         <Link
                           href="/dashboard"
-                          className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:text-orange-500 hover:bg-gray-50 rounded-lg transition-colors"
+                          className="flex items-center px-5 py-4 rounded-xl text-sm font-medium text-gray-700 hover:text-gray-800 hover:bg-white/70 hover:backdrop-blur-sm transition-all duration-300 border border-gray-200/50 hover:border-gray-300/50 relative overflow-hidden"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
-                          <User className="h-4 w-4 mr-3" />
-                          Dashboard
+                          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                          <User className="h-4 w-4 mr-3 relative z-10" />
+                          <span className="relative z-10">Dashboard</span>
                         </Link>
                         <button
                           onClick={() => {
                             handleSignOut()
                             setIsMobileMenuOpen(false)
                           }}
-                          className="flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors mt-2 w-full text-left"
+                          className="flex items-center px-5 py-4 rounded-xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/70 hover:backdrop-blur-sm transition-all duration-300 border border-red-200/50 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden"
                         >
-                          <LogOut className="h-4 w-4 mr-3" />
-                          Sign Out
+                          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-orange-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                          <LogOut className="h-4 w-4 mr-3 relative z-10" />
+                          <span className="relative z-10">Sign Out</span>
                         </button>
                       </div>
                     </>
