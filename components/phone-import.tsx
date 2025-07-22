@@ -642,36 +642,36 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           <span className="md:hidden">Add</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[90vw] max-w-md max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
-        <DialogHeader className="px-4 sm:px-6">
+      <DialogContent className="w-[95vw] max-w-sm max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+        <DialogHeader className="px-3 sm:px-6">
           <DialogTitle className="text-lg sm:text-xl text-center">Add Contacts</DialogTitle>
           <DialogDescription className="text-sm text-center">
             Choose how you'd like to add contacts to your list.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 px-4 sm:px-6 pb-4">
+        <div className="space-y-3 px-3 sm:px-6 pb-4">
           {/* Import Method Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">📋 Add Method</label>
             
             {/* Google Contacts Export - Most Recommended */}
             <div className="space-y-2">
-              <Button
-                variant={importMethod === 'google' ? 'default' : 'outline'}
-                onClick={() => setImportMethod('google')}
-                className="w-full justify-start h-12 sm:h-14 text-left px-4"
-              >
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-3 flex-shrink-0" />
-                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                  <span className="font-medium text-sm sm:text-base truncate w-full">Google Contacts Export</span>
-                  <span className="text-xs text-gray-500 truncate w-full">Export CSV from Google Contacts</span>
-                </div>
-                <div className="ml-2 bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0">
-                  <span className="hidden sm:inline">Recommended</span>
-                  <span className="sm:hidden">Rec</span>
-                </div>
-              </Button>
+                             <Button
+                 variant={importMethod === 'google' ? 'default' : 'outline'}
+                 onClick={() => setImportMethod('google')}
+                 className="w-full justify-start h-12 text-left px-3"
+               >
+                 <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                 <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                   <span className="font-medium text-sm truncate w-full">Google Contacts Export</span>
+                   <span className="text-xs text-gray-500 truncate w-full">Export CSV from Google Contacts</span>
+                 </div>
+                 <div className="ml-1 bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded-full flex-shrink-0">
+                   <span className="hidden sm:inline">Recommended</span>
+                   <span className="sm:hidden">Rec</span>
+                 </div>
+               </Button>
               {importMethod === 'google' && (
                 <div className="space-y-2 pl-4">
                   <Button
@@ -691,11 +691,11 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
             <Button
               variant={importMethod === 'file' ? 'default' : 'outline'}
               onClick={() => setImportMethod('file')}
-              className="w-full justify-start h-12 sm:h-14 text-left px-4"
+              className="w-full justify-start h-12 text-left px-3"
             >
-              <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-3 flex-shrink-0" />
+              <Upload className="h-4 w-4 mr-2 flex-shrink-0" />
               <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                <span className="font-medium text-sm sm:text-base truncate w-full">Upload Contact File</span>
+                <span className="font-medium text-sm truncate w-full">Upload Contact File</span>
                 <span className="text-xs text-gray-500 truncate w-full">VCF or CSV files</span>
               </div>
             </Button>
@@ -706,11 +706,11 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <Button
                   variant={importMethod === 'native' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('native')}
-                  className="w-full justify-start h-12 sm:h-14 text-left px-4"
+                  className="w-full justify-start h-12 text-left px-3"
                 >
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-3 flex-shrink-0" />
+                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
                   <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                    <span className="font-medium text-sm sm:text-base truncate w-full">Select from Phone</span>
+                    <span className="font-medium text-sm truncate w-full">Select from Phone</span>
                     <span className="text-xs text-gray-500 truncate w-full">Choose contacts directly from your phone</span>
                   </div>
                 </Button>
@@ -723,11 +723,11 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 <Button
                   variant={importMethod === 'share' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('share')}
-                  className="w-full justify-start h-12 sm:h-14 text-left px-4"
+                  className="w-full justify-start h-12 text-left px-3"
                 >
-                  <Share2 className="h-4 w-4 sm:h-5 sm:w-5 mr-3 flex-shrink-0" />
+                  <Share2 className="h-4 w-4 mr-2 flex-shrink-0" />
                   <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                    <span className="font-medium text-sm sm:text-base truncate w-full">Share from Contacts App</span>
+                    <span className="font-medium text-sm truncate w-full">Share from Contacts App</span>
                     <span className="text-xs text-gray-500 truncate w-full">Use your phone's share feature</span>
                   </div>
                 </Button>
@@ -861,24 +861,24 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
 
           {/* Google Contacts Import */}
           {importMethod === 'google' && (
-            <div className="space-y-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                <div className="text-center mb-4">
-                  <div className="bg-blue-100 p-3 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-blue-600" />
+            <div className="space-y-3">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+                <div className="text-center mb-3">
+                  <div className="bg-blue-100 p-2 rounded-full w-10 h-10 mx-auto mb-2 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-blue-800 text-lg mb-2">Google Contacts Export</h3>
-                  <p className="text-sm text-blue-700 mb-4">
+                  <h3 className="font-semibold text-blue-800 text-base mb-2">Google Contacts Export</h3>
+                  <p className="text-xs text-blue-700 mb-3">
                     Export your contacts from Google Contacts and upload the CSV file here.
                   </p>
                   
-                  <Button onClick={handleGoogleImport} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-sm">
+                  <Button onClick={handleGoogleImport} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-sm">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open Google Contacts
                   </Button>
                 </div>
                 
-                <div className="bg-white border border-blue-200 rounded-lg p-4">
+                <div className="bg-white border border-blue-200 rounded-lg p-3">
                   <div className="text-center mb-3">
                     <span className="text-blue-600 font-medium text-sm">📋 Quick Steps:</span>
                   </div>
