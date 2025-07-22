@@ -913,29 +913,29 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   <span className="md:hidden">Telegram</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
-                <DialogHeader className="px-4 sm:px-0">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto p-4 sm:p-6">
+                <DialogHeader className="mb-6">
                   <DialogTitle className="text-lg sm:text-xl">📱 Telegram Setup Links</DialogTitle>
                   <DialogDescription className="text-sm">
                     Create special links that help people get their Telegram Chat ID and add themselves to your contact list. Perfect for enabling Telegram messaging features.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-6 px-4 sm:px-0">
+                <div className="space-y-6">
                   {/* Onboarding Links List */}
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold mb-3">Your Telegram Setup Links</h3>
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                    <h3 className="text-base sm:text-lg font-semibold mb-4">Your Telegram Setup Links</h3>
+                    <div className="space-y-4 max-h-60 overflow-y-auto">
                       {onboardingLinks.length === 0 ? (
                         <p className="text-gray-500 text-sm">No onboarding links created yet.</p>
                       ) : (
                         onboardingLinks.map((link) => (
-                          <div key={link.id} className="p-3 border rounded-lg bg-gray-50">
-                            <div className="flex justify-between items-start">
+                          <div key={link.id} className="p-4 border rounded-lg bg-gray-50">
+                            <div className="space-y-3">
                               <div className="flex-1">
-                                <h4 className="font-medium">{link.title}</h4>
-                                <p className="text-sm text-gray-600">{link.description}</p>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <h4 className="font-medium text-base">{link.title}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{link.description}</p>
+                                <p className="text-xs text-gray-500 mt-2">
                                   {link.current_uses} of {link.max_uses} uses • 
                                   Created {new Date(link.created_at).toLocaleDateString()}
                                   {link.expires_at && (
@@ -943,22 +943,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                                   )}
                                 </p>
                               </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const url = `${window.location.origin}/onboarding/${link.token}`
-                                    navigator.clipboard.writeText(url)
-                                    toast({
-                                      title: "Copied!",
-                                      description: "Link copied to clipboard",
-                                    })
-                                  }}
-                                >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Copy Link
-                                </Button>
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -975,16 +960,18 @@ Your info will stay private and only be used if I need to contact you. Thank You
                                       description: "Message copied to clipboard",
                                     })
                                   }}
+                                  className="flex-1 sm:flex-none"
                                 >
-                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  <MessageSquare className="h-4 w-4 mr-2" />
                                   Copy Message
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => openEditLinkDialog(link)}
+                                  className="flex-1 sm:flex-none"
                                 >
-                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  <Edit2 className="h-4 w-4 mr-2" />
                                   Edit
                                 </Button>
                                 <Button
@@ -992,9 +979,9 @@ Your info will stay private and only be used if I need to contact you. Thank You
                                   size="sm"
                                   onClick={() => handleDeleteLink(link.id)}
                                   disabled={isDeletingLink}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  <Trash2 className="h-4 w-4 mr-2" />
                                   {isDeletingLink ? "..." : "Delete"}
                                 </Button>
                               </div>
@@ -1007,7 +994,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
 
                   {/* Create New Link Form */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold mb-3">Create New Telegram Setup Link</h3>
+                    <h3 className="text-lg font-semibold mb-4">Create New Telegram Setup Link</h3>
                     <form onSubmit={async (e) => {
                       e.preventDefault()
                       try {
@@ -1040,7 +1027,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                         })
                       }
                     }} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="title">Title</Label>
                           <Input
@@ -1084,7 +1071,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                         />
                       </div>
                       
-                      <Button type="submit" className="w-full">
+                      <Button type="submit" className="w-full h-12">
                         <LinkIcon className="mr-2 h-4 w-4" />
                         Create Onboarding Link
                       </Button>
@@ -1096,16 +1083,16 @@ Your info will stay private and only be used if I need to contact you. Thank You
 
             {/* Edit Onboarding Link Dialog */}
             <Dialog open={isEditLinkDialogOpen} onOpenChange={setIsEditLinkDialogOpen}>
-              <DialogContent className="w-[95vw] max-w-2xl bg-white/95 backdrop-blur-sm mx-auto">
-                <DialogHeader className="px-4 sm:px-0">
+              <DialogContent className="w-[95vw] max-w-2xl bg-white/95 backdrop-blur-sm mx-auto p-4 sm:p-6">
+                <DialogHeader className="mb-6">
                   <DialogTitle className="text-lg sm:text-xl">Edit Onboarding Link</DialogTitle>
                   <DialogDescription className="text-sm">
                     Update the onboarding link details below.
                   </DialogDescription>
                 </DialogHeader>
                 
-                <form onSubmit={handleEditLink} className="space-y-4 px-4 sm:px-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleEditLink} className="space-y-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit_title">Title</Label>
                       <Input
