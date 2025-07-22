@@ -124,15 +124,19 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white/70 backdrop-blur-xl border-l border-white/20 shadow-2xl">
+                <SheetHeader className="pb-6">
+                  <SheetTitle className="text-xl font-semibold text-gray-800 bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
+                    Navigation Menu
+                  </SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col space-y-4 mt-8">
+                <nav className="flex flex-col space-y-2 mt-8">
                   <Link
                     href="/"
-                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
-                      pathname === "/" ? "text-orange-500" : "text-gray-600"
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-white/30 hover:backdrop-blur-sm ${
+                      pathname === "/" 
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 text-orange-600 border border-orange-200/50" 
+                        : "text-gray-700 hover:text-orange-600"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -140,8 +144,10 @@ export default function Header() {
                   </Link>
                   <Link
                     href="/features"
-                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
-                      pathname === "/features" ? "text-orange-500" : "text-gray-600"
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-white/30 hover:backdrop-blur-sm ${
+                      pathname === "/features" 
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 text-orange-600 border border-orange-200/50" 
+                        : "text-gray-700 hover:text-orange-600"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -149,8 +155,10 @@ export default function Header() {
                   </Link>
                   <Link
                     href="/pricing"
-                    className={`text-sm font-medium transition-colors hover:text-orange-500 ${
-                      pathname === "/pricing" ? "text-orange-500" : "text-gray-600"
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-white/30 hover:backdrop-blur-sm ${
+                      pathname === "/pricing" 
+                        ? "bg-gradient-to-r from-orange-500/20 to-rose-500/20 text-orange-600 border border-orange-200/50" 
+                        : "text-gray-700 hover:text-orange-600"
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -158,16 +166,18 @@ export default function Header() {
                   </Link>
                   {user && (
                     <>
-                      <div className="border-t border-gray-200 pt-4">
-                        <p className="text-sm text-gray-600 mb-4">
-                          Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                        </p>
+                      <div className="border-t border-white/20 pt-6 mt-6">
+                        <div className="px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 mb-4">
+                          <p className="text-sm font-medium text-gray-800">
+                            Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                          </p>
+                        </div>
                         <Link
                           href="/dashboard"
-                          className="flex items-center text-sm font-medium text-gray-600 hover:text-orange-500"
+                          className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-white/30 hover:backdrop-blur-sm transition-all duration-300"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
-                          <User className="h-4 w-4 mr-2" />
+                          <User className="h-4 w-4 mr-3" />
                           Dashboard
                         </Link>
                         <button
@@ -175,9 +185,9 @@ export default function Header() {
                             handleSignOut()
                             setIsMobileMenuOpen(false)
                           }}
-                          className="flex items-center text-sm font-medium text-gray-600 hover:text-orange-500 mt-2"
+                          className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50/50 hover:backdrop-blur-sm transition-all duration-300 mt-2 w-full text-left"
                         >
-                          <LogOut className="h-4 w-4 mr-2" />
+                          <LogOut className="h-4 w-4 mr-3" />
                           Sign Out
                         </button>
                       </div>
