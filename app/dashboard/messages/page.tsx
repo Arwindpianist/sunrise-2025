@@ -91,54 +91,85 @@ export default function MessagesPage() {
     try {
       setLoading(true)
       
-      // Fetch all message transactions
-      const { data: transactions, error } = await supabase
-        .from('transactions')
+      // Get user's events first
+      const { data: userEvents, error: eventsError } = await supabase
+        .from('events')
+        .select('id, title')
+        .eq('user_id', user?.id)
+
+      if (eventsError) throw eventsError
+
+      if (!userEvents || userEvents.length === 0) {
+        setMessages([])
+        calculateStats([])
+        return
+      }
+
+      const eventIds = userEvents.map(e => e.id)
+      const eventMap = new Map(userEvents.map(e => [e.id, e.title]))
+
+      // Fetch email logs
+      const { data: emailLogs, error: emailError } = await supabase
+        .from('email_logs')
         .select(`
           id,
           event_id,
-          type,
-          amount,
           status,
-          created_at,
-          metadata
+          sent_at,
+          error_message
         `)
-        .eq('user_id', user?.id)
-        .eq('type', 'usage')
-        .order('created_at', { ascending: false })
+        .in('event_id', eventIds)
+        .order('sent_at', { ascending: false })
 
-      if (error) throw error
+      if (emailError) throw emailError
 
-      // Fetch event details for each transaction
-      const eventIds = [...new Set(transactions?.map(t => t.event_id) || [])]
-      const { data: events } = await supabase
-        .from('events')
-        .select('id, title')
-        .in('id', eventIds)
+      // Fetch telegram logs
+      const { data: telegramLogs, error: telegramError } = await supabase
+        .from('telegram_logs')
+        .select(`
+          id,
+          event_id,
+          status,
+          sent_at,
+          error_message
+        `)
+        .in('event_id', eventIds)
+        .order('sent_at', { ascending: false })
 
-      const eventMap = new Map(events?.map(e => [e.id, e.title]) || [])
+      if (telegramError) throw telegramError
 
-      // Process transactions into messages
-      const processedMessages: Message[] = (transactions || []).map(t => {
-        const metadata = t.metadata || {}
-        const channel = metadata.channel || 'email'
-        const recipientCount = metadata.recipient_count || 1
-        
-        return {
-          id: t.id,
-          event_id: t.event_id,
-          event_title: eventMap.get(t.event_id) || 'Unknown Event',
-          channel: channel as 'email' | 'telegram' | 'sms',
-          status: t.status as 'sent' | 'delivered' | 'failed' | 'pending',
-          recipient_count: recipientCount,
-          sent_at: t.created_at,
-          tokens_used: t.amount,
-          cost: t.amount * 0.05 // Assuming 1 token = RM0.05
-        }
-      })
+      // Process email logs into messages
+      const emailMessages: Message[] = (emailLogs || []).map(log => ({
+        id: log.id,
+        event_id: log.event_id,
+        event_title: eventMap.get(log.event_id) || 'Unknown Event',
+        channel: 'email' as const,
+        status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
+        recipient_count: 1,
+        sent_at: log.sent_at,
+        tokens_used: 1,
+        cost: 0.05
+      }))
 
-      setMessages(processedMessages)
-      calculateStats(processedMessages)
+      // Process telegram logs into messages
+      const telegramMessages: Message[] = (telegramLogs || []).map(log => ({
+        id: log.id,
+        event_id: log.event_id,
+        event_title: eventMap.get(log.event_id) || 'Unknown Event',
+        channel: 'telegram' as const,
+        status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
+        recipient_count: 1,
+        sent_at: log.sent_at,
+        tokens_used: 1,
+        cost: 0.05
+      }))
+
+      // Combine and sort by sent_at
+      const allMessages = [...emailMessages, ...telegramMessages]
+        .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+
+      setMessages(allMessages)
+      calculateStats(allMessages)
     } catch (error) {
       console.error('Error fetching messages:', error)
     } finally {
