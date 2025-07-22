@@ -638,15 +638,15 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-12 sm:h-10 text-xs sm:text-sm">
           <Plus className="h-4 w-4 mr-2" />
-          <span className="hidden md:inline">Add Contacts</span>
-          <span className="md:hidden">Add</span>
+          <span className="hidden md:inline">Import Contact</span>
+          <span className="md:hidden">Import</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[95vw] max-w-sm max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
         <DialogHeader className="px-3 sm:px-6">
-          <DialogTitle className="text-lg sm:text-xl text-center">Add Contacts</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl text-center">Import Contact</DialogTitle>
           <DialogDescription className="text-sm text-center">
-            Choose how you'd like to add contacts to your list.
+            Choose how you'd like to import contacts to your list.
           </DialogDescription>
         </DialogHeader>
 
