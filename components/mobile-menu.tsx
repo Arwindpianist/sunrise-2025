@@ -125,11 +125,17 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/" 
-                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
+                  ? "bg-white/50 backdrop-blur-md text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
             >
+              {/* Active state border */}
+              {pathname === "/" && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                </div>
+              )}
               {/* Dynamic color border based on content */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-orange-500/30 via-rose-500/30 to-pink-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
@@ -141,11 +147,17 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/features"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/features" 
-                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
+                  ? "bg-white/50 backdrop-blur-md text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
             >
+              {/* Active state border */}
+              {pathname === "/features" && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                </div>
+              )}
               {/* Dynamic color border based on content - Features theme */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-indigo-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
@@ -157,11 +169,17 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               href="/pricing"
               className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/pricing" 
-                  ? "bg-gradient-to-r from-orange-500/50 to-rose-500/50 text-white shadow-[0_8px_32px_rgba(251,146,60,0.15)]" 
+                  ? "bg-white/50 backdrop-blur-md text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
                   : "bg-white/50 backdrop-blur-md text-gray-800 hover:bg-white/70 hover:text-gray-900 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
               }`}
               onClick={onClose}
             >
+              {/* Active state border */}
+              {pathname === "/pricing" && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                </div>
+              )}
               {/* Dynamic color border based on content - Pricing theme */}
               <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-green-500/30 via-teal-500/30 to-cyan-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               {/* Rainbow refraction effect */}
