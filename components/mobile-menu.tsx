@@ -67,7 +67,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       />
       
                 {/* Navigation Panel */}
-          <div className={`fixed top-0 right-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden`}>
+          <div className={`fixed top-0 h-full w-[300px] sm:w-[400px] bg-white/90 backdrop-blur-xl border-l border-white/40 shadow-[0_0_30px_rgba(0,0,0,0.1)] relative overflow-hidden`} style={{ right: '0px', left: 'auto' }}>
         {/* Subtle gradient overlays for liquid glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
         <div className="absolute inset-0 bg-gradient-to-tl from-orange-500/3 via-rose-500/3 to-pink-500/3 pointer-events-none"></div>
