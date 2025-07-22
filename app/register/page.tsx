@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="Enter your preferred name or username"
+                  placeholder="Your preferred name"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange("fullName", e.target.value)}
                   required
