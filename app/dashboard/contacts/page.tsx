@@ -650,10 +650,10 @@ export default function ContactsPage() {
               </DialogTrigger>
               <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
                 <DialogHeader className="px-4 sm:px-0">
-                  <DialogTitle className="text-lg sm:text-xl">📋 Contact Collection Form</DialogTitle>
-                  <DialogDescription className="text-sm">
-                    Share this simple form to let people add themselves to your contact list. Perfect for collecting contact information from events, social media, or your website.
-                  </DialogDescription>
+                  <DialogTitle className="text-lg sm:text-xl">📋 Invite Contacts</DialogTitle>
+                                      <DialogDescription className="text-sm">
+                      Share this form to invite people to join your contact list. Perfect for collecting contact information from events, social media, or your website.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4 px-4 sm:px-0">
@@ -898,7 +898,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   </div>
 
                   <Button type="submit" className="w-full h-12 text-sm sm:text-base" disabled={isSubmitting}>
-                    {isSubmitting ? "Adding..." : "Add Contact"}
+                    {isSubmitting ? "Adding..." : "Import Contact"}
                   </Button>
                 </form>
               </DialogContent>
