@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { format, isValid } from "date-fns"
-import { ArrowLeft, Send, Trash2 } from "lucide-react"
+import { ArrowLeft, Send, Trash2, RotateCcw } from "lucide-react"
 import EmailTemplatePreview from "@/components/email-template-preview"
 
 interface Event {
@@ -40,6 +40,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
   const [event, setEvent] = useState<Event | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
+  const [isSendingAgain, setIsSendingAgain] = useState(false)
 
   useEffect(() => {
     fetchEvent()
@@ -182,6 +183,198 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
       })
     } finally {
       setIsSending(false)
+    }
+  }
+
+  const handleSendAgain = async () => {
+    try {
+      setIsSendingAgain(true)
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error("Not authenticated")
+      }
+
+      if (!event) {
+        throw new Error("Event not found")
+      }
+
+      // Check user balance
+      const { data: balanceData, error: balanceError } = await supabase
+        .from("user_balances")
+        .select("balance")
+        .eq("user_id", session.user.id)
+        .single()
+
+      if (balanceError && balanceError.code !== 'PGRST116') {
+        throw balanceError
+      }
+
+      const currentBalance = balanceData?.balance || 0
+
+      // Count contacts for this event
+      let countContactsQuery = supabase
+        .from("contacts")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+
+      if (event?.category) {
+        countContactsQuery = countContactsQuery.eq("category", event.category)
+      }
+
+      const { count: contactCount } = await countContactsQuery
+
+      // Calculate total cost
+      let totalCost = 0
+      if (event?.send_email) {
+        totalCost += contactCount || 0
+      }
+      if (event?.send_telegram) {
+        // Count contacts with telegram_chat_id
+        let telegramContactsQuery = supabase
+          .from("contacts")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", session.user.id)
+          .not("telegram_chat_id", "is", null)
+
+        if (event.category) {
+          telegramContactsQuery = telegramContactsQuery.eq("category", event.category)
+        }
+
+        const { count: telegramCount } = await telegramContactsQuery
+        totalCost += telegramCount || 0
+      }
+
+      // Check if user has enough balance
+      if (currentBalance < totalCost) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You need ${totalCost} credits to send this event again. Current balance: ${currentBalance} credits.`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create a new event with the same details but new ID
+      const { data: newEvent, error: createError } = await supabase
+        .from("events")
+        .insert({
+          user_id: session.user.id,
+          title: event.title,
+          description: event.description,
+          event_date: event.event_date,
+          location: event.location,
+          category: event.category,
+          email_subject: event.email_subject,
+          email_template: event.email_template,
+          telegram_template: event.telegram_template,
+          send_email: event.send_email,
+          send_telegram: event.send_telegram,
+          status: "draft",
+          scheduled_send_time: null,
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        throw createError
+      }
+
+      // Get contacts for the new event
+      let getContactsQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", session.user.id)
+
+      if (event.category) {
+        getContactsQuery = getContactsQuery.eq("category", event.category)
+      }
+
+      const { data: contacts, error: contactsError } = await getContactsQuery
+
+      if (contactsError) {
+        throw contactsError
+      }
+
+      // Create event contacts for the new event
+      const eventContacts = contacts.map((contact) => ({
+        event_id: newEvent.id,
+        contact_id: contact.id,
+        status: "pending",
+      }))
+
+      const { error: eventContactsError } = await supabase
+        .from("event_contacts")
+        .insert(eventContacts)
+
+      if (eventContactsError) {
+        throw eventContactsError
+      }
+
+      // Send emails if enabled
+      if (event.send_email) {
+        const emailResponse = await fetch("/api/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: newEvent.id }),
+        })
+
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json()
+          throw new Error(errorData.error || "Failed to send emails")
+        }
+      }
+
+      // Send Telegram messages if enabled
+      if (event.send_telegram) {
+        const telegramResponse = await fetch("/api/telegram/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: newEvent.id }),
+        })
+
+        if (!telegramResponse.ok) {
+          const errorData = await telegramResponse.json()
+          throw new Error(errorData.error || "Failed to send Telegram messages")
+        }
+      }
+
+      // Deduct credits from user balance
+      if (totalCost > 0) {
+        const { error: balanceUpdateError } = await supabase
+          .from("user_balances")
+          .update({ balance: currentBalance - totalCost })
+          .eq("user_id", session.user.id)
+
+        if (balanceUpdateError) {
+          throw balanceUpdateError
+        }
+      }
+
+      const messageTypes = []
+      if (event.send_email) messageTypes.push("emails")
+      if (event.send_telegram) messageTypes.push("Telegram messages")
+
+      toast({
+        title: "Success!",
+        description: `Event sent again successfully! ${messageTypes.join(" and ")} have been sent and ${totalCost} credits deducted.`,
+      })
+
+      router.push("/dashboard/events")
+    } catch (error: any) {
+      console.error("Error sending event again:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send event again",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingAgain(false)
     }
   }
 
@@ -333,10 +526,20 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                   {isSending ? "Sending..." : "Send Messages"}
                 </Button>
               )}
+              {event.status === "sent" && (
+                <Button
+                  variant="outline"
+                  onClick={handleSendAgain}
+                  disabled={isSendingAgain}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {isSendingAgain ? "Sending..." : "Send Again"}
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 onClick={handleDeleteEvent}
-                disabled={isSending}
+                disabled={isSending || isSendingAgain}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Event

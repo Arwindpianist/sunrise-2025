@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { format, isValid } from "date-fns"
-import { Plus, Send, Trash2, Eye, Calendar, MapPin, Tag, Clock } from "lucide-react"
+import { Plus, Send, Trash2, Eye, Calendar, MapPin, Tag, Clock, RotateCcw } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +58,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sendingEmails, setSendingEmails] = useState<string[]>([])
+  const [sendingAgain, setSendingAgain] = useState<string[]>([])
 
   useEffect(() => {
     fetchEvents()
@@ -205,6 +206,205 @@ export default function EventsPage() {
     }
   }
 
+  const handleSendAgain = async (eventId: string) => {
+    try {
+      setSendingAgain((prev) => [...prev, eventId])
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error("Not authenticated")
+      }
+
+      // Get the original event details
+      const { data: originalEvent, error: eventError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single()
+
+      if (eventError) {
+        throw eventError
+      }
+
+      // Check user balance
+      const { data: balanceData, error: balanceError } = await supabase
+        .from("user_balances")
+        .select("balance")
+        .eq("user_id", session.user.id)
+        .single()
+
+      if (balanceError && balanceError.code !== 'PGRST116') {
+        throw balanceError
+      }
+
+      const currentBalance = balanceData?.balance || 0
+
+      // Count contacts for this event
+      let countContactsQuery = supabase
+        .from("contacts")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+
+      if (originalEvent.category) {
+        countContactsQuery = countContactsQuery.eq("category", originalEvent.category)
+      }
+
+      const { count: contactCount } = await countContactsQuery
+
+      // Calculate total cost
+      let totalCost = 0
+      if (originalEvent.send_email) {
+        totalCost += contactCount || 0
+      }
+      if (originalEvent.send_telegram) {
+        // Count contacts with telegram_chat_id
+        let telegramContactsQuery = supabase
+          .from("contacts")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", session.user.id)
+          .not("telegram_chat_id", "is", null)
+
+        if (originalEvent.category) {
+          telegramContactsQuery = telegramContactsQuery.eq("category", originalEvent.category)
+        }
+
+        const { count: telegramCount } = await telegramContactsQuery
+        totalCost += telegramCount || 0
+      }
+
+      // Check if user has enough balance
+      if (currentBalance < totalCost) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You need ${totalCost} credits to send this event again. Current balance: ${currentBalance} credits.`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create a new event with the same details but new ID
+      const { data: newEvent, error: createError } = await supabase
+        .from("events")
+        .insert({
+          user_id: session.user.id,
+          title: originalEvent.title,
+          description: originalEvent.description,
+          event_date: originalEvent.event_date,
+          location: originalEvent.location,
+          category: originalEvent.category,
+          email_subject: originalEvent.email_subject,
+          email_template: originalEvent.email_template,
+          telegram_template: originalEvent.telegram_template,
+          send_email: originalEvent.send_email,
+          send_telegram: originalEvent.send_telegram,
+          status: "draft",
+          scheduled_send_time: null,
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        throw createError
+      }
+
+      // Get contacts for the new event
+      let getContactsQuery = supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", session.user.id)
+
+      if (originalEvent.category) {
+        getContactsQuery = getContactsQuery.eq("category", originalEvent.category)
+      }
+
+      const { data: contacts, error: contactsError } = await getContactsQuery
+
+      if (contactsError) {
+        throw contactsError
+      }
+
+      // Create event contacts for the new event
+      const eventContacts = contacts.map((contact) => ({
+        event_id: newEvent.id,
+        contact_id: contact.id,
+        status: "pending",
+      }))
+
+      const { error: eventContactsError } = await supabase
+        .from("event_contacts")
+        .insert(eventContacts)
+
+      if (eventContactsError) {
+        throw eventContactsError
+      }
+
+      // Send emails if enabled
+      if (originalEvent.send_email) {
+        const emailResponse = await fetch("/api/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: newEvent.id }),
+        })
+
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json()
+          throw new Error(errorData.error || "Failed to send emails")
+        }
+      }
+
+      // Send Telegram messages if enabled
+      if (originalEvent.send_telegram) {
+        const telegramResponse = await fetch("/api/telegram/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: newEvent.id }),
+        })
+
+        if (!telegramResponse.ok) {
+          const errorData = await telegramResponse.json()
+          throw new Error(errorData.error || "Failed to send Telegram messages")
+        }
+      }
+
+      // Deduct credits from user balance
+      if (totalCost > 0) {
+        const { error: balanceUpdateError } = await supabase
+          .from("user_balances")
+          .update({ balance: currentBalance - totalCost })
+          .eq("user_id", session.user.id)
+
+        if (balanceUpdateError) {
+          throw balanceUpdateError
+        }
+      }
+
+      const messageTypes = []
+      if (originalEvent.send_email) messageTypes.push("emails")
+      if (originalEvent.send_telegram) messageTypes.push("Telegram messages")
+
+      toast({
+        title: "Success!",
+        description: `Event sent again successfully! ${messageTypes.join(" and ")} have been sent and ${totalCost} credits deducted.`,
+      })
+
+      fetchEvents()
+    } catch (error: any) {
+      console.error("Error sending event again:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send event again",
+        variant: "destructive",
+      })
+    } finally {
+      setSendingAgain((prev) => prev.filter((id) => id !== eventId))
+    }
+  }
+
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return
 
@@ -313,6 +513,15 @@ export default function EventsPage() {
                           >
                             <Send className="h-4 w-4 mr-2" />
                             {sendingEmails.includes(event.id) ? "Sending..." : "Send Messages"}
+                          </DropdownMenuItem>
+                        )}
+                        {event.status === "sent" && (
+                          <DropdownMenuItem 
+                            onClick={() => handleSendAgain(event.id)}
+                            disabled={sendingAgain.includes(event.id)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            {sendingAgain.includes(event.id) ? "Sending..." : "Send Again"}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem 
