@@ -29,6 +29,11 @@ export default function Footer() {
                   Pricing
               </Link>
               </li>
+              <li>
+                <Link href="/faq" className="text-gray-600 hover:text-orange-500">
+                  FAQ
+              </Link>
+              </li>
             </ul>
           </div>
           <div>
