@@ -9,8 +9,8 @@ import SupabaseProvider from "@/components/providers/supabase-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sunrise - Event Management Platform",
-  description: "Create and manage your events with ease. Streamline your event planning, contact management, and communication all in one powerful platform.",
+  title: "Sunrise - Celebrate Life's Beautiful Moments",
+  description: "Create joyful invitations and reminders for weddings, birthdays, and festivals. Send scheduled messages across email, WhatsApp, Telegram, and SMS.",
   keywords: ["event management", "contact management", "event planning", "communication platform", "business tools"],
   authors: [{ name: "Sunrise Team" }],
   creator: "Sunrise",
@@ -25,16 +25,16 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "Sunrise - Event Management Platform",
-    description: "Create and manage your events with ease. Streamline your event planning, contact management, and communication all in one powerful platform.",
+    title: "Sunrise - Celebrate Life's Beautiful Moments",
+    description: "Create joyful invitations and reminders for weddings, birthdays, and festivals. Send scheduled messages across email, WhatsApp, Telegram, and SMS.",
     url: 'https://sunrise-2025.com',
     siteName: 'Sunrise',
     images: [
       {
-        url: '/favicon.svg',
-        width: 500,
-        height: 500,
-        alt: 'Sunrise Logo',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Sunrise - Celebrate Life\'s Beautiful Moments - Event Management Platform',
       },
     ],
     locale: 'en_US',
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Sunrise - Event Management Platform",
-    description: "Create and manage your events with ease. Streamline your event planning, contact management, and communication all in one powerful platform.",
-    images: ['/favicon.svg'],
+    title: "Sunrise - Celebrate Life's Beautiful Moments",
+    description: "Create joyful invitations and reminders for weddings, birthdays, and festivals. Send scheduled messages across email, WhatsApp, Telegram, and SMS.",
+    images: ['/og-image.png'],
     creator: '@sunrise2025',
   },
   robots: {
@@ -77,6 +77,18 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-8770781309940232" />
+        
+        {/* Additional Social Media Meta Tags */}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/png" />
+        <meta name="twitter:image:alt" content="Sunrise - Celebrate Life's Beautiful Moments - Event Management Platform" />
+        
+        {/* WhatsApp specific */}
+        <meta property="og:image:secure_url" content="https://sunrise-2025.com/og-image.png" />
+        
+        {/* LinkedIn specific */}
+        <meta property="og:image:url" content="https://sunrise-2025.com/og-image.png" />
       </head>
       <body className={inter.className}>
         <SupabaseProvider>
