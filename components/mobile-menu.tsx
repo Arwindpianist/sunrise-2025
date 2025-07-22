@@ -90,10 +90,10 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           <nav className="flex flex-col space-y-3">
             <Link
               href="/"
-              className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+              className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
-                  : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)]"
               }`}
               onClick={onClose}
             >
@@ -102,10 +102,10 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </Link>
             <Link
               href="/features"
-              className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+              className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/features" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
-                  : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)]"
               }`}
               onClick={onClose}
             >
@@ -114,10 +114,10 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </Link>
             <Link
               href="/pricing"
-              className={`px-5 py-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+              className={`px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
                 pathname === "/pricing" 
                   ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-lg" 
-                  : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 hover:text-gray-800 border border-gray-200/50 hover:border-gray-300/50"
+                  : "bg-white/40 backdrop-blur-xl text-gray-800 hover:bg-white/60 hover:text-gray-900 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)]"
               }`}
               onClick={onClose}
             >
@@ -127,7 +127,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             {user && (
               <>
                 <div className="border-t border-white/20 pt-6 mt-6">
-                  <div className="px-5 py-4 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 mb-4 shadow-sm relative overflow-hidden">
+                  <div className="px-5 py-4 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 mb-4 shadow-[0_4px_20px_rgba(255,255,255,0.1)] relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
                     <p className="text-sm font-medium text-gray-800 relative z-10">
                       Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
@@ -135,7 +135,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </div>
                   <Link
                     href="/dashboard"
-                    className="flex items-center px-5 py-4 rounded-xl text-sm font-medium text-gray-700 hover:text-gray-800 hover:bg-white/70 hover:backdrop-blur-sm transition-all duration-300 border border-gray-200/50 hover:border-gray-300/50 relative overflow-hidden"
+                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-gray-800 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-xl transition-all duration-300 border border-white/30 hover:border-white/50 shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)] relative overflow-hidden"
                     onClick={onClose}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -144,7 +144,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center px-5 py-4 rounded-xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/70 hover:backdrop-blur-sm transition-all duration-300 border border-red-200/50 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden"
+                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50/40 hover:backdrop-blur-xl transition-all duration-300 border border-red-200/30 hover:border-red-300/50 mt-3 w-full text-left relative overflow-hidden shadow-[0_4px_20px_rgba(255,255,255,0.1)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-orange-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     <LogOut className="h-4 w-4 mr-3 relative z-10" />
