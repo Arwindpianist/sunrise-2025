@@ -81,7 +81,7 @@ export default function Header() {
               <div className="flex items-center space-x-4">
                 {/* Hide username on mobile */}
                 <span className="hidden md:inline text-sm text-gray-600">
-                  Welcome, {user.email?.split('@')[0]}
+                  Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
                 <Link href="/dashboard">
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500">
@@ -160,7 +160,7 @@ export default function Header() {
                     <>
                       <div className="border-t border-gray-200 pt-4">
                         <p className="text-sm text-gray-600 mb-4">
-                          Welcome, {user.email?.split('@')[0]}
+                          Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
                         </p>
                         <Link
                           href="/dashboard"
