@@ -78,6 +78,10 @@ export default function RootLayout({
       <head>
         <meta name="google-adsense-account" content="ca-pub-8770781309940232" />
         
+        {/* Favicon */}
+        <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.svg" />
+        
         {/* Additional Social Media Meta Tags */}
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />

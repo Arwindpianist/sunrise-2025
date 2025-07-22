@@ -7,17 +7,24 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: Request, { params }: { params: { token: string } }) {
   try {
-    // Use service role client to bypass RLS for public onboarding links
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+    let supabase
+    
+    // Try to use service role client if available, otherwise fall back to regular client
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
         }
-      }
-    )
+      )
+    } else {
+      // Fallback to regular client if service role key is not available
+      supabase = createRouteHandlerClient({ cookies })
+    }
     
     const { token } = params
 
@@ -82,17 +89,24 @@ export async function GET(request: Request, { params }: { params: { token: strin
 
 export async function POST(request: Request, { params }: { params: { token: string } }) {
   try {
-    // Use service role client to bypass RLS for public onboarding links
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+    let supabase
+    
+    // Try to use service role client if available, otherwise fall back to regular client
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
         }
-      }
-    )
+      )
+    } else {
+      // Fallback to regular client if service role key is not available
+      supabase = createRouteHandlerClient({ cookies })
+    }
     
     const { token } = params
 
