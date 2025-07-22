@@ -172,8 +172,17 @@
     
     /* Better modal spacing on mobile */
     [data-radix-dialog-content] {
-      margin: 1rem;
+      margin: 1rem auto;
       max-height: calc(100vh - 2rem);
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+    }
+    
+    /* Ensure proper centering for all modals */
+    [data-radix-dialog-overlay] {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 }

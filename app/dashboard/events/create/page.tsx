@@ -628,7 +628,7 @@ export default function CreateEventPage() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       {/* Onboarding Modal */}
       <Dialog open={showOnboardingModal} onOpenChange={setShowOnboardingModal}>
-        <DialogContent className="w-[95vw] max-w-md sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-4">
+        <DialogContent className="w-[95vw] max-w-md sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
           <DialogHeader className="px-4 sm:px-0">
             <DialogTitle className="text-xl sm:text-2xl font-bold text-center">
               🎉 Welcome to Event Creation!
@@ -721,8 +721,8 @@ export default function CreateEventPage() {
       </Dialog>
 
       {/* Main Form */}
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
+        <div className="max-w-4xl mx-auto w-full">
           <div className="mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
               <div className="min-w-0 flex-1">
@@ -1185,7 +1185,7 @@ export default function CreateEventPage() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-4">
+        <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
           <DialogHeader className="px-4 sm:px-0">
             <DialogTitle className="text-lg sm:text-xl">Purchase Additional Tokens</DialogTitle>
             <DialogDescription className="text-sm">
@@ -1221,7 +1221,7 @@ export default function CreateEventPage() {
 
       {/* Template Preview Dialog */}
       <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-4">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
           <DialogHeader className="px-4 sm:px-0">
             <DialogTitle className="text-lg sm:text-xl">Template Preview</DialogTitle>
             <DialogDescription className="text-sm">
