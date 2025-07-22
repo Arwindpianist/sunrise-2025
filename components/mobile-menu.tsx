@@ -132,8 +132,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
                 </div>
               )}
               {/* Dynamic color border based on content */}
@@ -154,8 +154,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/features" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
                 </div>
               )}
               {/* Dynamic color border based on content - Features theme */}
@@ -176,8 +176,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               {/* Active state border */}
               {pathname === "/pricing" && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[2px] pointer-events-none">
-                  <div className="w-full h-full rounded-2xl bg-white/50 backdrop-blur-md"></div>
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
+                  <div className="w-full h-full rounded-2xl bg-transparent"></div>
                 </div>
               )}
               {/* Dynamic color border based on content - Pricing theme */}
@@ -195,9 +195,19 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </p>
                   <Link
                     href="/dashboard"
-                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium bg-white/50 backdrop-blur-md text-gray-800 hover:text-gray-900 hover:bg-white/70 transition-all duration-300 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)] relative overflow-hidden"
+                    className={`flex items-center px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+                      pathname === "/dashboard" 
+                        ? "bg-white/50 backdrop-blur-md text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
+                        : "bg-white/50 backdrop-blur-md text-gray-800 hover:text-gray-900 hover:bg-white/70 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
+                    }`}
                     onClick={onClose}
                   >
+                    {/* Active state border */}
+                    {pathname === "/dashboard" && (
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 p-[1px] pointer-events-none">
+                        <div className="w-full h-full rounded-2xl bg-transparent"></div>
+                      </div>
+                    )}
                     {/* Dynamic color border based on content - Dashboard theme */}
                     <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-rose-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     {/* Rainbow refraction effect */}
