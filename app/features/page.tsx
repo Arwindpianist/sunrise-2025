@@ -112,7 +112,7 @@ export default function FeaturesPage() {
       tokenRate: "Great Value", 
       channels: "Email + Telegram + More", 
       savings: "Save 20%",
-      features: ["Unlimited tokens", "Telegram messaging", "Discord, Slack, Signal, Viber (Coming Soon)", "Custom branding", "Up to 100 events"]
+      features: ["Unlimited tokens", "Telegram messaging", "More channels coming soon", "Custom branding", "Up to 100 events"]
     },
     { 
       name: "Enterprise", 
