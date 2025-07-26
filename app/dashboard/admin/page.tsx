@@ -1,444 +1,440 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useSupabase } from "@/components/providers/supabase-provider"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import { toast } from "sonner"
-import {
-  Users,
-  Calendar,
-  Mail,
-  DollarSign,
-  UserCheck,
-  MessageSquare,
-  CreditCard,
-  Clock,
-} from "lucide-react"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { 
+  Users, 
+  DollarSign, 
+  MessageSquare, 
+  Calendar, 
+  TrendingUp, 
+  AlertCircle,
+  RefreshCw,
+  Eye,
+  Mail
+} from 'lucide-react'
 
-interface User {
-  id: string
-  email: string
-  full_name: string | null
-  subscription_plan: string
-  token_balance: number
-  created_at: string
-  last_sign_in_at: string | null
-  is_active: boolean
-  contacts_count: number
-  events_count: number
-  emails_sent: number
-  total_spent: number
-}
-
-interface Stats {
+interface AdminStats {
   totalUsers: number
   activeUsers: number
+  totalRevenue: number
+  monthlyRecurringRevenue: number
+  totalMessages: number
   totalEvents: number
   totalContacts: number
-  totalEmailsSent: number
-  totalRevenue: number
-  averageRevenuePerUser: number
-  eventsByStatus: {
-    draft: number
-    scheduled: number
-    sending: number
-    sent: number
-    failed: number
-    partial: number
-    cancelled: number
-  }
-  emailsByStatus: {
-    sent: number
-    failed: number
-    opened: number
-  }
-  subscriptionsByPlan: {
-    free: number
-    basic: number
-    pro: number
-    enterprise: number
-  }
-  recentTransactions: Array<{
-    id: string
-    user_id: string
-    type: string
-    amount: number
-    status: string
-    created_at: string
-  }>
-  eventDateStats: Array<{
-    date: string
-    count: number
-  }>
+  totalTokensPurchased: number
 }
 
-export default function AdminPage() {
-  const router = useRouter()
-  const { supabase, user } = useSupabase()
-  const [users, setUsers] = useState<User[]>([])
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [planFilter, setPlanFilter] = useState("all")
+interface UserEnquiry {
+  id: string
+  user_id: string
+  user_email: string
+  user_name: string
+  subject: string
+  message: string
+  status: 'open' | 'in_progress' | 'resolved'
+  created_at: string
+  updated_at: string
+}
+
+interface RecentActivity {
+  id: string
+  type: 'user_signup' | 'subscription' | 'message_sent' | 'event_created'
+  user_email: string
+  description: string
+  created_at: string
+}
+
+export default function AdminDashboard() {
+  const [user, setUser] = useState<any>(null)
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [enquiries, setEnquiries] = useState<UserEnquiry[]>([])
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false)
-        router.push("/dashboard")
+    checkUser()
+  }, [])
+
+  const checkUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/login')
         return
       }
 
-      try {
-        // Check if user has admin subscription plan
-        const { data: userData, error: userError } = await supabase
-          .from('user_subscriptions')
-          .select('tier, status')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single()
+      // Check if user is admin
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select('subscription_plan')
+        .eq('id', session.user.id)
+        .single()
 
-        if (userError && userError.code !== 'PGRST116') {
-          console.error('Error fetching subscription:', userError)
-        }
-
-        const isUserAdmin = userData?.tier === 'enterprise' || user.email === 'arwindpianist@gmail.com'
-        setIsAdmin(isUserAdmin)
-
-        if (!isUserAdmin) {
-          router.push("/dashboard")
-          return
-        }
-
-        await fetchData()
-      } catch (error) {
-        console.error("Error checking admin status:", error)
-        setIsAdmin(false)
-        router.push("/dashboard")
+      if (error || userProfile?.subscription_plan !== 'admin') {
+        router.push('/dashboard')
+        return
       }
+
+      setUser(session.user)
+      fetchAdminData()
+    } catch (error) {
+      console.error('Error checking user:', error)
+      router.push('/login')
     }
+  }
 
-    checkAdminStatus()
-  }, [user, router, supabase])
-
-  const fetchData = async () => {
+  const fetchAdminData = async () => {
     try {
       setLoading(true)
-
-      // Fetch users with their stats using the new view
-      const { data: usersData, error: usersError } = await supabase
-        .from("admin_user_stats")
-        .select("*")
-        .order("created_at", { ascending: false })
-
-      if (usersError) throw usersError
-
-      // Process users data
-      const processedUsers = usersData.map((user: any) => ({
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name || null,
-        subscription_plan: user.subscription_plan || "free",
-        token_balance: user.token_balance || 0,
-        created_at: user.created_at,
-        last_sign_in_at: user.last_sign_in_at,
-        is_active: user.last_sign_in_at ? 
-          new Date(user.last_sign_in_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : 
-          false,
-        contacts_count: user.contacts_count || 0,
-        events_count: user.events_count || 0,
-        emails_sent: user.emails_sent || 0,
-        total_spent: user.total_spent || 0
-      }))
-
-      setUsers(processedUsers)
-
-      // Fetch statistics
-      const { data: statsData, error: statsError } = await supabase
-        .rpc("get_admin_stats")
-
-      if (statsError) throw statsError
-      setStats(statsData)
-
+      await Promise.all([
+        fetchStats(),
+        fetchEnquiries(),
+        fetchRecentActivity()
+      ])
     } catch (error) {
-      console.error("Error fetching data:", error)
-      toast.error("Failed to fetch admin data")
+      console.error('Error fetching admin data:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredUsers = users.filter(user => {
-    if (!user) return false
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }
 
-    const searchLower = searchQuery.toLowerCase()
-    const matchesSearch = 
-      (user.email?.toLowerCase().includes(searchLower) ?? false) ||
-      (user.full_name?.toLowerCase().includes(searchLower) ?? false)
-    
-    const matchesPlan = planFilter === "all" || user.subscription_plan === planFilter
+  const fetchEnquiries = async () => {
+    try {
+      const response = await fetch('/api/admin/enquiries')
+      if (response.ok) {
+        const data = await response.json()
+        setEnquiries(data)
+      }
+    } catch (error) {
+      console.error('Error fetching enquiries:', error)
+    }
+  }
 
-    return matchesSearch && matchesPlan
-  })
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await fetch('/api/admin/activity')
+      if (response.ok) {
+        const data = await response.json()
+        setRecentActivity(data)
+      }
+    } catch (error) {
+      console.error('Error fetching activity:', error)
+    }
+  }
 
-  if (!isAdmin || loading) {
+  const refreshData = async () => {
+    setRefreshing(true)
+    await fetchAdminData()
+    setRefreshing(false)
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-MY', {
+      style: 'currency',
+      currency: 'MYR'
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-MY', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <Badge variant="outline" className="text-sm">
-          Admin
-        </Badge>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-2">Site analytics and user management</p>
+          </div>
+          <Button onClick={refreshData} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
 
-      {/* Statistics Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.activeUsers || 0} active in last 30 days
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Platform Activity</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <p className="text-sm">Events: {stats?.totalEvents || 0}</p>
-              <p className="text-sm">Contacts: {stats?.totalContacts || 0}</p>
-              <p className="text-sm">Emails: {stats?.totalEmailsSent || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${(stats?.totalRevenue || 0).toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              ${(stats?.averageRevenuePerUser || 0).toFixed(2)} per user
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subscription Plans</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {stats?.subscriptionsByPlan && Object.entries(stats.subscriptionsByPlan).map(([plan, count]) => (
-                <p key={plan} className="text-sm capitalize">
-                  {plan}: {count}
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.activeUsers} active this month
                 </p>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
 
-      {/* Event Creation Over Time */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Event Creation Over Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={stats?.eventDateStats || []}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(date) => format(new Date(date), 'MMM yyyy')}
-                />
-                <YAxis />
-                <Tooltip 
-                  labelFormatter={(date) => format(new Date(date), 'MMMM yyyy')}
-                  formatter={(value: number) => [`${value} events`, 'Count']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#8884d8"
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {formatCurrency(stats.monthlyRecurringRevenue)} MRR
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Event Status Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Event Status Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            {stats?.eventsByStatus && Object.entries(stats.eventsByStatus).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between p-4 border rounded-lg">
-                <span className="capitalize">{status}</span>
-                <Badge variant="outline">{count}</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Messages Sent</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalMessages.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  Across all channels
+                </p>
+              </CardContent>
+            </Card>
 
-      {/* Email Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Email Status Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {stats?.emailsByStatus && Object.entries(stats.emailsByStatus).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between p-4 border rounded-lg">
-                <span className="capitalize">{status}</span>
-                <Badge variant="outline">{count}</Badge>
-              </div>
-            ))}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Events Created</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalEvents.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalContacts.toLocaleString()} total contacts
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {/* User Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <div className="flex gap-4 mt-4">
-            <Input
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-sm"
-            />
-            <Select value={planFilter} onValueChange={setPlanFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Plans</SelectItem>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <div className="grid grid-cols-8 gap-4 p-4 font-medium border-b">
-              <div>Name</div>
-              <div>Email</div>
-              <div>Plan</div>
-              <div>Balance</div>
-              <div>Contacts</div>
-              <div>Events</div>
-              <div>Status</div>
-              <div>Joined</div>
-            </div>
-            {filteredUsers.map((user) => (
-              <div key={user.id} className="grid grid-cols-8 gap-4 p-4 border-b last:border-0">
-                <div>{user.full_name || "N/A"}</div>
-                <div>{user.email}</div>
-                <div className="capitalize">{user.subscription_plan}</div>
-                <div>{user.token_balance} tokens</div>
-                <div>{user.contacts_count}</div>
-                <div>{user.events_count}</div>
-                <div>
-                  <Badge variant={user.is_active ? "default" : "secondary"}>
-                    {user.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-                <div>{format(new Date(user.created_at), "MMM d, yyyy")}</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="enquiries" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="enquiries">User Enquiries</TabsTrigger>
+            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
 
-      {/* Recent Transactions */}
-      {stats?.recentTransactions && stats.recentTransactions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <div className="grid grid-cols-5 gap-4 p-4 font-medium border-b">
-                <div>User</div>
-                <div>Type</div>
-                <div>Amount</div>
-                <div>Status</div>
-                <div>Date</div>
-              </div>
-              {stats.recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="grid grid-cols-5 gap-4 p-4 border-b last:border-0">
-                  <div>{users.find(u => u.id === transaction.user_id)?.email || "Unknown"}</div>
-                  <div className="capitalize">{transaction.type}</div>
-                  <div>${(transaction.amount / 100).toFixed(2)}</div>
-                  <div>
-                    <Badge variant={transaction.status === "completed" ? "default" : "secondary"}>
-                      {transaction.status}
-                    </Badge>
+          <TabsContent value="enquiries" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  User Enquiries & Issues
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {enquiries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No enquiries at the moment</p>
                   </div>
-                  <div>{format(new Date(transaction.created_at), "MMM d, yyyy")}</div>
-                </div>
-              ))}
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enquiries.map((enquiry) => (
+                        <TableRow key={enquiry.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{enquiry.user_name}</div>
+                              <div className="text-sm text-gray-500">{enquiry.user_email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-xs truncate">{enquiry.subject}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                enquiry.status === 'open' ? 'destructive' :
+                                enquiry.status === 'in_progress' ? 'secondary' : 'default'
+                              }
+                            >
+                              {enquiry.status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(enquiry.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  alert(`View enquiry: ${enquiry.subject}`)
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  alert(`Reply to: ${enquiry.user_email}`)
+                                }}
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No recent activity</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <div className="flex-shrink-0">
+                          {activity.type === 'user_signup' && <Users className="h-5 w-5 text-blue-600" />}
+                          {activity.type === 'subscription' && <DollarSign className="h-5 w-5 text-green-600" />}
+                          {activity.type === 'message_sent' && <MessageSquare className="h-5 w-5 text-purple-600" />}
+                          {activity.type === 'event_created' && <Calendar className="h-5 w-5 text-orange-600" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{activity.description}</div>
+                          <div className="text-sm text-gray-500">{activity.user_email}</div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(activity.created_at)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Subscription Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Free</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Basic</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Pro</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Enterprise</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Message Channel Usage</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Email</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Telegram</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>WhatsApp</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>SMS</span>
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 } 
