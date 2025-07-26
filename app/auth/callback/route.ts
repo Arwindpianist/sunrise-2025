@@ -31,6 +31,53 @@ export async function GET(request: Request) {
 
       // Check if this was an email verification (default case)
       if (data.session?.user?.email_confirmed_at) {
+        // Check if this user was referred and complete the referral
+        try {
+          const { data: referral } = await supabase
+            .from('referrals')
+            .select('*')
+            .eq('referred_email', data.session.user.email)
+            .eq('status', 'pending')
+            .single()
+
+          if (referral) {
+            // Update referral status to completed
+            await supabase
+              .from('referrals')
+              .update({
+                status: 'completed',
+                tokens_awarded: 10,
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', referral.id)
+
+            // Award tokens to the referrer
+            await supabase
+              .from('user_balances')
+              .upsert({
+                user_id: referral.referrer_id,
+                balance: 10
+              }, {
+                onConflict: 'user_id',
+                ignoreDuplicates: false
+              })
+
+            // Create a transaction record
+            await supabase
+              .from('transactions')
+              .insert({
+                user_id: referral.referrer_id,
+                type: 'referral_reward',
+                amount: 10,
+                description: `Referral reward for ${referral.referred_email}`,
+                status: 'completed'
+              })
+          }
+        } catch (error) {
+          console.error('Error completing referral:', error)
+          // Don't fail the auth flow for referral issues
+        }
+
         return NextResponse.redirect(new URL('/login?success=email_verified', requestUrl.origin))
       }
     }

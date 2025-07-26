@@ -93,7 +93,7 @@ export default function RegisterPage() {
       // Track referral if referrerId exists
       if (referrerId) {
         try {
-          const response = await fetch('/api/referrals', {
+          const response = await fetch('/api/referrals/create', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -107,7 +107,8 @@ export default function RegisterPage() {
           if (response.ok) {
             console.log('Referral tracked successfully')
           } else {
-            console.error('Failed to track referral')
+            const errorData = await response.json()
+            console.error('Failed to track referral:', errorData)
           }
         } catch (error) {
           console.error('Error tracking referral:', error)
