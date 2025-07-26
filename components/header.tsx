@@ -105,12 +105,7 @@ export default function Header() {
                     <span className="hidden sm:inline">Dashboard</span>
                   </Button>
                 </Link>
-                <Link href="/help">
-                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500">
-                    <LifeBuoy className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Help</span>
-                  </Button>
-                </Link>
+
                 <Button
                   variant="ghost"
                   size="sm"
