@@ -10,8 +10,7 @@ export async function POST(
   { params }: { params: { enquiryId: string } }
 ) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ cookies })
     
     // Check if user is authenticated and is admin
     const { data: { session } } = await supabase.auth.getSession()

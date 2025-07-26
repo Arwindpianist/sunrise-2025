@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { 
-  Users, 
+import {
+  Users,
   DollarSign, 
   MessageSquare, 
-  Calendar, 
+  Calendar,
   TrendingUp, 
   AlertCircle,
   RefreshCw,
@@ -27,11 +27,11 @@ import {
 } from 'lucide-react'
 import { 
   LineChart as RechartsLineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -58,8 +58,8 @@ interface AdminStats {
 }
 
 interface UserEnquiry {
-  id: string
-  user_id: string
+    id: string
+    user_id: string
   user_email: string
   user_name: string
   subject: string
@@ -398,8 +398,8 @@ export default function AdminDashboard() {
           </TabsList>
 
                     <TabsContent value="enquiries" className="space-y-4">
-            <Card>
-              <CardHeader>
+      <Card>
+        <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5" />
@@ -433,8 +433,8 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
+        </CardHeader>
+        <CardContent>
                 {/* Filter Panel */}
                 {showFilters && (
                   <div className="mb-6 p-4 border rounded-lg bg-gray-50">
@@ -615,7 +615,7 @@ export default function AdminDashboard() {
                               >
                                 <Mail className="h-4 w-4" />
                               </Button>
-                            </div>
+          </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -735,18 +735,18 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+        </CardContent>
+      </Card>
 
               {/* Revenue Chart */}
-              <Card>
-                <CardHeader>
+      <Card>
+        <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
                     Revenue Trend
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
+        </CardHeader>
+        <CardContent>
                   {stats?.revenueData && stats.revenueData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <AreaChart data={stats.revenueData}>
@@ -775,7 +775,7 @@ export default function AdminDashboard() {
                         <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>No revenue data available</p>
                       </div>
-                    </div>
+              </div>
                   )}
                 </CardContent>
               </Card>
@@ -817,14 +817,14 @@ export default function AdminDashboard() {
                         <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>No subscription data available</p>
                       </div>
-                    </div>
+          </div>
                   )}
-                </CardContent>
-              </Card>
+        </CardContent>
+      </Card>
 
               {/* Message Activity */}
-              <Card>
-                <CardHeader>
+      <Card>
+        <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-5 w-5" />
                     Message Activity
@@ -857,7 +857,7 @@ export default function AdminDashboard() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+          </div>
 
             {/* Additional Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -884,8 +884,8 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">Tokens Purchased</CardTitle>
-                </CardHeader>
-                <CardContent>
+        </CardHeader>
+        <CardContent>
                   <div className="text-2xl font-bold">{stats?.totalTokensPurchased?.toLocaleString() || 0}</div>
                   <p className="text-xs text-muted-foreground">Total tokens sold</p>
                 </CardContent>
@@ -950,7 +950,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        )}
+      )}
       </div>
     </div>
   )

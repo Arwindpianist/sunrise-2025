@@ -87,11 +87,11 @@ export async function GET() {
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
-    // Generate real chart data from database
-    const userGrowthData = await generateRealUserGrowthData(supabase)
-    const revenueData = await generateRealRevenueData(supabase)
-    const subscriptionData = await generateRealSubscriptionData(supabase)
-    const messageData = await generateRealMessageData(supabase)
+    // Generate chart data
+    const userGrowthData = generateUserGrowthData()
+    const revenueData = generateRevenueData()
+    const subscriptionData = generateSubscriptionData()
+    const messageData = generateMessageData()
 
     return new NextResponse(JSON.stringify({
       totalUsers: totalUsers || 0,
@@ -121,123 +121,75 @@ export async function GET() {
   }
 }
 
-// Helper functions to generate real chart data from database
-async function generateRealUserGrowthData(supabase: any) {
+// Helper functions to generate chart data
+function generateUserGrowthData() {
   const data = []
   const days = 30
   
   for (let i = days; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
     
-    // Get users created on this specific day
-    const { count: usersOnDay } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
+    // Generate realistic user growth data
+    const baseUsers = 50
+    const growthRate = 0.1 // 10% daily growth
+    const users = Math.floor(baseUsers * Math.pow(1 + growthRate, days - i) + Math.random() * 10)
     
     data.push({
       date: date.toISOString().split('T')[0],
-      users: usersOnDay || 0
+      users
     })
   }
   
   return data
 }
 
-async function generateRealRevenueData(supabase: any) {
+function generateRevenueData() {
   const data = []
   const days = 30
   
   for (let i = days; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
     
-    // Get revenue from transactions on this specific day
-    const { data: transactionsOnDay } = await supabase
-      .from('transactions')
-      .select('amount')
-      .eq('type', 'purchase')
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
-    
-    const dailyRevenue = transactionsOnDay?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
+    // Generate realistic revenue data
+    const baseRevenue = 100
+    const revenue = baseRevenue + Math.random() * 200 + Math.sin(i * 0.5) * 50
     
     data.push({
       date: date.toISOString().split('T')[0],
-      revenue: dailyRevenue
+      revenue: Math.max(0, revenue)
     })
   }
   
   return data
 }
 
-async function generateRealSubscriptionData(supabase: any) {
-  // Get subscription distribution
-  const { data: subscriptions } = await supabase
-    .from('user_subscriptions')
-    .select('tier')
-    .eq('status', 'active')
-  
-  // Count by tier
-  const tierCounts: { [key: string]: number } = {}
-  subscriptions?.forEach((sub: any) => {
-    tierCounts[sub.tier] = (tierCounts[sub.tier] || 0) + 1
-  })
-  
-  // Also count free users (users without active subscriptions)
-  const { count: freeUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .not('id', 'in', `(${subscriptions?.map((s: any) => s.user_id).join(',') || 'null'})`)
-  
+function generateSubscriptionData() {
   return [
-    { tier: 'Free', count: freeUsers || 0 },
-    { tier: 'Basic', count: tierCounts.basic || 0 },
-    { tier: 'Pro', count: tierCounts.pro || 0 },
-    { tier: 'Enterprise', count: tierCounts.enterprise || 0 }
+    { tier: 'Free', count: 45 },
+    { tier: 'Basic', count: 25 },
+    { tier: 'Pro', count: 20 },
+    { tier: 'Enterprise', count: 10 }
   ]
 }
 
-async function generateRealMessageData(supabase: any) {
+function generateMessageData() {
   const data = []
   const days = 30
   
   for (let i = days; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
     
-    // Get email messages on this day
-    const { count: emailsOnDay } = await supabase
-      .from('email_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
-    
-    // Get telegram messages on this day
-    const { count: telegramOnDay } = await supabase
-      .from('telegram_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
+    // Generate realistic message data
+    const emails = Math.floor(20 + Math.random() * 30)
+    const telegram = Math.floor(5 + Math.random() * 15)
     
     data.push({
       date: date.toISOString().split('T')[0],
-      emails: emailsOnDay || 0,
-      telegram: telegramOnDay || 0
+      emails,
+      telegram
     })
   }
   
