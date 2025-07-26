@@ -38,29 +38,24 @@ export default function HelpPage() {
     setErrorMessage('')
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        setErrorMessage('Please log in to submit an enquiry')
-        setSubmitStatus('error')
-        setIsSubmitting(false)
-        return
-      }
-
-      const { error } = await supabase
-        .from('user_enquiries')
-        .insert({
-          user_id: session.user.id,
+      const response = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           subject: subject.trim(),
           message: message.trim(),
           category,
-          priority,
-          status: 'open'
+          priority
         })
+      })
 
-      if (error) {
-        console.error('Error submitting enquiry:', error)
-        setErrorMessage('Failed to submit enquiry. Please try again.')
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('Error submitting enquiry:', data)
+        setErrorMessage(data.error || 'Failed to submit enquiry. Please try again.')
         setSubmitStatus('error')
       } else {
         setSubmitStatus('success')
