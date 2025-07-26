@@ -118,7 +118,7 @@ export default function DashboardPage() {
         <div className="mb-6 sm:mb-8">
           <Card className="bg-white/50 backdrop-blur-sm border-none shadow-lg">
             <CardContent className="pt-6 pb-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
                     Good {getGreeting()}, {userProfile?.full_name || 'there'} 🌅
@@ -127,10 +127,10 @@ export default function DashboardPage() {
                     Welcome back to your dashboard. Here's an overview of your events and activities.
                   </p>
                 </div>
-                <Link href="/dashboard/referrals">
+                <Link href="/dashboard/referrals" className="w-full sm:w-auto">
                   <Button 
                     size="sm" 
-                    className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
+                    className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Refer Friends
