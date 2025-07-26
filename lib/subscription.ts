@@ -55,7 +55,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     maxTokens: 100, // Lifetime limit to push towards Pro
     maxContacts: -1, // Unlimited contacts
     maxEvents: 20,
-    canUseTelegram: false,
+    canUseTelegram: true, // Allow Telegram with generic templates
     canCustomizeTemplates: false,
     canUseCustomBranding: false,
     canUseAPI: false,
@@ -70,16 +70,17 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Event scheduling',
       'Email tracking',
       'Basic email templates',
+      'Telegram messaging (generic templates)',
       'Mobile-friendly interface',
       'Unlimited contacts',
       'Up to 20 events'
     ],
     restrictions: [
-      'No Telegram functionality',
       'Limited to 100 tokens lifetime',
       'No custom branding',
       'No API access',
-      'Basic template customization only'
+      'Basic template customization only',
+      'Telegram limited to generic templates'
     ]
   },
   pro: {
@@ -101,6 +102,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Discounted token prices (RM0.40/token)',
       'Advanced email templates',
       'Telegram messaging',
+      'Discord, Slack, Signal, Viber (Coming Soon)',
       'Smart contact management',
       'Event scheduling',
       'Email tracking',
@@ -135,6 +137,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Discounted token prices (RM0.35/token)',
       'Premium email templates',
       'Telegram messaging',
+      'Discord, Slack, Signal, Viber (Coming Soon)',
       'Smart contact management',
       'Event scheduling',
       'Email tracking',

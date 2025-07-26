@@ -115,11 +115,6 @@ export function getFeatureUpgradeRecommendation(userTier: SubscriptionTier, feat
           recommended: 'basic',
           reason: 'Upgrade to Basic to unlock Telegram messaging'
         }
-      } else if (userTier === 'basic') {
-        return {
-          recommended: 'pro',
-          reason: 'Upgrade to Pro to unlock Telegram messaging'
-        }
       }
       break
     case 'schedule_send':

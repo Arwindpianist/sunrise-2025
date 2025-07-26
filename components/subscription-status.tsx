@@ -173,7 +173,7 @@ export default function SubscriptionStatus() {
                 icon={MessageSquare}
                 title="Telegram Messaging"
                 enabled={canUseTelegram}
-                onUpgrade={() => handleUpgradeClick('pro', 'Unlock Telegram messaging functionality')}
+                onUpgrade={() => handleUpgradeClick('basic', 'Unlock Telegram messaging functionality')}
               />
               <FeatureItem 
                 icon={Settings}

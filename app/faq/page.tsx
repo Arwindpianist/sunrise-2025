@@ -64,7 +64,7 @@ const faqData: FAQItem[] = [
   },
   {
     question: "What messaging channels are supported?",
-    answer: "All tiers support email messaging. Telegram messaging is available on Pro and Enterprise tiers only.",
+    answer: "All tiers support email messaging. Telegram messaging is available on Basic and higher tiers. Discord, Slack, Signal, and Viber are coming soon for Pro and Enterprise tiers.",
     category: "features"
   },
   // Subscription & Billing

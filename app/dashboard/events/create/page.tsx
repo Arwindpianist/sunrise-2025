@@ -62,8 +62,8 @@ const getCommunicationMethods = (userTier: string): CommunicationMethod[] => [
     name: "Telegram",
     icon: <Send className="h-6 w-6" />,
     description: "Instant messaging for quick delivery",
-    available: userTier === "pro" || userTier === "enterprise",
-    comingSoon: userTier === "free" || userTier === "basic",
+    available: userTier === "basic" || userTier === "pro" || userTier === "enterprise",
+    comingSoon: userTier === "free",
   },
   {
     id: "whatsapp",
@@ -80,6 +80,38 @@ const getCommunicationMethods = (userTier: string): CommunicationMethod[] => [
     description: "Traditional text messages",
     available: false,
     comingSoon: true,
+  },
+  {
+    id: "discord",
+    name: "Discord",
+    icon: <MessageCircle className="h-6 w-6" />,
+    description: "Discord bot integration",
+    available: false,
+    comingSoon: userTier === "pro" || userTier === "enterprise",
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: <MessageCircle className="h-6 w-6" />,
+    description: "Slack workspace integration",
+    available: false,
+    comingSoon: userTier === "pro" || userTier === "enterprise",
+  },
+  {
+    id: "signal",
+    name: "Signal",
+    icon: <MessageCircle className="h-6 w-6" />,
+    description: "Signal messaging",
+    available: false,
+    comingSoon: userTier === "pro" || userTier === "enterprise",
+  },
+  {
+    id: "viber",
+    name: "Viber",
+    icon: <MessageCircle className="h-6 w-6" />,
+    description: "Viber messaging",
+    available: false,
+    comingSoon: userTier === "pro" || userTier === "enterprise",
   },
 ]
 
@@ -197,10 +229,10 @@ export default function CreateEventPage() {
 
   const handleMethodSelection = (methodId: string) => {
     // Check if user is trying to select Telegram but doesn't have access
-    if (methodId === "telegram" && (userTier === "free" || userTier === "basic")) {
+    if (methodId === "telegram" && userTier === "free") {
       toast({
         title: "Telegram Not Available",
-        description: "Telegram messaging is available for Pro and Enterprise plans. Upgrade to unlock this feature!",
+        description: "Telegram messaging is available for Basic and higher plans. Upgrade to unlock this feature!",
         variant: "destructive",
       })
       return
@@ -730,7 +762,7 @@ export default function CreateEventPage() {
                     <p className="text-xs sm:text-sm text-orange-700 mt-1">
                       {userTier === "free" 
                         ? "Upgrade to Basic to unlock Telegram messaging and more features."
-                        : "Upgrade to Pro to unlock Telegram messaging and unlimited events."
+                        : "Upgrade to Pro to unlock Discord, Slack, Signal, Viber and unlimited events."
                       }
                     </p>
                     <Button

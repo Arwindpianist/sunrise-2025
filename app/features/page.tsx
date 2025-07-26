@@ -102,17 +102,17 @@ export default function FeaturesPage() {
       name: "Basic", 
       contacts: "Unlimited contacts", 
       tokenRate: "Good Value", 
-      channels: "Email only", 
+      channels: "Email + Telegram", 
       savings: "Save 10%",
-      features: ["Discounted tokens", "Smart contact management", "Up to 20 events", "Priority support"]
+      features: ["Discounted tokens", "Telegram messaging", "Smart contact management", "Up to 20 events", "Priority support"]
     },
     { 
       name: "Pro", 
       contacts: "Up to 1000 contacts", 
       tokenRate: "Great Value", 
-      channels: "Email + Telegram", 
+      channels: "Email + Telegram + More", 
       savings: "Save 20%",
-      features: ["Unlimited tokens", "Telegram messaging", "Custom branding", "Up to 100 events"]
+      features: ["Unlimited tokens", "Telegram messaging", "Discord, Slack, Signal, Viber (Coming Soon)", "Custom branding", "Up to 100 events"]
     },
     { 
       name: "Enterprise", 
@@ -135,7 +135,7 @@ export default function FeaturesPage() {
     {
       icon: Send,
       name: "Telegram",
-      description: "Telegram bot integration (Pro+)",
+      description: "Telegram bot integration (Basic+)",
       tokenCost: "2 tokens per message",
       features: ["Channel broadcasting", "Group messaging", "File sharing"]
     },
@@ -152,6 +152,34 @@ export default function FeaturesPage() {
       description: "Reliable SMS delivery (Coming Soon)",
       tokenCost: "3 tokens per SMS",
       features: ["Global delivery", "Delivery reports", "Bulk sending"]
+    },
+    {
+      icon: MessageCircle,
+      name: "Discord",
+      description: "Discord bot integration (Coming Soon)",
+      tokenCost: "2 tokens per message",
+      features: ["Server notifications", "Channel messaging", "Role-based sending"]
+    },
+    {
+      icon: MessageCircle,
+      name: "Slack",
+      description: "Slack workspace integration (Coming Soon)",
+      tokenCost: "2 tokens per message",
+      features: ["Channel notifications", "Direct messaging", "Thread replies"]
+    },
+    {
+      icon: MessageCircle,
+      name: "Signal",
+      description: "Signal messaging (Coming Soon)",
+      tokenCost: "2 tokens per message",
+      features: ["End-to-end encryption", "Group messaging", "Media sharing"]
+    },
+    {
+      icon: MessageCircle,
+      name: "Viber",
+      description: "Viber messaging (Coming Soon)",
+      tokenCost: "2 tokens per message",
+      features: ["Public chat integration", "Sticker support", "Voice messages"]
     }
   ]
 
