@@ -87,11 +87,30 @@ export async function GET() {
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
-    // Generate real chart data from database
-    const userGrowthData = await generateUserGrowthData(supabase)
-    const revenueData = await generateRevenueData(supabase)
-    const subscriptionData = await generateSubscriptionData(supabase)
-    const messageData = await generateMessageData(supabase)
+    // Generate real chart data from database with timeout
+    const chartDataPromise = Promise.all([
+      generateUserGrowthData(supabase),
+      generateRevenueData(supabase),
+      generateSubscriptionData(supabase),
+      generateMessageData(supabase)
+    ])
+    
+    let userGrowthData: any[] = []
+    let revenueData: any[] = []
+    let subscriptionData: any[] = []
+    let messageData: any[] = []
+    
+    try {
+      [userGrowthData, revenueData, subscriptionData, messageData] = await Promise.race([
+        chartDataPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Chart data timeout')), 10000)
+        )
+      ]) as [any[], any[], any[], any[]]
+    } catch (error) {
+      console.error('Error fetching chart data:', error)
+      // Return empty arrays if chart data fails
+    }
 
     return new NextResponse(JSON.stringify({
       totalUsers: totalUsers || 0,
@@ -123,62 +142,82 @@ export async function GET() {
 
 // Helper functions to generate real chart data from database
 async function generateUserGrowthData(supabase: any) {
-  const data = []
-  const days = 30
-  
-  for (let i = days; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+  try {
+    // Get all users created in the last 30 days in one query
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
-    // Get users created on this specific day
-    const { count: usersOnDay } = await supabase
+    const { data: users } = await supabase
       .from('users')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
+      .select('created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true })
     
-    data.push({
-      date: date.toISOString().split('T')[0],
-      users: usersOnDay || 0
+    // Group users by date
+    const userCounts: { [key: string]: number } = {}
+    users?.forEach((user: any) => {
+      const date = user.created_at.split('T')[0]
+      userCounts[date] = (userCounts[date] || 0) + 1
     })
+    
+    // Generate data for last 30 days
+    const data = []
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      
+      data.push({
+        date: dateStr,
+        users: userCounts[dateStr] || 0
+      })
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error generating user growth data:', error)
+    return []
   }
-  
-  return data
 }
 
 async function generateRevenueData(supabase: any) {
-  const data = []
-  const days = 30
-  
-  for (let i = days; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+  try {
+    // Get all transactions in the last 30 days in one query
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
-    // Get revenue from transactions on this specific day
-    const { data: transactionsOnDay } = await supabase
+    const { data: transactions } = await supabase
       .from('transactions')
-      .select('amount')
+      .select('amount, created_at')
       .eq('type', 'purchase')
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true })
     
-    const dailyRevenue = transactionsOnDay?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
-    
-    data.push({
-      date: date.toISOString().split('T')[0],
-      revenue: dailyRevenue
+    // Group transactions by date
+    const revenueByDate: { [key: string]: number } = {}
+    transactions?.forEach((tx: any) => {
+      const date = tx.created_at.split('T')[0]
+      revenueByDate[date] = (revenueByDate[date] || 0) + (tx.amount || 0)
     })
+    
+    // Generate data for last 30 days
+    const data = []
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      
+      data.push({
+        date: dateStr,
+        revenue: revenueByDate[dateStr] || 0
+      })
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error generating revenue data:', error)
+    return []
   }
-  
-  return data
 }
 
 async function generateSubscriptionData(supabase: any) {
@@ -210,37 +249,55 @@ async function generateSubscriptionData(supabase: any) {
 }
 
 async function generateMessageData(supabase: any) {
-  const data = []
-  const days = 30
-  
-  for (let i = days; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+  try {
+    // Get all messages in the last 30 days in parallel queries
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
-    // Get email messages on this specific day
-    const { count: emailsOnDay } = await supabase
-      .from('email_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
+    const [emailResult, telegramResult] = await Promise.all([
+      supabase
+        .from('email_logs')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('telegram_logs')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: true })
+    ])
     
-    // Get telegram messages on this specific day
-    const { count: telegramOnDay } = await supabase
-      .from('telegram_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
-    
-    data.push({
-      date: date.toISOString().split('T')[0],
-      emails: emailsOnDay || 0,
-      telegram: telegramOnDay || 0
+    // Group emails by date
+    const emailCounts: { [key: string]: number } = {}
+    emailResult.data?.forEach((email: any) => {
+      const date = email.created_at.split('T')[0]
+      emailCounts[date] = (emailCounts[date] || 0) + 1
     })
+    
+    // Group telegram messages by date
+    const telegramCounts: { [key: string]: number } = {}
+    telegramResult.data?.forEach((telegram: any) => {
+      const date = telegram.created_at.split('T')[0]
+      telegramCounts[date] = (telegramCounts[date] || 0) + 1
+    })
+    
+    // Generate data for last 30 days
+    const data = []
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      
+      data.push({
+        date: dateStr,
+        emails: emailCounts[dateStr] || 0,
+        telegram: telegramCounts[dateStr] || 0
+      })
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error generating message data:', error)
+    return []
   }
-  
-  return data
 } 
