@@ -181,10 +181,9 @@ export default function HelpPage() {
                       <SelectContent>
                         <SelectItem value="technical">Technical Issue</SelectItem>
                         <SelectItem value="billing">Billing & Payment</SelectItem>
-                        <SelectItem value="feature">Feature Request</SelectItem>
-                        <SelectItem value="account">Account Management</SelectItem>
+                        <SelectItem value="feature_request">Feature Request</SelectItem>
                         <SelectItem value="general">General Inquiry</SelectItem>
-                        <SelectItem value="bug">Bug Report</SelectItem>
+                        <SelectItem value="bug_report">Bug Report</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
