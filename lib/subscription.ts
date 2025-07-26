@@ -87,7 +87,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     tier: 'pro',
     name: 'Pro',
     maxTokens: -1, // Unlimited
-    maxContacts: 1000,
+    maxContacts: -1, // Unlimited
     maxEvents: 100,
     canUseTelegram: true,
     canCustomizeTemplates: true,
@@ -103,14 +103,13 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Advanced email templates',
       'Telegram messaging',
       'Discord, Slack, Signal, Viber (Coming Soon)',
-      'Smart contact management',
       'Event scheduling',
       'Email tracking',
       'Priority support',
       'Custom branding',
       'Bulk contact import',
       'Unlimited tokens',
-      'Up to 1000 contacts',
+      'Unlimited contacts',
       'Up to 100 events'
     ],
     restrictions: [
@@ -138,7 +137,6 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Premium email templates',
       'Telegram messaging',
       'Discord, Slack, Signal, Viber (Coming Soon)',
-      'Smart contact management',
       'Event scheduling',
       'Email tracking',
       'Priority support',

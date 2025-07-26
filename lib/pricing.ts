@@ -108,7 +108,6 @@ export const SUBSCRIPTION_PLANS = [
     discount: "10%",
     features: [
       "Discounted token pricing",
-      "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "All email templates (birthday, wedding, etc.)",
@@ -130,7 +129,6 @@ export const SUBSCRIPTION_PLANS = [
       "Advanced email templates",
       "Telegram messaging",
       "Discord, Slack, Signal, Viber (Coming Soon)",
-      "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Priority support",
@@ -152,7 +150,6 @@ export const SUBSCRIPTION_PLANS = [
       "Premium email templates",
       "Telegram messaging",
       "Discord, Slack, Signal, Viber (Coming Soon)",
-      "Smart contact management",
       "Event scheduling",
       "Email tracking",
       "Priority support",

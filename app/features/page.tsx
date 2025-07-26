@@ -104,11 +104,11 @@ export default function FeaturesPage() {
       tokenRate: "Good Value", 
       channels: "Email + Telegram", 
       savings: "Save 10%",
-      features: ["Discounted tokens", "Telegram messaging", "Smart contact management", "Up to 20 events", "Priority support"]
+      features: ["Discounted tokens", "Telegram messaging", "Up to 20 events", "Priority support"]
     },
     { 
       name: "Pro", 
-      contacts: "Up to 1000 contacts", 
+      contacts: "Unlimited contacts", 
       tokenRate: "Great Value", 
       channels: "Email + Telegram + More", 
       savings: "Save 20%",
