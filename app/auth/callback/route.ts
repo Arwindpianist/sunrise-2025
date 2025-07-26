@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -33,7 +34,19 @@ export async function GET(request: Request) {
       if (data.session?.user?.email_confirmed_at) {
         // Check if this user was referred and complete the referral
         try {
-          const { data: referral } = await supabase
+          // Use service role client for server-side operations
+          const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+              auth: {
+                autoRefreshToken: false,
+                persistSession: false
+              }
+            }
+          )
+
+          const { data: referral } = await supabaseAdmin
             .from('referrals')
             .select('*')
             .eq('referred_email', data.session.user.email)
@@ -42,7 +55,7 @@ export async function GET(request: Request) {
 
           if (referral) {
             // Update referral status to completed
-            await supabase
+            await supabaseAdmin
               .from('referrals')
               .update({
                 status: 'completed',
@@ -52,7 +65,7 @@ export async function GET(request: Request) {
               .eq('id', referral.id)
 
             // Award tokens to the referrer
-            await supabase
+            await supabaseAdmin
               .from('user_balances')
               .upsert({
                 user_id: referral.referrer_id,
@@ -63,7 +76,7 @@ export async function GET(request: Request) {
               })
 
             // Create a transaction record
-            await supabase
+            await supabaseAdmin
               .from('transactions')
               .insert({
                 user_id: referral.referrer_id,
