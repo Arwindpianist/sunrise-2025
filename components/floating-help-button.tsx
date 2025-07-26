@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 
 export default function FloatingHelpButton() {
   return (
-    <div className="fixed bottom-6 right-6 z-50 hidden md:block">
+    <div className="fixed bottom-6 right-6 z-50 hidden lg:block">
       <Link href="/help">
         <Button
           size="icon"
