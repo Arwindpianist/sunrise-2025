@@ -92,7 +92,7 @@ export default function FeaturesPage() {
   const tokenPricing = [
     { 
       name: "Free", 
-      contacts: "Up to 50 contacts", 
+      contacts: "Unlimited contacts", 
       tokenRate: "Standard Value", 
       channels: "Email only", 
       savings: "No discount",
@@ -100,7 +100,7 @@ export default function FeaturesPage() {
     },
     { 
       name: "Basic", 
-      contacts: "Up to 200 contacts", 
+      contacts: "Unlimited contacts", 
       tokenRate: "Good Value", 
       channels: "Email only", 
       savings: "Save 10%",

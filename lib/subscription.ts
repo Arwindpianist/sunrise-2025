@@ -24,7 +24,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     tier: 'free',
     name: 'Free',
     maxTokens: 15, // Trial tokens only
-    maxContacts: 50,
+    maxContacts: -1, // Unlimited contacts
     maxEvents: 5,
     canUseTelegram: false,
     canCustomizeTemplates: false,
@@ -37,7 +37,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     features: [
       '15 trial tokens',
       'Basic email templates',
-      'Up to 50 contacts',
+      'Unlimited contacts',
       'Up to 5 events',
       'Email sending only'
     ],
@@ -53,7 +53,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     tier: 'basic',
     name: 'Basic',
     maxTokens: 100, // Lifetime limit to push towards Pro
-    maxContacts: 200,
+    maxContacts: -1, // Unlimited contacts
     maxEvents: 20,
     canUseTelegram: false,
     canCustomizeTemplates: false,
@@ -71,7 +71,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
       'Email tracking',
       'Basic email templates',
       'Mobile-friendly interface',
-      'Up to 200 contacts',
+      'Unlimited contacts',
       'Up to 20 events'
     ],
     restrictions: [
