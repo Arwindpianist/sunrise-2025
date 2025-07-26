@@ -8,10 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { 
-  Users, 
-  DollarSign, 
-  MessageSquare, 
+import {
+  Users,
+  DollarSign,
+  MessageSquare,
   Calendar, 
   TrendingUp, 
   AlertCircle,
@@ -39,6 +39,9 @@ interface UserEnquiry {
   subject: string
   message: string
   status: 'open' | 'in_progress' | 'resolved'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  category: 'general' | 'billing' | 'technical' | 'feature_request' | 'bug_report'
+  admin_notes?: string
   created_at: string
   updated_at: string
 }
@@ -48,7 +51,7 @@ interface RecentActivity {
   type: 'user_signup' | 'subscription' | 'message_sent' | 'event_created'
   user_email: string
   description: string
-  created_at: string
+    created_at: string
 }
 
 export default function AdminDashboard() {
@@ -58,6 +61,11 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedEnquiry, setSelectedEnquiry] = useState<UserEnquiry | null>(null)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -78,20 +86,20 @@ export default function AdminDashboard() {
         .from('users')
         .select('subscription_plan')
         .eq('id', session.user.id)
-        .single()
+          .single()
 
       if (error || userProfile?.subscription_plan !== 'admin') {
         router.push('/dashboard')
-        return
-      }
+          return
+        }
 
       setUser(session.user)
       fetchAdminData()
-    } catch (error) {
+      } catch (error) {
       console.error('Error checking user:', error)
       router.push('/login')
+      }
     }
-  }
 
   const fetchAdminData = async () => {
     try {
@@ -150,6 +158,68 @@ export default function AdminDashboard() {
     setRefreshing(false)
   }
 
+  const updateEnquiryStatus = async (enquiryId: string, status: string) => {
+    try {
+      const response = await fetch(`/api/admin/enquiries/${enquiryId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status })
+      })
+
+      if (response.ok) {
+        // Refresh enquiries
+        fetchEnquiries()
+      }
+    } catch (error) {
+      console.error('Error updating enquiry status:', error)
+    }
+  }
+
+  const sendEmailToUser = async () => {
+    if (!selectedEnquiry || !emailMessage.trim()) return
+
+    try {
+      setSendingEmail(true)
+      const response = await fetch(`/api/admin/enquiries/${selectedEnquiry.id}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: emailSubject || `Re: ${selectedEnquiry.subject}`,
+          message: emailMessage
+        })
+      })
+
+      if (response.ok) {
+        setShowEmailModal(false)
+        setEmailSubject('')
+        setEmailMessage('')
+        setSelectedEnquiry(null)
+        // Refresh enquiries to show updated status
+        fetchEnquiries()
+        alert('Email sent successfully!')
+      } else {
+        const error = await response.json()
+        alert(`Failed to send email: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error sending email:', error)
+      alert('Failed to send email')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const openEmailModal = (enquiry: UserEnquiry) => {
+    setSelectedEnquiry(enquiry)
+    setEmailSubject(`Re: ${enquiry.subject}`)
+    setEmailMessage('')
+    setShowEmailModal(true)
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-MY', {
       style: 'currency',
@@ -191,63 +261,63 @@ export default function AdminDashboard() {
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-        </div>
+      </div>
 
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
                 <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
                   {stats.activeUsers} active this month
-                </p>
-              </CardContent>
-            </Card>
+            </p>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+          </CardHeader>
+          <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
                 <p className="text-xs text-muted-foreground">
                   {formatCurrency(stats.monthlyRecurringRevenue)} MRR
                 </p>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Messages Sent</CardTitle>
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+          </CardHeader>
+          <CardContent>
                 <div className="text-2xl font-bold">{stats.totalMessages.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
                   Across all channels
-                </p>
-              </CardContent>
-            </Card>
+            </p>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Events Created</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+          </CardHeader>
+          <CardContent>
                 <div className="text-2xl font-bold">{stats.totalEvents.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
                   {stats.totalContacts.toLocaleString()} total contacts
                 </p>
-              </CardContent>
-            </Card>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
         )}
 
         {/* Tabs */}
@@ -259,25 +329,27 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="enquiries" className="space-y-4">
-            <Card>
-              <CardHeader>
+      <Card>
+        <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5" />
                   User Enquiries & Issues
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+        </CardHeader>
+        <CardContent>
                 {enquiries.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>No enquiries at the moment</p>
                   </div>
                 ) : (
-                  <Table>
+                                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Subject</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Priority</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Actions</TableHead>
@@ -296,14 +368,31 @@ export default function AdminDashboard() {
                             <div className="max-w-xs truncate">{enquiry.subject}</div>
                           </TableCell>
                           <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {enquiry.category.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                             <Badge 
                               variant={
-                                enquiry.status === 'open' ? 'destructive' :
-                                enquiry.status === 'in_progress' ? 'secondary' : 'default'
+                                enquiry.priority === 'urgent' ? 'destructive' :
+                                enquiry.priority === 'high' ? 'default' :
+                                enquiry.priority === 'medium' ? 'secondary' : 'outline'
                               }
                             >
-                              {enquiry.status.replace('_', ' ')}
+                              {enquiry.priority}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <select
+                              value={enquiry.status}
+                              onChange={(e) => updateEnquiryStatus(enquiry.id, e.target.value)}
+                              className="text-sm border rounded px-2 py-1 bg-white"
+                            >
+                              <option value="open">Open</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
                           </TableCell>
                           <TableCell className="text-sm text-gray-500">
                             {formatDate(enquiry.created_at)}
@@ -314,7 +403,7 @@ export default function AdminDashboard() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  alert(`View enquiry: ${enquiry.subject}`)
+                                  alert(`Subject: ${enquiry.subject}\n\nMessage: ${enquiry.message}`)
                                 }}
                               >
                                 <Eye className="h-4 w-4" />
@@ -322,9 +411,7 @@ export default function AdminDashboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  alert(`Reply to: ${enquiry.user_email}`)
-                                }}
+                                onClick={() => openEmailModal(enquiry)}
                               >
                                 <Mail className="h-4 w-4" />
                               </Button>
@@ -335,19 +422,19 @@ export default function AdminDashboard() {
                     </TableBody>
                   </Table>
                 )}
-              </CardContent>
-            </Card>
+        </CardContent>
+      </Card>
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
+      <Card>
+        <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
                   Recent Activity
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+        </CardHeader>
+        <CardContent>
                 {recentActivity.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -366,25 +453,25 @@ export default function AdminDashboard() {
                         <div className="flex-1">
                           <div className="font-medium">{activity.description}</div>
                           <div className="text-sm text-gray-500">{activity.user_email}</div>
-                        </div>
+              </div>
                         <div className="text-sm text-gray-500">
                           {formatDate(activity.created_at)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          </div>
+              </div>
+            ))}
+          </div>
                 )}
-              </CardContent>
-            </Card>
+        </CardContent>
+      </Card>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
+      <Card>
+        <CardHeader>
                   <CardTitle>Subscription Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
+        </CardHeader>
+        <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span>Free</span>
@@ -393,24 +480,24 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-center">
                       <span>Basic</span>
                       <Badge variant="secondary">Coming soon</Badge>
-                    </div>
+            </div>
                     <div className="flex justify-between items-center">
                       <span>Pro</span>
                       <Badge variant="secondary">Coming soon</Badge>
-                    </div>
+                </div>
                     <div className="flex justify-between items-center">
                       <span>Enterprise</span>
                       <Badge variant="secondary">Coming soon</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              <Card>
-                <CardHeader>
+        <Card>
+          <CardHeader>
                   <CardTitle>Message Channel Usage</CardTitle>
-                </CardHeader>
-                <CardContent>
+          </CardHeader>
+          <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span>Email</span>
@@ -427,13 +514,71 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-center">
                       <span>SMS</span>
                       <Badge variant="secondary">Coming soon</Badge>
-                    </div>
+              </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Email Modal */}
+        {showEmailModal && selectedEnquiry && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+              <h3 className="text-lg font-semibold mb-4">Send Email to {selectedEnquiry.user_name}</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Email subject"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    value={emailMessage}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type your response here..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEmailModal(false)
+                    setSelectedEnquiry(null)
+                    setEmailSubject('')
+                    setEmailMessage('')
+                  }}
+                  disabled={sendingEmail}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={sendEmailToUser}
+                  disabled={sendingEmail || !emailMessage.trim()}
+                >
+                  {sendingEmail ? 'Sending...' : 'Send Email'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

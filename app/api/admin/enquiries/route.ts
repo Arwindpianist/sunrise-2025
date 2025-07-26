@@ -37,34 +37,54 @@ export async function GET() {
         category,
         admin_notes,
         created_at,
-        updated_at,
-        users!inner(email, full_name)
+        updated_at
       `)
       .order('created_at', { ascending: false })
 
     if (enquiriesError) {
       console.error('Error fetching enquiries:', enquiriesError)
       return new NextResponse(
-        JSON.stringify({ error: 'Failed to fetch enquiries' }),
+        JSON.stringify({ error: 'Failed to fetch enquiries', details: enquiriesError }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
+    // Get user details for the enquiries
+    const userIds = enquiries?.map(e => e.user_id).filter(Boolean) || []
+    let userDetails: any = {}
+    
+    if (userIds.length > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .in('id', userIds)
+      
+      if (!usersError && users) {
+        userDetails = users.reduce((acc, user) => {
+          acc[user.id] = user
+          return acc
+        }, {} as any)
+      }
+    }
+
     // Format the enquiries data
-    const formattedEnquiries = enquiries?.map(enquiry => ({
-      id: enquiry.id,
-      user_id: enquiry.user_id,
-      user_email: (enquiry.users as any)?.email || 'Unknown',
-      user_name: (enquiry.users as any)?.full_name || 'Unknown User',
-      subject: enquiry.subject,
-      message: enquiry.message,
-      status: enquiry.status,
-      priority: enquiry.priority,
-      category: enquiry.category,
-      admin_notes: enquiry.admin_notes,
-      created_at: enquiry.created_at,
-      updated_at: enquiry.updated_at
-    })) || []
+    const formattedEnquiries = enquiries?.map(enquiry => {
+      const user = userDetails[enquiry.user_id]
+      return {
+        id: enquiry.id,
+        user_id: enquiry.user_id,
+        user_email: user?.email || 'Unknown',
+        user_name: user?.full_name || 'Unknown User',
+        subject: enquiry.subject,
+        message: enquiry.message,
+        status: enquiry.status,
+        priority: enquiry.priority,
+        category: enquiry.category,
+        admin_notes: enquiry.admin_notes,
+        created_at: enquiry.created_at,
+        updated_at: enquiry.updated_at
+      }
+    }) || []
 
     return new NextResponse(JSON.stringify(formattedEnquiries), {
       headers: {
