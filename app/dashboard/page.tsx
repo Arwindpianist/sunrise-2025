@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye } from "lucide-react"
+import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye, UserPlus } from "lucide-react"
 import SubscriptionStatus from "@/components/subscription-status"
+import Link from "next/link"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -117,12 +118,25 @@ export default function DashboardPage() {
         <div className="mb-6 sm:mb-8">
           <Card className="bg-white/50 backdrop-blur-sm border-none shadow-lg">
             <CardContent className="pt-6 pb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                Good {getGreeting()}, {userProfile?.full_name || 'there'} 🌅
-              </h1>
-              <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Welcome back to your dashboard. Here's an overview of your events and activities.
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                    Good {getGreeting()}, {userProfile?.full_name || 'there'} 🌅
+                  </h1>
+                  <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+                    Welcome back to your dashboard. Here's an overview of your events and activities.
+                  </p>
+                </div>
+                <Link href="/dashboard/referrals">
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Refer Friends
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

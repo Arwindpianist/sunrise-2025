@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,16 @@ export default function RegisterPage() {
     agreeToTerms: false,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [referrerId, setReferrerId] = useState<string | null>(null)
+
+  // Check for referral parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const ref = urlParams.get('ref')
+    if (ref) {
+      setReferrerId(ref)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,6 +89,30 @@ export default function RegisterPage() {
         created_at: authData.user.created_at,
         email_confirmed: authData.user.email_confirmed_at
       })
+
+      // Track referral if referrerId exists
+      if (referrerId) {
+        try {
+          const response = await fetch('/api/referrals', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              referrerId: referrerId,
+              email: formData.email
+            }),
+          })
+
+          if (response.ok) {
+            console.log('Referral tracked successfully')
+          } else {
+            console.error('Failed to track referral')
+          }
+        } catch (error) {
+          console.error('Error tracking referral:', error)
+        }
+      }
 
       // Always show email confirmation message for new registrations
       // Don't auto-login even if email appears confirmed

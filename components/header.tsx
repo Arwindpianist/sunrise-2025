@@ -6,13 +6,35 @@ import { Button } from "@/components/ui/button"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { LogOut, User, Menu } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import MobileMenu from "./mobile-menu"
 
 export default function Header() {
   const pathname = usePathname()
   const { user, supabase } = useSupabase()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [user])
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user?.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -75,7 +97,7 @@ export default function Header() {
               <div className="flex items-center space-x-4">
                 {/* Hide username on mobile */}
                 <span className="hidden md:inline text-sm text-gray-600">
-                  Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  Welcome, {userProfile?.full_name || user.email?.split('@')[0]}
                 </span>
                 <Link href="/dashboard">
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500">

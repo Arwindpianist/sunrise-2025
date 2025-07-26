@@ -28,10 +28,32 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const [mounted, setMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [user])
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user?.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -185,7 +207,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <>
                 <div className="border-t border-white/20 pt-6 mt-6">
                   <p className="text-sm font-medium text-gray-900 mb-4 px-2 drop-shadow-sm">
-                    Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    Welcome, {userProfile?.full_name || user.email?.split('@')[0]}
                   </p>
                   <Link
                     href="/dashboard"

@@ -9,6 +9,35 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          email: string
+          full_name: string | null
+          subscription_plan: string
+          token_balance: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          subscription_plan?: string
+          token_balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          subscription_plan?: string
+          token_balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       contacts: {
         Row: {
           id: string
@@ -307,6 +336,35 @@ export interface Database {
           total_tokens_purchased?: number
           created_at?: string
           updated_at?: string
+        }
+      }
+      referrals: {
+        Row: {
+          id: string
+          referrer_id: string
+          referred_email: string
+          status: string
+          tokens_awarded: number
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          referrer_id: string
+          referred_email: string
+          status?: string
+          tokens_awarded?: number
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          referrer_id?: string
+          referred_email?: string
+          status?: string
+          tokens_awarded?: number
+          created_at?: string
+          completed_at?: string | null
         }
       }
     }
