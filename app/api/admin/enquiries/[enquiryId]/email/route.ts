@@ -1,9 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import nodemailer from 'nodemailer'
 
 export async function POST(
   request: Request,
@@ -71,7 +69,18 @@ export async function POST(
       )
     }
 
-    // Send email using Resend
+    // Create Zoho SMTP transporter
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.zoho.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: 'admin@sunrise-2025.com',
+        pass: process.env.ZOHO_EMAIL_PASSWORD // You'll need to set this environment variable
+      }
+    })
+
+    // Send email using Zoho
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Sunrise Support Response</h2>
@@ -102,17 +111,19 @@ export async function POST(
       </div>
     `
 
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Sunrise Support <support@sunrise.com>',
-      to: [userEmail],
+    const mailOptions = {
+      from: 'admin@sunrise-2025.com',
+      to: userEmail,
       subject: subject || `Re: ${enquiry.subject}`,
       html: emailContent,
-    })
+    }
 
-    if (emailError) {
-      console.error('Error sending email:', emailError)
+    const emailData = await transporter.sendMail(mailOptions)
+
+    if (!emailData.messageId) {
+      console.error('Error sending email: No message ID returned')
       return new NextResponse(
-        JSON.stringify({ error: 'Failed to send email', details: emailError }),
+        JSON.stringify({ error: 'Failed to send email' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -130,7 +141,7 @@ export async function POST(
 
     return new NextResponse(JSON.stringify({
       message: 'Email sent successfully',
-      emailId: emailData?.id
+      emailId: emailData.messageId
     }), {
       headers: {
         'Content-Type': 'application/json',
