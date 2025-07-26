@@ -6,7 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { LogOut, User, X } from "lucide-react"
+import { LogOut, User, X, LifeBuoy } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 
 // Custom CSS for shimmer animation
@@ -229,6 +229,27 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     <User className="h-4 w-4 mr-3 relative z-10" />
                     <span className="relative z-10">Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/help"
+                    className={`flex items-center px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+                      pathname === "/help" 
+                        ? "bg-transparent text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
+                        : "bg-white/50 backdrop-blur-md text-gray-800 hover:text-gray-900 hover:bg-white/70 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
+                    }`}
+                    onClick={onClose}
+                  >
+                    {/* Active state border */}
+                    {pathname === "/help" && (
+                      <div className="absolute inset-0 rounded-2xl border border-transparent bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-border pointer-events-none" style={{ borderWidth: '1px' }}></div>
+                    )}
+                    {/* Dynamic color border based on content - Help theme */}
+                    <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/30 via-cyan-500/30 to-teal-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    {/* Rainbow refraction effect */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 via-yellow-500/20 via-green-500/20 via-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                    <LifeBuoy className="h-4 w-4 mr-3 relative z-10" />
+                    <span className="relative z-10">Help</span>
                   </Link>
                   <button
                     onClick={handleSignOut}

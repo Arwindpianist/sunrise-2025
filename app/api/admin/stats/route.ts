@@ -221,11 +221,16 @@ async function generateRevenueData(supabase: any) {
 }
 
 async function generateSubscriptionData(supabase: any) {
-  // Get subscription distribution by tier
+  // Get subscription distribution by tier, excluding admin users
   const { data: subscriptions } = await supabase
     .from('user_subscriptions')
-    .select('tier')
+    .select(`
+      tier,
+      user_id,
+      users!inner(subscription_plan)
+    `)
     .eq('status', 'active')
+    .neq('users.subscription_plan', 'admin')
   
   const tierCounts: { [key: string]: number } = {}
   
