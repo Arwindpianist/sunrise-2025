@@ -189,13 +189,13 @@ export default function SubscriptionStatus() {
               />
               <FeatureItem 
                 icon={Users}
-                title={`${features.maxContacts} Contacts`}
+                title={features.maxContacts === -1 ? "Unlimited Contacts" : `${features.maxContacts} Contacts`}
                 enabled={true}
                 unlimited={features.maxContacts === -1}
               />
               <FeatureItem 
                 icon={Calendar}
-                title={`${features.maxEvents} Events`}
+                title={features.maxEvents === -1 ? "Unlimited Events" : `${features.maxEvents} Events`}
                 enabled={true}
                 unlimited={features.maxEvents === -1}
               />
