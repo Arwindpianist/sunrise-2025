@@ -8,16 +8,19 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import {
-  Users,
-  DollarSign,
-  MessageSquare,
+import { 
+  Users, 
+  DollarSign, 
+  MessageSquare, 
   Calendar, 
   TrendingUp, 
   AlertCircle,
   RefreshCw,
   Eye,
-  Mail
+  Mail,
+  Filter,
+  Search,
+  X
 } from 'lucide-react'
 
 interface AdminStats {
@@ -66,6 +69,13 @@ export default function AdminDashboard() {
   const [emailSubject, setEmailSubject] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    priority: 'all',
+    category: 'all'
+  })
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -220,6 +230,29 @@ export default function AdminDashboard() {
     setShowEmailModal(true)
   }
 
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      priority: 'all',
+      category: 'all'
+    })
+  }
+
+  const filteredEnquiries = enquiries.filter(enquiry => {
+    const matchesSearch = filters.search === '' || 
+      enquiry.user_name.toLowerCase().includes(filters.search.toLowerCase()) ||
+      enquiry.user_email.toLowerCase().includes(filters.search.toLowerCase()) ||
+      enquiry.subject.toLowerCase().includes(filters.search.toLowerCase()) ||
+      enquiry.message.toLowerCase().includes(filters.search.toLowerCase())
+    
+    const matchesStatus = filters.status === 'all' || enquiry.status === filters.status
+    const matchesPriority = filters.priority === 'all' || enquiry.priority === filters.priority
+    const matchesCategory = filters.category === 'all' || enquiry.category === filters.category
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesCategory
+  })
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-MY', {
       style: 'currency',
@@ -328,19 +361,150 @@ export default function AdminDashboard() {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="enquiries" className="space-y-4">
-      <Card>
-        <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  User Enquiries & Issues
-                </CardTitle>
-        </CardHeader>
-        <CardContent>
-                {enquiries.length === 0 ? (
+                    <TabsContent value="enquiries" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    User Enquiries & Issues
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className="flex items-center gap-2"
+                    >
+                      <Filter className="h-4 w-4" />
+                      Filters
+                      {Object.values(filters).some(f => f !== 'all' && f !== '') && (
+                        <Badge variant="secondary" className="ml-1">
+                          {Object.values(filters).filter(f => f !== 'all' && f !== '').length}
+                        </Badge>
+                      )}
+                    </Button>
+                    {(Object.values(filters).some(f => f !== 'all' && f !== '')) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="flex items-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filter Panel */}
+                {showFilters && (
+                  <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Search */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Search
+                        </label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={filters.search}
+                            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                            placeholder="Search names, emails, subjects..."
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Status Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Status
+                        </label>
+                        <select
+                          value={filters.status}
+                          onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="all">All Statuses</option>
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                      </div>
+
+                      {/* Priority Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Priority
+                        </label>
+                        <select
+                          value={filters.priority}
+                          onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="all">All Priorities</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                      </div>
+
+                      {/* Category Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Category
+                        </label>
+                        <select
+                          value={filters.category}
+                          onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="all">All Categories</option>
+                          <option value="general">General</option>
+                          <option value="billing">Billing</option>
+                          <option value="technical">Technical</option>
+                          <option value="feature_request">Feature Request</option>
+                          <option value="bug_report">Bug Report</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Results Summary */}
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Showing {filteredEnquiries.length} of {enquiries.length} enquiries
+                  </p>
+                  {filteredEnquiries.length !== enquiries.length && (
+                    <p className="text-sm text-blue-600">
+                      Filtered results
+                    </p>
+                  )}
+                </div>
+
+                {filteredEnquiries.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No enquiries at the moment</p>
+                    <p>
+                      {enquiries.length === 0 ? 'No enquiries at the moment' : 'No enquiries match your filters'}
+                    </p>
+                    {enquiries.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="mt-2"
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
                   </div>
                 ) : (
                                     <Table>
@@ -356,7 +520,7 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {enquiries.map((enquiry) => (
+                      {filteredEnquiries.map((enquiry) => (
                         <TableRow key={enquiry.id}>
                           <TableCell>
                             <div>
