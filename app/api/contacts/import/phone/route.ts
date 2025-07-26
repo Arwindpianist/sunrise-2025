@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { canCreateContact } from '@/lib/subscription-limits'
 
 export const dynamic = 'force-dynamic'
 
@@ -282,6 +283,46 @@ export async function POST(request: Request) {
     )
 
     const duplicateCount = uniqueContacts.length - newContacts.length
+
+    // Check contact creation limit before importing
+    if (newContacts.length > 0) {
+      const limitCheck = await canCreateContact()
+      
+      if (!limitCheck.allowed) {
+        const limitInfo = limitCheck.maxAllowed === -1 ? 'unlimited' : limitCheck.maxAllowed
+        return new NextResponse(
+          JSON.stringify({ 
+            error: `Contact limit reached. You can only create up to ${limitInfo} contacts with your current plan.`,
+            limitReached: true,
+            currentCount: limitCheck.currentCount,
+            maxAllowed: limitCheck.maxAllowed,
+            tier: limitCheck.tier
+          }),
+          { 
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Check if importing these contacts would exceed the limit
+      if (limitCheck.maxAllowed !== -1 && (limitCheck.currentCount + newContacts.length) > limitCheck.maxAllowed) {
+        const canImport = limitCheck.maxAllowed - limitCheck.currentCount
+        return new NextResponse(
+          JSON.stringify({ 
+            error: `Import would exceed contact limit. You can only import ${canImport} more contacts.`,
+            limitReached: true,
+            currentCount: limitCheck.currentCount,
+            maxAllowed: limitCheck.maxAllowed,
+            canImport
+          }),
+          { 
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
 
     // Insert contacts in batches
     const batchSize = 100

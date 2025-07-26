@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { TOKEN_TOPUPS, getTokenPrice, calculateTokenPackPrice, getTierInfo } from "@/lib/pricing"
 import SubscriptionStatus from "@/components/subscription-status"
+import { canBuyTokens, getRemainingTokenAllowance } from "@/lib/subscription"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -54,6 +55,7 @@ export default function BalancePage() {
   const [userBalance, setUserBalance] = useState(0)
   const [userTier, setUserTier] = useState<string>("free")
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [totalTokensPurchased, setTotalTokensPurchased] = useState(0)
 
   useEffect(() => {
     if (!user) {
@@ -93,7 +95,7 @@ export default function BalancePage() {
       // Fetch user subscription tier - check for any subscription first
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('user_subscriptions')
-        .select('tier, status')
+        .select('tier, status, total_tokens_purchased')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -106,6 +108,7 @@ export default function BalancePage() {
       // Use the subscription tier if it exists, otherwise check for trial
       if (subscriptionData) {
         setUserTier(subscriptionData.tier)
+        setTotalTokensPurchased(subscriptionData.total_tokens_purchased || 0)
       } else {
         // Check if user is in trial period
         const { data: profile } = await supabase.auth.getUser()
@@ -122,6 +125,7 @@ export default function BalancePage() {
         } else {
           setUserTier("free")
         }
+        setTotalTokensPurchased(0)
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -257,6 +261,29 @@ export default function BalancePage() {
   const handlePurchase = async (pack: typeof TOKEN_TOPUPS[0]) => {
     try {
       setIsLoading(true)
+
+      // Check if user can buy tokens
+      if (!canBuyTokens(userTier as any, totalTokensPurchased)) {
+        const remaining = getRemainingTokenAllowance(userTier as any, totalTokensPurchased)
+        toast({
+          title: "Token Purchase Limit Reached",
+          description: `You have reached your token purchase limit. You can only purchase ${remaining} more tokens with your current plan.`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Check if this purchase would exceed the limit
+      const remaining = getRemainingTokenAllowance(userTier as any, totalTokensPurchased)
+      if (pack.tokens > remaining) {
+        toast({
+          title: "Purchase Would Exceed Limit",
+          description: `This purchase would exceed your token limit. You can only purchase ${remaining} more tokens.`,
+          variant: "destructive",
+        })
+        return
+      }
+
       const price = calculateTokenPackPrice(pack.tokens, userTier)
       setSelectedPackage({
         tokens: pack.tokens,
