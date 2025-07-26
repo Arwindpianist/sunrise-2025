@@ -401,12 +401,23 @@ export default function BalancePage() {
                   </p>
                 )}
                 {userTier === "free" && (
-                  <Button 
-                    className="mt-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                    onClick={handleUpgradeToBasic}
-                  >
-                    Upgrade to Basic
-                  </Button>
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm font-medium text-gray-700">Choose your upgrade path:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Button 
+                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                        onClick={() => handleUpgradeToBasic()}
+                      >
+                        Basic Plan
+                      </Button>
+                      <Button 
+                        className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                        onClick={() => router.push('/pricing')}
+                      >
+                        View All Plans
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>

@@ -203,20 +203,61 @@ export default function SubscriptionStatus() {
           </div>
 
           {/* Upgrade CTA */}
-          {subscription.tier !== 'enterprise' && (
+          {subscription.tier === 'free' && (
+            <div className="pt-4 border-t">
+              <div className="space-y-3">
+                <div className="text-center mb-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Ready to unlock more features?</p>
+                  <p className="text-xs text-gray-500">Choose your upgrade path:</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => handleUpgradeClick('basic', 'Upgrade to Basic for discounted tokens and more features')}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Coins className="h-4 w-4 mr-2" />
+                    Basic Plan
+                  </Button>
+                  <Button
+                    onClick={() => handleUpgradeClick('pro', 'Upgrade to Pro for advanced features and unlimited tokens')}
+                    className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Pro Plan
+                  </Button>
+                </div>
+                <div className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open('/pricing', '_blank')}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Compare all plans →
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          {subscription.tier === 'basic' && (
             <div className="pt-4 border-t">
               <Button
-                onClick={() => handleUpgradeClick(
-                  subscription.tier === 'free' ? 'basic' : 
-                  subscription.tier === 'basic' ? 'pro' : 'enterprise',
-                  'Upgrade your subscription for more features'
-                )}
+                onClick={() => handleUpgradeClick('pro', 'Upgrade to Pro for advanced features and unlimited tokens')}
                 className={`w-full bg-gradient-to-r ${tierGradients[subscription.tier]} hover:opacity-90`}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                {subscription.tier === 'free' ? 'Upgrade to Basic' :
-                 subscription.tier === 'basic' ? 'Upgrade to Pro' :
-                 'Upgrade to Enterprise'}
+                Upgrade to Pro
+              </Button>
+            </div>
+          )}
+          {subscription.tier === 'pro' && (
+            <div className="pt-4 border-t">
+              <Button
+                onClick={() => handleUpgradeClick('enterprise', 'Upgrade to Enterprise for maximum features and support')}
+                className={`w-full bg-gradient-to-r ${tierGradients[subscription.tier]} hover:opacity-90`}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Upgrade to Enterprise
               </Button>
             </div>
           )}
