@@ -17,6 +17,13 @@ export default function ReferralsPage() {
   const [mounted, setMounted] = useState(false)
   const [referralLink, setReferralLink] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [referralStats, setReferralStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    tokensEarned: 0
+  })
+  const [referrals, setReferrals] = useState<any[]>([])
 
   useEffect(() => {
     setMounted(true)
@@ -30,8 +37,38 @@ export default function ReferralsPage() {
 
     if (user) {
       generateReferralLink()
+      fetchReferralData()
     }
   }, [user, router])
+
+  const fetchReferralData = async () => {
+    if (!user) return
+    
+    try {
+      const { data: referrals, error } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching referrals:', error)
+        return
+      }
+
+      const stats = {
+        total: referrals?.length || 0,
+        completed: referrals?.filter(r => r.status === 'completed').length || 0,
+        pending: referrals?.filter(r => r.status === 'pending').length || 0,
+        tokensEarned: referrals?.reduce((sum, r) => sum + (r.tokens_awarded || 0), 0) || 0
+      }
+
+      setReferralStats(stats)
+      setReferrals(referrals || [])
+    } catch (error) {
+      console.error('Error fetching referral data:', error)
+    }
+  }
 
   const generateReferralLink = () => {
     if (!user) return
@@ -174,7 +211,7 @@ export default function ReferralsPage() {
                 <Eye className="h-4 w-4 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
-                0
+                {referralStats.total}
               </p>
               <p className="text-sm text-gray-600 mt-1">Total Referrals</p>
             </CardContent>
@@ -187,7 +224,7 @@ export default function ReferralsPage() {
                 <Eye className="h-4 w-4 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                0
+                {referralStats.completed}
               </p>
               <p className="text-sm text-gray-600 mt-1">Completed</p>
             </CardContent>
@@ -200,7 +237,7 @@ export default function ReferralsPage() {
                 <Eye className="h-4 w-4 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
-                0
+                {referralStats.pending}
               </p>
               <p className="text-sm text-gray-600 mt-1">Pending</p>
             </CardContent>
@@ -213,7 +250,7 @@ export default function ReferralsPage() {
                 <Eye className="h-4 w-4 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                0
+                {referralStats.tokensEarned}
               </p>
               <p className="text-sm text-gray-600 mt-1">Tokens Earned</p>
             </CardContent>
@@ -229,32 +266,58 @@ export default function ReferralsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12">
-              <div className="bg-gradient-to-r from-orange-100 to-rose-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <Users className="h-10 w-10 text-orange-500" />
+            {referrals.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="bg-gradient-to-r from-orange-100 to-rose-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                  <Users className="h-10 w-10 text-orange-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">No referrals yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Share your referral link with friends to start earning tokens! Every successful referral earns you 10 tokens.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button 
+                    onClick={copyReferralLink}
+                    className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </Button>
+                  <Button 
+                    onClick={shareReferralLink}
+                    variant="outline"
+                    className="w-full sm:w-auto border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">No referrals yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Share your referral link with friends to start earning tokens! Every successful referral earns you 10 tokens.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
-                  onClick={copyReferralLink}
-                  className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Link
-                </Button>
-                <Button 
-                  onClick={shareReferralLink}
-                  variant="outline"
-                  className="w-full sm:w-auto border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
+            ) : (
+              <div className="space-y-4">
+                {referrals.map((referral: any) => (
+                  <div key={referral.id} className="flex items-center justify-between p-4 bg-white/30 rounded-lg border border-white/50">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${referral.status === 'completed' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                      <div>
+                        <p className="font-medium text-gray-900">{referral.referred_email}</p>
+                        <p className="text-sm text-gray-600">
+                          {referral.status === 'completed' ? 'Completed' : 'Pending'} • {new Date(referral.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        {referral.tokens_awarded || 0} tokens
+                      </p>
+                      <Badge variant={referral.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                        {referral.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

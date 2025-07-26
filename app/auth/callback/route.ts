@@ -64,16 +64,11 @@ export async function GET(request: Request) {
               })
               .eq('id', referral.id)
 
-            // Award tokens to the referrer
-            await supabaseAdmin
-              .from('user_balances')
-              .upsert({
-                user_id: referral.referrer_id,
-                balance: 10
-              }, {
-                onConflict: 'user_id',
-                ignoreDuplicates: false
-              })
+            // Award tokens to the referrer - increment existing balance
+            await supabaseAdmin.rpc('increment_balance', {
+              user_id: referral.referrer_id,
+              amount: 10
+            })
 
             // Create a transaction record
             await supabaseAdmin
