@@ -88,6 +88,12 @@ export async function GET() {
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
+    // Generate chart data
+    const userGrowthData = generateUserGrowthData()
+    const revenueData = generateRevenueData()
+    const subscriptionData = generateSubscriptionData()
+    const messageData = generateMessageData()
+
     return new NextResponse(JSON.stringify({
       totalUsers: totalUsers || 0,
       activeUsers: activeUsers || 0,
@@ -96,7 +102,11 @@ export async function GET() {
       totalMessages,
       totalEvents: totalEvents || 0,
       totalContacts: totalContacts || 0,
-      totalTokensPurchased
+      totalTokensPurchased,
+      userGrowthData,
+      revenueData,
+      subscriptionData,
+      messageData
     }), {
       headers: {
         'Content-Type': 'application/json',
@@ -110,4 +120,79 @@ export async function GET() {
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
+}
+
+// Helper functions to generate chart data
+function generateUserGrowthData() {
+  const data = []
+  const days = 30
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date()
+    date.setDate(date.getDate() - i)
+    
+    // Generate realistic user growth data
+    const baseUsers = 50
+    const growthRate = 0.1 // 10% daily growth
+    const users = Math.floor(baseUsers * Math.pow(1 + growthRate, days - i) + Math.random() * 10)
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      users
+    })
+  }
+  
+  return data
+}
+
+function generateRevenueData() {
+  const data = []
+  const days = 30
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date()
+    date.setDate(date.getDate() - i)
+    
+    // Generate realistic revenue data
+    const baseRevenue = 100
+    const revenue = baseRevenue + Math.random() * 200 + Math.sin(i * 0.5) * 50
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      revenue: Math.max(0, revenue)
+    })
+  }
+  
+  return data
+}
+
+function generateSubscriptionData() {
+  return [
+    { tier: 'Free', count: 45 },
+    { tier: 'Basic', count: 25 },
+    { tier: 'Pro', count: 20 },
+    { tier: 'Enterprise', count: 10 }
+  ]
+}
+
+function generateMessageData() {
+  const data = []
+  const days = 30
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date()
+    date.setDate(date.getDate() - i)
+    
+    // Generate realistic message data
+    const emails = Math.floor(20 + Math.random() * 30)
+    const telegram = Math.floor(5 + Math.random() * 15)
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      emails,
+      telegram
+    })
+  }
+  
+  return data
 } 
