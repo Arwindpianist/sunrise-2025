@@ -232,7 +232,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </Link>
                   <Link
                     href="/help"
-                    className={`flex items-center px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden ${
+                    className={`flex items-center px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden mt-3 ${
                       pathname === "/help" 
                         ? "bg-transparent text-gray-800 shadow-[0_4px_20px_rgba(255,255,255,0.2)]" 
                         : "bg-white/50 backdrop-blur-md text-gray-800 hover:text-gray-900 hover:bg-white/70 shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.3)]"
@@ -253,7 +253,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium bg-white/50 backdrop-blur-md text-red-600 hover:text-red-700 hover:bg-red-50/50 transition-all duration-300 mt-3 w-full text-left relative overflow-hidden shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,0,0,0.3)]"
+                    className="flex items-center px-5 py-4 rounded-2xl text-sm font-medium bg-white/50 backdrop-blur-md text-red-600 hover:text-red-700 hover:bg-red-50/50 transition-all duration-300 mt-4 w-full text-left relative overflow-hidden shadow-[0_4px_20px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_40px_rgba(255,0,0,0.3)]"
                   >
                     {/* Dynamic color border based on content - Sign Out theme */}
                     <div className="absolute inset-0 rounded-2xl border-2 border-transparent bg-gradient-to-r from-red-500/30 via-orange-500/30 to-yellow-500/30 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
