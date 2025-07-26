@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, CheckCircle, HelpCircle, Mail, MessageSquare, Phone, Send } from 'lucide-react'
+import { AlertCircle, CheckCircle, HelpCircle, Mail, MessageSquare, Send } from 'lucide-react'
 
 export default function HelpPage() {
   const [subject, setSubject] = useState('')
@@ -79,16 +79,18 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <HelpCircle className="h-8 w-8 text-blue-600" />
+            <div className="p-3 bg-gradient-to-r from-orange-500 to-rose-500 rounded-full">
+              <HelpCircle className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Help & Support</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent mb-4">
+            Help & Support
+          </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Need help with Sunrise? We're here to assist you. Submit an enquiry and our support team will get back to you as soon as possible.
           </p>
@@ -109,17 +111,10 @@ export default function HelpPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-blue-600" />
+                  <Mail className="h-5 w-5 text-orange-600" />
                   <div>
                     <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-gray-600">support@sunrise.com</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium">Phone Support</p>
-                    <p className="text-sm text-gray-600">+1 (555) 123-4567</p>
+                    <p className="text-sm text-gray-600">admin@sunrise-2025.com</p>
                   </div>
                 </div>
                 <div className="pt-4 border-t">
@@ -231,7 +226,7 @@ export default function HelpPage() {
                   <Button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white"
                   >
                     {isSubmitting ? (
                       <>

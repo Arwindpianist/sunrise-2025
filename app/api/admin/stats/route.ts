@@ -45,11 +45,16 @@ export async function GET() {
 
     const totalRevenue = transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0
 
-    // Get monthly recurring revenue (active subscriptions)
+    // Get monthly recurring revenue (active subscriptions, excluding admin users)
     const { data: activeSubscriptions } = await supabase
       .from('user_subscriptions')
-      .select('tier')
+      .select(`
+        tier,
+        user_id,
+        users!inner(subscription_plan)
+      `)
       .eq('status', 'active')
+      .neq('users.subscription_plan', 'admin')
 
     const monthlyRecurringRevenue = activeSubscriptions?.reduce((sum, sub) => {
       const monthlyPrice = sub.tier === 'basic' ? 9.90 : 
