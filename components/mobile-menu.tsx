@@ -230,6 +230,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     <User className="h-4 w-4 mr-3 relative z-10" />
                     <span className="relative z-10">Dashboard</span>
                   </Link>
+
                   <Link
                     href="/help"
                     className={`flex items-center px-5 py-4 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden mt-3 ${

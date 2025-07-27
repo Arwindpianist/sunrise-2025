@@ -64,6 +64,11 @@ export default function Footer() {
                   Terms of Service
               </Link>
               </li>
+              <li>
+                <Link href="/pdpa-compliance" className="text-gray-600 hover:text-orange-500">
+                  PDPA Compliance
+              </Link>
+              </li>
             </ul>
             <div className="mt-4">
               <p className="text-xs text-gray-500">

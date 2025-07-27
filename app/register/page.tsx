@@ -21,6 +21,10 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
+    consentMarketing: false,
+    consentAnalytics: false,
+    consentThirdParty: false,
+    consentDataProcessing: true, // Required for service provision
   })
   const [isLoading, setIsLoading] = useState(false)
   const [referrerId, setReferrerId] = useState<string | null>(null)
@@ -55,6 +59,15 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.consentDataProcessing) {
+      toast({
+        title: "Error",
+        description: "Data processing consent is required to provide our services",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -65,6 +78,13 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: formData.fullName,
+            consent_settings: {
+              marketing: formData.consentMarketing,
+              analytics: formData.consentAnalytics,
+              thirdParty: formData.consentThirdParty,
+              dataProcessing: formData.consentDataProcessing,
+              consentDate: new Date().toISOString(),
+            },
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -251,22 +271,77 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-orange-500 hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-orange-500 hover:underline">
-                    Privacy Policy
-                  </Link>
-                </Label>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.agreeToTerms}
+                    onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I agree to the{" "}
+                    <Link href="/terms" className="text-orange-500 hover:underline">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-orange-500 hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <h4 className="font-semibold text-blue-800 text-sm">Data Processing Consent (PDPA Compliance)</h4>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="dataProcessing"
+                      checked={formData.consentDataProcessing}
+                      onCheckedChange={(checked) => handleInputChange("consentDataProcessing", checked as boolean)}
+                    />
+                    <Label htmlFor="dataProcessing" className="text-sm text-blue-700">
+                      <strong>Required:</strong> I consent to the processing of my personal data to provide Sunrise services
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="marketing"
+                      checked={formData.consentMarketing}
+                      onCheckedChange={(checked) => handleInputChange("consentMarketing", checked as boolean)}
+                    />
+                    <Label htmlFor="marketing" className="text-sm text-blue-700">
+                      <strong>Optional:</strong> I consent to receive marketing communications and promotional emails
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="analytics"
+                      checked={formData.consentAnalytics}
+                      onCheckedChange={(checked) => handleInputChange("consentAnalytics", checked as boolean)}
+                    />
+                    <Label htmlFor="analytics" className="text-sm text-blue-700">
+                      <strong>Optional:</strong> I consent to analytics and performance monitoring to improve services
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="thirdParty"
+                      checked={formData.consentThirdParty}
+                      onCheckedChange={(checked) => handleInputChange("consentThirdParty", checked as boolean)}
+                    />
+                    <Label htmlFor="thirdParty" className="text-sm text-blue-700">
+                      <strong>Optional:</strong> I consent to data sharing with third-party service providers
+                    </Label>
+                  </div>
+
+                  <p className="text-xs text-blue-600 mt-2">
+                    You can change these consent settings anytime in your account settings. 
+                    Learn more in our <Link href="/privacy" className="underline">Privacy Policy</Link>.
+                  </p>
+                </div>
               </div>
 
               <Button

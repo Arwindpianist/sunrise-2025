@@ -1,0 +1,168 @@
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+
+export async function POST(request: Request) {
+  try {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    // Get the session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const userId = session.user.id
+    const { confirmation } = await request.json()
+
+    if (!confirmation || confirmation !== 'DELETE_MY_DATA') {
+      return new NextResponse(
+        JSON.stringify({ error: 'Confirmation required. Please type DELETE_MY_DATA to confirm.' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // Log the deletion request for audit purposes
+    console.log(`Data deletion requested for user: ${userId} at ${new Date().toISOString()}`)
+
+    // Delete all user data in the correct order to handle foreign key constraints
+    const deletionSteps = [
+      {
+        name: 'email_logs',
+        query: supabase.from('email_logs').delete().eq('user_id', userId)
+      },
+      {
+        name: 'telegram_logs',
+        query: supabase.from('telegram_logs').delete().eq('user_id', userId)
+      },
+      {
+        name: 'transactions',
+        query: supabase.from('transactions').delete().eq('user_id', userId)
+      },
+      {
+        name: 'user_balances',
+        query: supabase.from('user_balances').delete().eq('user_id', userId)
+      },
+      {
+        name: 'user_subscriptions',
+        query: supabase.from('user_subscriptions').delete().eq('user_id', userId)
+      },
+      {
+        name: 'referrals',
+        query: supabase.from('referrals').delete().eq('referrer_id', userId)
+      },
+      {
+        name: 'enquiries',
+        query: supabase.from('enquiries').delete().eq('user_id', userId)
+      },
+      {
+        name: 'contacts',
+        query: supabase.from('contacts').delete().eq('user_id', userId)
+      },
+      {
+        name: 'events',
+        query: supabase.from('events').delete().eq('user_id', userId)
+      }
+    ]
+
+    const deletionResults = []
+
+    for (const step of deletionSteps) {
+      try {
+        const { error } = await step.query
+        if (error) {
+          console.error(`Error deleting ${step.name}:`, error)
+          deletionResults.push({ table: step.name, success: false, error: error.message })
+        } else {
+          deletionResults.push({ table: step.name, success: true })
+        }
+      } catch (error: any) {
+        console.error(`Exception deleting ${step.name}:`, error)
+        deletionResults.push({ table: step.name, success: false, error: error.message })
+      }
+    }
+
+    // Check if all deletions were successful
+    const failedDeletions = deletionResults.filter(result => !result.success)
+    
+    if (failedDeletions.length > 0) {
+      console.error('Some data deletions failed:', failedDeletions)
+      return new NextResponse(
+        JSON.stringify({ 
+          error: 'Some data could not be deleted',
+          failedDeletions 
+        }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // Delete the user account
+    try {
+      const { error: deleteUserError } = await supabase.auth.admin.deleteUser(userId)
+      
+      if (deleteUserError) {
+        console.error('Error deleting user account:', deleteUserError)
+        return new NextResponse(
+          JSON.stringify({ 
+            error: 'Account deletion failed',
+            details: deleteUserError.message 
+          }),
+          { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    } catch (error: any) {
+      console.error('Exception deleting user account:', error)
+      return new NextResponse(
+        JSON.stringify({ 
+          error: 'Account deletion failed',
+          details: error.message 
+        }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // Log successful deletion
+    console.log(`User account and data successfully deleted for user: ${userId}`)
+
+    return new NextResponse(
+      JSON.stringify({ 
+        message: 'Account and all associated data have been permanently deleted',
+        deletionResults,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  } catch (error: any) {
+    console.error('Error in data deletion:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to delete data' }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  }
+} 
