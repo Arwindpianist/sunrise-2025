@@ -112,6 +112,50 @@ export default function TestWebhookPage() {
     }
   }
 
+  const runRestoreSubscription = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to restore subscription",
+        variant: "destructive",
+      })
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await fetch('/api/subscription/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: 'c68669a3-2cd0-47d3-b933-b8a4114af80b',
+          stripeSubscriptionId: 'sub_1Rq9y4PPPQtmXr4tLo1mMVFc'
+        }),
+      })
+      const result = await response.json()
+      setResults(result)
+      if (result.restoredSubscription) {
+        toast({
+          title: "Success",
+          description: `Subscription restored! Balance: ${result.restoredBalance} tokens`,
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to restore subscription",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to restore subscription",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!user) {
     return (
       <div className="container mx-auto p-6">
@@ -187,6 +231,45 @@ export default function TestWebhookPage() {
             >
               Test Token Limits
             </Button>
+          </div>
+
+          {/* Restore Subscription Section */}
+          <div className="mt-8 p-4 border border-orange-200 rounded-lg bg-orange-50">
+            <h3 className="text-lg font-semibold text-orange-800 mb-4">Restore Subscription</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    User ID
+                  </label>
+                  <input
+                    type="text"
+                    value="c68669a3-2cd0-47d3-b933-b8a4114af80b"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Stripe Subscription ID
+                  </label>
+                  <input
+                    type="text"
+                    value="sub_1Rq9y4PPPQtmXr4tLo1mMVFc"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={runRestoreSubscription} 
+                disabled={loading}
+                variant="default"
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                Restore Subscription
+              </Button>
+            </div>
           </div>
 
           <div className="mt-6 pt-6 border-t">
