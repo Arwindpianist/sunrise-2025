@@ -9,6 +9,7 @@ export interface TokenLimitInfo {
   isAtLimit: boolean
   wouldExceedLimit: boolean
   recommendedUpgrade?: SubscriptionTier
+  tokensUsed?: number // Actual tokens used for sending emails
 }
 
 export interface TokenPurchaseValidation {
@@ -21,6 +22,18 @@ export interface TokenPurchaseValidation {
 // Get token limit for a tier
 export function getTokenLimit(tier: SubscriptionTier): number {
   return SUBSCRIPTION_FEATURES[tier].maxTokens
+}
+
+// Get actual tokens used (for free tier) or purchased (for paid tiers)
+export function getTokensUsed(tier: SubscriptionTier, currentBalance: number, totalTokensPurchased: number = 0): number {
+  if (tier === 'free') {
+    // For free users, tokens used = initial balance (15) - current balance
+    const initialBalance = SUBSCRIPTION_FEATURES.free.maxTokens
+    return Math.max(0, initialBalance - currentBalance)
+  } else {
+    // For paid tiers, use totalTokensPurchased
+    return totalTokensPurchased
+  }
 }
 
 // Check if user can purchase tokens
@@ -62,14 +75,15 @@ export function canPurchaseTokens(
 }
 
 // Get detailed token limit information
-export function getTokenLimitInfo(tier: SubscriptionTier, currentBalance: number): TokenLimitInfo {
+export function getTokenLimitInfo(tier: SubscriptionTier, currentBalance: number, totalTokensPurchased: number = 0): TokenLimitInfo {
   const limit = getTokenLimit(tier)
-  const remainingTokens = limit === -1 ? -1 : Math.max(0, limit - currentBalance)
-  const percentageUsed = limit === -1 ? 0 : (currentBalance / limit) * 100
+  const tokensUsed = getTokensUsed(tier, currentBalance, totalTokensPurchased)
+  const remainingTokens = limit === -1 ? -1 : Math.max(0, limit - tokensUsed)
+  const percentageUsed = limit === -1 ? 0 : (tokensUsed / limit) * 100
   
   // Consider "near limit" when 80% or more is used
   const isNearLimit = limit !== -1 && percentageUsed >= 80
-  const isAtLimit = limit !== -1 && currentBalance >= limit
+  const isAtLimit = limit !== -1 && tokensUsed >= limit
   
   return {
     currentBalance,
@@ -79,7 +93,8 @@ export function getTokenLimitInfo(tier: SubscriptionTier, currentBalance: number
     isNearLimit,
     isAtLimit,
     wouldExceedLimit: false,
-    recommendedUpgrade: getRecommendedUpgrade(tier, currentBalance, limit)
+    recommendedUpgrade: getRecommendedUpgrade(tier, tokensUsed, limit),
+    tokensUsed
   }
 }
 

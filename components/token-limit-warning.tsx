@@ -15,13 +15,13 @@ interface TokenLimitWarningProps {
   onUpgrade?: () => void
 }
 
-export function TokenLimitWarning({ tier, currentBalance, onUpgrade }: TokenLimitWarningProps) {
+export function TokenLimitWarning({ tier, currentBalance, totalTokensPurchased = 0, onUpgrade }: TokenLimitWarningProps & { totalTokensPurchased?: number }) {
   const [limitInfo, setLimitInfo] = useState<any>(null)
 
   useEffect(() => {
-    const info = getTokenLimitInfo(tier, currentBalance)
+    const info = getTokenLimitInfo(tier, currentBalance, totalTokensPurchased)
     setLimitInfo(info)
-  }, [tier, currentBalance])
+  }, [tier, currentBalance, totalTokensPurchased])
 
   if (!limitInfo || limitInfo.currentLimit === -1) {
     return null // No limit to show
@@ -111,13 +111,13 @@ export function TokenLimitWarning({ tier, currentBalance, onUpgrade }: TokenLimi
   )
 }
 
-export function TokenLimitInfo({ tier, currentBalance }: { tier: SubscriptionTier; currentBalance: number }) {
+export function TokenLimitInfo({ tier, currentBalance, totalTokensPurchased = 0 }: { tier: SubscriptionTier; currentBalance: number; totalTokensPurchased?: number }) {
   const [limitInfo, setLimitInfo] = useState<any>(null)
 
   useEffect(() => {
-    const info = getTokenLimitInfo(tier, currentBalance)
+    const info = getTokenLimitInfo(tier, currentBalance, totalTokensPurchased)
     setLimitInfo(info)
-  }, [tier, currentBalance])
+  }, [tier, currentBalance, totalTokensPurchased])
 
   if (!limitInfo) return null
 

@@ -495,7 +495,11 @@ export default function BalancePage() {
 
         {/* Token Limit Progress */}
         <div className="mt-6 sm:mt-8">
-          <TokenLimitInfo tier={userTier as any} currentBalance={userBalance} />
+          <TokenLimitInfo 
+            tier={userTier as any} 
+            currentBalance={userBalance} 
+            totalTokensPurchased={totalTokensPurchased}
+          />
         </div>
 
         {/* Token Limit Warning */}
@@ -503,6 +507,7 @@ export default function BalancePage() {
           <TokenLimitWarning 
             tier={userTier as any} 
             currentBalance={userBalance} 
+            totalTokensPurchased={totalTokensPurchased}
             onUpgrade={() => router.push('/pricing')}
           />
         </div>

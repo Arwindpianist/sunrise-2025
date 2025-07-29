@@ -149,12 +149,17 @@ export default function SubscriptionStatus() {
           </div>
 
           {/* Token Limit Progress */}
-          <TokenLimitInfo tier={subscription.tier} currentBalance={userBalance} />
+          <TokenLimitInfo 
+            tier={subscription.tier} 
+            currentBalance={userBalance} 
+            totalTokensPurchased={subscription.totalTokensPurchased}
+          />
 
           {/* Token Limit Warning */}
           <TokenLimitWarning 
             tier={subscription.tier} 
             currentBalance={userBalance} 
+            totalTokensPurchased={subscription.totalTokensPurchased}
             onUpgrade={() => handleUpgradeClick('pro', 'Unlock unlimited tokens')}
           />
 
