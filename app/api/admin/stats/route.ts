@@ -37,31 +37,9 @@ export async function GET() {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString())
 
-    // Get total revenue from transactions
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('amount')
-      .eq('type', 'purchase')
-
-    const totalRevenue = transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0
-
-    // Get monthly recurring revenue (active subscriptions, excluding admin users)
-    const { data: activeSubscriptions } = await supabase
-      .from('user_subscriptions')
-      .select(`
-        tier,
-        user_id,
-        users!inner(subscription_plan)
-      `)
-      .eq('status', 'active')
-      .neq('users.subscription_plan', 'admin')
-
-    const monthlyRecurringRevenue = activeSubscriptions?.reduce((sum, sub) => {
-      const monthlyPrice = sub.tier === 'basic' ? 9.90 : 
-                          sub.tier === 'pro' ? 29.90 : 
-                          sub.tier === 'enterprise' ? 79.90 : 0
-      return sum + monthlyPrice
-    }, 0) || 0
+    // Get comprehensive revenue data
+    const revenueStats = await calculateRevenue(supabase)
+    const { totalRevenue, monthlyRecurringRevenue, subscriptionRevenue, tokenRevenue, totalSubscriptions } = revenueStats
 
     // Get total messages sent (email + telegram)
     const { count: emailMessages } = await supabase
@@ -101,12 +79,12 @@ export async function GET() {
     ])
     
     let userGrowthData: any[] = []
-    let revenueData: any[] = []
+    let chartRevenueData: any[] = []
     let subscriptionData: any[] = []
     let messageData: any[] = []
     
     try {
-      [userGrowthData, revenueData, subscriptionData, messageData] = await Promise.race([
+      [userGrowthData, chartRevenueData, subscriptionData, messageData] = await Promise.race([
         chartDataPromise,
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Chart data timeout')), 10000)
@@ -122,12 +100,15 @@ export async function GET() {
       activeUsers: activeUsers || 0,
       totalRevenue,
       monthlyRecurringRevenue,
+      subscriptionRevenue,
+      tokenRevenue,
+      totalSubscriptions,
       totalMessages,
       totalEvents: totalEvents || 0,
       totalContacts: totalContacts || 0,
       totalTokensPurchased,
       userGrowthData,
-      revenueData,
+      revenueData: chartRevenueData,
       subscriptionData,
       messageData
     }), {
@@ -309,5 +290,70 @@ async function generateMessageData(supabase: any) {
   } catch (error) {
     console.error('Error generating message data:', error)
     return []
+  }
+}
+
+// Comprehensive revenue calculation function
+async function calculateRevenue(supabase: any) {
+  try {
+    // Get all transactions (token purchases)
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('amount, type, created_at')
+      .eq('type', 'purchase')
+
+    // Calculate token revenue
+    const tokenRevenue = transactions?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
+
+    // Get all active subscriptions (excluding admin users)
+    const { data: activeSubscriptions } = await supabase
+      .from('user_subscriptions')
+      .select(`
+        tier,
+        user_id,
+        status,
+        created_at,
+        users!inner(subscription_plan)
+      `)
+      .eq('status', 'active')
+      .neq('users.subscription_plan', 'admin')
+
+    // Calculate subscription revenue
+    let subscriptionRevenue = 0
+    let monthlyRecurringRevenue = 0
+    const totalSubscriptions = activeSubscriptions?.length || 0
+
+    activeSubscriptions?.forEach((sub: any) => {
+      const monthlyPrice = sub.tier === 'basic' ? 9.90 : 
+                          sub.tier === 'pro' ? 29.90 : 
+                          sub.tier === 'enterprise' ? 79.90 : 0
+      
+      // Add to monthly recurring revenue
+      monthlyRecurringRevenue += monthlyPrice
+      
+      // Calculate total subscription revenue (assuming average subscription age)
+      // For now, we'll estimate based on subscription count and average price
+      subscriptionRevenue += monthlyPrice
+    })
+
+    // Calculate total revenue
+    const totalRevenue = tokenRevenue + subscriptionRevenue
+
+    return {
+      totalRevenue,
+      monthlyRecurringRevenue,
+      subscriptionRevenue,
+      tokenRevenue,
+      totalSubscriptions
+    }
+  } catch (error) {
+    console.error('Error calculating revenue:', error)
+    return {
+      totalRevenue: 0,
+      monthlyRecurringRevenue: 0,
+      subscriptionRevenue: 0,
+      tokenRevenue: 0,
+      totalSubscriptions: 0
+    }
   }
 } 

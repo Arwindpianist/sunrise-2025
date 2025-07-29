@@ -23,7 +23,8 @@ import {
   X,
   BarChart3,
   LineChart,
-  PieChart
+  PieChart,
+  Coins
 } from 'lucide-react'
 import { 
   LineChart as RechartsLineChart, 
@@ -47,6 +48,9 @@ interface AdminStats {
   activeUsers: number
   totalRevenue: number
   monthlyRecurringRevenue: number
+  subscriptionRevenue: number
+  tokenRevenue: number
+  totalSubscriptions: number
   totalMessages: number
   totalEvents: number
   totalContacts: number
@@ -363,6 +367,32 @@ export default function AdminDashboard() {
                 <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
                 <p className="text-xs text-muted-foreground">
                   {formatCurrency(stats.monthlyRecurringRevenue)} MRR
+                </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Subscription Revenue</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.subscriptionRevenue)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalSubscriptions} active subscriptions
+                </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Token Revenue</CardTitle>
+                <Coins className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.tokenRevenue)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalTokensPurchased.toLocaleString()} tokens sold
                 </p>
           </CardContent>
         </Card>
