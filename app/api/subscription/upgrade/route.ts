@@ -110,13 +110,24 @@ export async function POST(request: Request) {
         }
       )
 
+      // Safely handle Stripe timestamps
+      const getStripeDate = (timestamp: number | undefined) => {
+        if (!timestamp) return new Date().toISOString()
+        try {
+          return new Date(timestamp * 1000).toISOString()
+        } catch (error) {
+          console.warn('Invalid Stripe timestamp:', timestamp)
+          return new Date().toISOString()
+        }
+      }
+
       // Update subscription in database
       await supabase
         .from("user_subscriptions")
         .update({
           tier: tier,
-          current_period_start: new Date((updatedSubscription as any).current_period_start * 1000).toISOString(),
-          current_period_end: new Date((updatedSubscription as any).current_period_end * 1000).toISOString(),
+          current_period_start: getStripeDate((updatedSubscription as any).current_period_start),
+          current_period_end: getStripeDate((updatedSubscription as any).current_period_end),
           updated_at: new Date().toISOString()
         })
         .eq("id", currentSubscription.id)

@@ -222,14 +222,26 @@ export async function POST(request: Request) {
 
     // Update database with subscription info
     const now = new Date()
+    
+    // Safely handle Stripe timestamps
+    const getStripeDate = (timestamp: number | undefined) => {
+      if (!timestamp) return now.toISOString()
+      try {
+        return new Date(timestamp * 1000).toISOString()
+      } catch (error) {
+        console.warn('Invalid Stripe timestamp:', timestamp)
+        return now.toISOString()
+      }
+    }
+    
     const subscriptionData = {
       user_id: session.user.id,
       tier,
       status: 'active',
       stripe_customer_id: customerId,
       stripe_subscription_id: stripeSubscription.id,
-      current_period_start: new Date((stripeSubscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((stripeSubscription as any).current_period_end * 1000).toISOString(),
+      current_period_start: getStripeDate((stripeSubscription as any).current_period_start),
+      current_period_end: getStripeDate((stripeSubscription as any).current_period_end),
       total_tokens_purchased: existingSubscription?.total_tokens_purchased || 0,
       updated_at: now.toISOString()
     }

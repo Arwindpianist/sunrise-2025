@@ -85,6 +85,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       .eq('status', 'active')
       .single()
 
+    // Safely handle Stripe timestamps
+    const getStripeDate = (timestamp: number | undefined) => {
+      if (!timestamp) return new Date().toISOString()
+      try {
+        return new Date(timestamp * 1000).toISOString()
+      } catch (error) {
+        console.warn('Invalid Stripe timestamp:', timestamp)
+        return new Date().toISOString()
+      }
+    }
+
     // Create or update subscription in database
     const subscriptionData = {
       user_id: userId,
@@ -92,8 +103,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       status: 'active',
       stripe_customer_id: session.customer as string,
       stripe_subscription_id: subscription.id,
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_start: getStripeDate((subscription as any).current_period_start),
+      current_period_end: getStripeDate((subscription as any).current_period_end),
       updated_at: new Date().toISOString()
     }
 
@@ -134,12 +145,23 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
       return
     }
 
+    // Safely handle Stripe timestamps
+    const getStripeDate = (timestamp: number | undefined) => {
+      if (!timestamp) return new Date().toISOString()
+      try {
+        return new Date(timestamp * 1000).toISOString()
+      } catch (error) {
+        console.warn('Invalid Stripe timestamp:', timestamp)
+        return new Date().toISOString()
+      }
+    }
+
     // Update subscription period in database
     await supabase
       .from('user_subscriptions')
       .update({
-        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        current_period_start: getStripeDate((subscription as any).current_period_start),
+        current_period_end: getStripeDate((subscription as any).current_period_end),
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscription.id)
@@ -158,14 +180,25 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
     return
   }
 
+  // Safely handle Stripe timestamps
+  const getStripeDate = (timestamp: number | undefined) => {
+    if (!timestamp) return new Date().toISOString()
+    try {
+      return new Date(timestamp * 1000).toISOString()
+    } catch (error) {
+      console.warn('Invalid Stripe timestamp:', timestamp)
+      return new Date().toISOString()
+    }
+  }
+
   // Update subscription status in database
   await supabase
     .from('user_subscriptions')
     .update({
       tier: plan,
       status: subscription.status === 'active' ? 'active' : 'inactive',
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_start: getStripeDate((subscription as any).current_period_start),
+      current_period_end: getStripeDate((subscription as any).current_period_end),
       updated_at: new Date().toISOString()
     })
     .eq('stripe_subscription_id', subscription.id)
