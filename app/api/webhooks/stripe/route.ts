@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import Stripe from 'stripe'
@@ -10,6 +11,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// Create a Supabase client with service role key for webhook operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 export const dynamic = "force-dynamic"
 
@@ -30,24 +43,26 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
-
     // Handle the event
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, supabase)
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, supabaseAdmin)
         break
       
       case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, supabase)
+        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, supabaseAdmin)
+        break
+      
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabaseAdmin)
         break
       
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabase)
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabaseAdmin)
         break
       
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabase)
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabaseAdmin)
         break
       
       default:
@@ -167,6 +182,29 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
 
     // Credit monthly tokens for regular billing cycle
     await creditMonthlyTokens(userId, plan, supabase)
+  }
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any) {
+  if ((invoice as any).subscription) {
+    const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string) as Stripe.Subscription
+    const userId = subscription.metadata?.user_id
+
+    if (!userId) {
+      console.error('Missing user_id in subscription metadata')
+      return
+    }
+
+    console.log(`Payment failed for subscription ${subscription.id}, user ${userId}`)
+
+    // Update subscription status to reflect payment failure
+    await supabase
+      .from('user_subscriptions')
+      .update({
+        status: 'payment_failed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('stripe_subscription_id', subscription.id)
   }
 }
 
