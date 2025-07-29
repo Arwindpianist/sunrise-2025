@@ -2,6 +2,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
+import { getPlanChangeInfo, isPlanUpgrade } from "@/lib/billing-utils"
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -74,17 +75,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if user already has a Stripe customer
+    // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
       .from("user_subscriptions")
-      .select("stripe_customer_id, stripe_subscription_id, id")
+      .select("stripe_customer_id, stripe_subscription_id, tier, current_period_start, current_period_end, id")
       .eq("user_id", session.user.id)
+      .eq("status", "active")
       .single()
 
     let customerId = existingSubscription?.stripe_customer_id
+    let isUpgrade = false
+    let planChangeInfo = null
 
     if (!customerId) {
-      // Create Stripe customer
+      // Create Stripe customer for new subscription
       const customer = await stripe.customers.create({
         email: userData.email,
         metadata: {
@@ -92,40 +96,71 @@ export async function POST(request: Request) {
         },
       })
       customerId = customer.id
+    } else if (existingSubscription && existingSubscription.tier !== tier) {
+      // This is a plan change
+      isUpgrade = isPlanUpgrade(existingSubscription.tier as SubscriptionTier, tier as SubscriptionTier)
+      planChangeInfo = getPlanChangeInfo(
+        existingSubscription.tier as SubscriptionTier,
+        tier as SubscriptionTier,
+        existingSubscription.current_period_start,
+        existingSubscription.current_period_end
+      )
     }
 
     // Get the base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sunrise-2025.com'
 
-    // Create Stripe checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
+    // Prepare checkout session parameters
+    const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
       mode: 'subscription',
       success_url: `${baseUrl}/dashboard/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       metadata: {
         user_id: session.user.id,
         plan: tier,
+        is_upgrade: isUpgrade.toString(),
+        from_tier: existingSubscription?.tier || 'free',
       },
       subscription_data: {
         metadata: {
           user_id: session.user.id,
           plan: tier,
+          is_upgrade: isUpgrade.toString(),
+          from_tier: existingSubscription?.tier || 'free',
         },
       },
-    })
+    }
+
+    if (isUpgrade && existingSubscription?.stripe_subscription_id) {
+      // Handle upgrade with proration - use subscription update instead
+      // For upgrades, we'll handle this differently in the webhook
+      checkoutParams.line_items = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ]
+    } else {
+      // New subscription or downgrade
+      checkoutParams.line_items = [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ]
+    }
+
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create(checkoutParams)
 
     return new NextResponse(
       JSON.stringify({ 
         sessionId: checkoutSession.id,
-        url: checkoutSession.url 
+        url: checkoutSession.url,
+        isUpgrade,
+        planChangeInfo
       }),
       { 
         status: 200,

@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import Stripe from 'stripe'
 import { SUBSCRIPTION_FEATURES } from "@/lib/subscription"
+import { getPlanChangeInfo, calculateProratedTokens } from "@/lib/billing-utils"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
@@ -68,11 +69,21 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription
     const userId = session.metadata?.user_id
     const plan = session.metadata?.plan
+    const isUpgrade = session.metadata?.is_upgrade === 'true'
+    const fromTier = session.metadata?.from_tier || 'free'
 
     if (!userId || !plan) {
       console.error('Missing user_id or plan in session metadata')
       return
     }
+
+    // Get existing subscription data
+    const { data: existingSubscription } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single()
 
     // Create or update subscription in database
     const subscriptionData = {
@@ -85,12 +96,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString()
     }
-
-    const { data: existingSubscription } = await supabase
-      .from('user_subscriptions')
-      .select('id')
-      .eq('user_id', userId)
-      .single()
 
     if (existingSubscription) {
       // Update existing subscription
@@ -108,8 +113,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
         })
     }
 
-    // Credit initial monthly tokens
-    await creditMonthlyTokens(userId, plan, supabase)
+    // Handle token allocation based on whether this is an upgrade or new subscription
+    if (isUpgrade && existingSubscription) {
+      await handlePlanChangeTokens(userId, fromTier, plan, existingSubscription, supabase)
+    } else {
+      // Credit initial monthly tokens for new subscription
+      await creditMonthlyTokens(userId, plan, supabase)
+    }
   }
 }
 
@@ -134,7 +144,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
       })
       .eq('stripe_subscription_id', subscription.id)
 
-    // Credit monthly tokens
+    // Credit monthly tokens for regular billing cycle
     await creditMonthlyTokens(userId, plan, supabase)
   }
 }
@@ -177,6 +187,83 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
       updated_at: new Date().toISOString()
     })
     .eq('stripe_subscription_id', subscription.id)
+}
+
+async function handlePlanChangeTokens(
+  userId: string, 
+  fromTier: string, 
+  toTier: string, 
+  existingSubscription: any, 
+  supabase: any
+) {
+  try {
+    // Calculate prorated token allocation
+    const planChangeInfo = getPlanChangeInfo(
+      fromTier as any,
+      toTier as any,
+      existingSubscription.current_period_start,
+      existingSubscription.current_period_end
+    )
+
+    const proratedTokens = calculateProratedTokens(
+      fromTier as any,
+      toTier as any,
+      planChangeInfo.prorationInfo
+    )
+
+    if (proratedTokens !== 0) {
+      // Get current balance
+      const { data: balanceData, error: balanceError } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single()
+
+      if (balanceError && balanceError.code !== 'PGRST116') {
+        console.error('Error fetching user balance:', balanceError)
+        return
+      }
+
+      const currentBalance = balanceData?.balance || 0
+      const newBalance = currentBalance + proratedTokens
+
+      // Update user balance
+      const { error: updateError } = await supabase
+        .from('user_balances')
+        .upsert({
+          user_id: userId,
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+
+      if (updateError) {
+        console.error('Error updating user balance:', updateError)
+        return
+      }
+
+      // Record transaction
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: userId,
+          type: proratedTokens > 0 ? 'upgrade_credit' : 'downgrade_debit',
+          amount: Math.abs(proratedTokens),
+          description: proratedTokens > 0 
+            ? `Plan upgrade: ${fromTier} → ${toTier} (${planChangeInfo.prorationInfo.daysRemaining} days remaining)`
+            : `Plan downgrade: ${fromTier} → ${toTier} (${planChangeInfo.prorationInfo.daysRemaining} days remaining)`,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        })
+
+      if (transactionError) {
+        console.error('Error recording transaction:', transactionError)
+      }
+
+      console.log(`Plan change tokens processed: ${proratedTokens} tokens for user ${userId} (${fromTier} → ${toTier})`)
+    }
+  } catch (error) {
+    console.error('Error handling plan change tokens:', error)
+  }
 }
 
 async function creditMonthlyTokens(userId: string, plan: string, supabase: any) {

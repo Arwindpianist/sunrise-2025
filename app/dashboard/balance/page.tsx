@@ -18,6 +18,7 @@ import {
 import { TOKEN_TOPUPS, getTokenPrice, calculateTokenPackPrice, getTierInfo } from "@/lib/pricing"
 import SubscriptionStatus from "@/components/subscription-status"
 import { canBuyTokens, getRemainingTokenAllowance } from "@/lib/subscription"
+import { getPlanChangeInfo, isPlanUpgrade, formatProrationInfo } from "@/lib/billing-utils"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -56,6 +57,7 @@ export default function BalancePage() {
   const [userTier, setUserTier] = useState<string>("free")
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [totalTokensPurchased, setTotalTokensPurchased] = useState(0)
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null)
 
   useEffect(() => {
     if (!user) {
@@ -95,7 +97,7 @@ export default function BalancePage() {
       // Fetch user subscription tier - check for any subscription first
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('user_subscriptions')
-        .select('tier, status, total_tokens_purchased')
+        .select('tier, status, total_tokens_purchased, current_period_start, current_period_end')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -109,6 +111,7 @@ export default function BalancePage() {
       if (subscriptionData) {
         setUserTier(subscriptionData.tier)
         setTotalTokensPurchased(subscriptionData.total_tokens_purchased || 0)
+        setCurrentSubscription(subscriptionData)
       } else {
         // Check if user is in trial period
         const { data: profile } = await supabase.auth.getUser()
@@ -126,6 +129,7 @@ export default function BalancePage() {
           setUserTier("free")
         }
         setTotalTokensPurchased(0)
+        setCurrentSubscription(null)
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -255,6 +259,24 @@ export default function BalancePage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const getUpgradeRecommendation = () => {
+    if (!currentSubscription || userTier === 'enterprise') return null
+    
+    const nextTier = userTier === 'free' ? 'basic' : userTier === 'basic' ? 'pro' : 'enterprise'
+    const planChangeInfo = getPlanChangeInfo(
+      userTier as any,
+      nextTier as any,
+      currentSubscription.current_period_start,
+      currentSubscription.current_period_end
+    )
+    
+    return {
+      nextTier,
+      planChangeInfo,
+      currentTier: userTier
     }
   }
 
@@ -455,6 +477,46 @@ export default function BalancePage() {
         <div className="mt-6 sm:mt-8">
           <SubscriptionStatus />
         </div>
+
+        {/* Upgrade Recommendation */}
+        {(() => {
+          const upgradeRec = getUpgradeRecommendation()
+          if (!upgradeRec) return null
+          
+          return (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 mt-6 sm:mt-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <TrendingUp className="h-5 w-5" />
+                  Upgrade Recommendation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-900">
+                        Upgrade to {upgradeRec.nextTier.charAt(0).toUpperCase() + upgradeRec.nextTier.slice(1)}
+                      </h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        {formatProrationInfo(upgradeRec.planChangeInfo.prorationInfo)}
+                      </p>
+                      <p className="text-sm font-medium text-blue-800 mt-2">
+                        +{upgradeRec.planChangeInfo.prorationInfo.proratedTokens} tokens for remaining period
+                      </p>
+                    </div>
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => router.push('/pricing')}
+                    >
+                      Upgrade Now
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })()}
 
         {/* Recent Transactions */}
         <Card className="bg-white/50 backdrop-blur-sm mt-6 sm:mt-8">

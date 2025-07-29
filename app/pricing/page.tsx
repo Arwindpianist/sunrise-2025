@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Check, Coins, Zap, Crown, Building } from "lucide-react"
+import { Check, Coins, Zap, Crown, Building, Info } from "lucide-react"
 import { SUBSCRIPTION_PLANS, TOKEN_TOPUPS, calculateTokenPackPrice, getTokenPriceDisplay } from "@/lib/pricing"
+import { getPlanChangeInfo, isPlanUpgrade, formatProrationInfo } from "@/lib/billing-utils"
+import { toast } from "@/components/ui/use-toast"
 
 // Add icons to subscription plans
 const SUBSCRIPTION_PLANS_WITH_ICONS = SUBSCRIPTION_PLANS.map((plan) => {
@@ -22,6 +24,8 @@ export default function PricingPage() {
   const { user, supabase } = useSupabase()
   const [mounted, setMounted] = useState(false)
   const [userTier, setUserTier] = useState<string>("free")
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -34,20 +38,24 @@ export default function PricingPage() {
     try {
       const { data, error } = await supabase
         .from('user_subscriptions')
-        .select('tier, status')
+        .select('tier, status, current_period_start, current_period_end')
         .eq('user_id', user?.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
 
       if (!error && data) {
         setUserTier(data.tier || "free")
+        setCurrentSubscription(data)
       } else {
         setUserTier("free")
+        setCurrentSubscription(null)
       }
     } catch (error) {
       console.error('Error fetching user tier:', error)
       setUserTier("free")
+      setCurrentSubscription(null)
     }
   }
 
@@ -57,14 +65,48 @@ export default function PricingPage() {
       return
     }
 
+    setLoading(true)
+
     try {
-      // Create Stripe checkout session
+      const planTier = plan.toLowerCase()
+      
+      // Check if this is an upgrade
+      if (currentSubscription && isPlanUpgrade(userTier as any, planTier as any)) {
+        // Handle upgrade with proration
+        const response = await fetch('/api/subscription/upgrade', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tier: planTier }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to upgrade subscription')
+        }
+
+        const result = await response.json()
+        
+        // Show success message with proration info
+        toast({
+          title: "Upgrade Successful!",
+          description: `Your plan has been upgraded to ${plan}. ${result.planChangeInfo.prorationInfo}`,
+        })
+
+        // Refresh user data
+        await fetchUserTier()
+        setLoading(false)
+        return
+      }
+
+      // Create new subscription
       const response = await fetch('/api/subscription/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tier: plan.toLowerCase() }),
+        body: JSON.stringify({ tier: planTier }),
       })
 
       if (!response.ok) {
@@ -77,15 +119,46 @@ export default function PricingPage() {
       if (url) {
         window.location.href = url
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating subscription:', error)
-      // Fallback to balance page
-      router.push('/dashboard/balance')
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process subscription",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleBuyTokens = () => {
     router.push('/dashboard/balance')
+  }
+
+  const getProrationInfo = (planTier: string) => {
+    if (!currentSubscription || !isPlanUpgrade(userTier as any, planTier as any)) {
+      return null
+    }
+
+    try {
+      const planChangeInfo = getPlanChangeInfo(
+        userTier as any,
+        planTier as any,
+        currentSubscription.current_period_start,
+        currentSubscription.current_period_end
+      )
+      return planChangeInfo
+    } catch (error) {
+      console.error('Error calculating proration:', error)
+      return null
+    }
+  }
+
+  const getButtonText = (plan: string) => {
+    if (!user) return "Get Started"
+    if (userTier === plan.toLowerCase()) return "Current Plan"
+    if (isPlanUpgrade(userTier as any, plan.toLowerCase() as any)) return "Upgrade"
+    return "Change Plan"
   }
 
   if (!mounted) {
@@ -166,16 +239,46 @@ export default function PricingPage() {
                         </li>
                       ))}
                     </ul>
-                    <Button
-                      className={`w-full h-12 text-base font-medium ${
-                        plan.popular
-                          ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
-                          : "bg-gray-800 hover:bg-gray-900"
-                      }`}
-                      onClick={() => handleGetStarted(plan.name)}
-                    >
-                      {user ? "Upgrade Now" : "Get Started"}
-                    </Button>
+                    {(() => {
+                      const planTier = plan.name.toLowerCase()
+                      const prorationInfo = getProrationInfo(planTier)
+                      const buttonText = getButtonText(plan.name)
+                      const isCurrentPlan = userTier === planTier
+                      const isUpgrade = isPlanUpgrade(userTier as any, planTier as any)
+                      
+                      return (
+                        <div className="space-y-3">
+                          {prorationInfo && (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div className="text-sm">
+                                  <p className="font-medium text-blue-800">Prorated Upgrade</p>
+                                  <p className="text-blue-700">{formatProrationInfo(prorationInfo.prorationInfo)}</p>
+                                  <p className="text-blue-700 font-medium">
+                                    +{prorationInfo.prorationInfo.proratedTokens} tokens for remaining period
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <Button
+                            className={`w-full h-12 text-base font-medium ${
+                              isCurrentPlan
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : plan.popular
+                                ? "bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                                : "bg-gray-800 hover:bg-gray-900"
+                            }`}
+                            onClick={() => !isCurrentPlan && handleGetStarted(plan.name)}
+                            disabled={isCurrentPlan || loading}
+                          >
+                            {loading ? "Processing..." : buttonText}
+                          </Button>
+                        </div>
+                      )
+                    })()}
                   </CardContent>
                 </Card>
               )
