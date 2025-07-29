@@ -171,17 +171,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if user already has a Stripe customer
+    // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
       .from("user_subscriptions")
-      .select("stripe_customer_id, stripe_subscription_id, total_tokens_purchased, id")
+      .select("stripe_subscription_id, total_tokens_purchased, id")
       .eq("user_id", session.user.id)
       .single()
 
-    let customerId = existingSubscription?.stripe_customer_id
-
-    if (!customerId) {
-      // Create Stripe customer
+    // Create or get Stripe customer
+    let customerId: string
+    if (existingSubscription?.stripe_subscription_id) {
+      // Get customer from existing subscription
+      const existingStripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id)
+      customerId = existingStripeSubscription.customer as string
+    } else {
+      // Create new Stripe customer
       const customer = await stripe.customers.create({
         email: userData.email,
         metadata: {
@@ -238,7 +242,6 @@ export async function POST(request: Request) {
       user_id: session.user.id,
       tier,
       status: 'active',
-      stripe_customer_id: customerId,
       stripe_subscription_id: stripeSubscription.id,
       current_period_start: getStripeDate((stripeSubscription as any).current_period_start),
       current_period_end: getStripeDate((stripeSubscription as any).current_period_end),

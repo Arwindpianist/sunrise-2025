@@ -78,17 +78,32 @@ export async function POST(request: Request) {
     // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
       .from("user_subscriptions")
-      .select("stripe_customer_id, stripe_subscription_id, tier, current_period_start, current_period_end, id")
+      .select("stripe_subscription_id, tier, current_period_start, current_period_end, id")
       .eq("user_id", session.user.id)
       .eq("status", "active")
       .single()
 
-    let customerId = existingSubscription?.stripe_customer_id
+    let customerId: string
     let isUpgrade = false
     let planChangeInfo = null
 
-    if (!customerId) {
-      // Create Stripe customer for new subscription
+    if (existingSubscription?.stripe_subscription_id) {
+      // Get customer from existing subscription
+      const existingStripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id)
+      customerId = existingStripeSubscription.customer as string
+      
+      if (existingSubscription.tier !== tier) {
+        // This is a plan change
+        isUpgrade = isPlanUpgrade(existingSubscription.tier as SubscriptionTier, tier as SubscriptionTier)
+        planChangeInfo = getPlanChangeInfo(
+          existingSubscription.tier as SubscriptionTier,
+          tier as SubscriptionTier,
+          existingSubscription.current_period_start,
+          existingSubscription.current_period_end
+        )
+      }
+    } else {
+      // Create new Stripe customer for new subscription
       const customer = await stripe.customers.create({
         email: userData.email,
         metadata: {
@@ -96,15 +111,6 @@ export async function POST(request: Request) {
         },
       })
       customerId = customer.id
-    } else if (existingSubscription && existingSubscription.tier !== tier) {
-      // This is a plan change
-      isUpgrade = isPlanUpgrade(existingSubscription.tier as SubscriptionTier, tier as SubscriptionTier)
-      planChangeInfo = getPlanChangeInfo(
-        existingSubscription.tier as SubscriptionTier,
-        tier as SubscriptionTier,
-        existingSubscription.current_period_start,
-        existingSubscription.current_period_end
-      )
     }
 
     // Get the base URL for redirects
