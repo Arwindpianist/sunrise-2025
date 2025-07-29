@@ -79,7 +79,6 @@ export async function POST(request: Request) {
         user_id: userId,
         type: 'purchase',
         amount: totalCost,
-        tokens: amount,
         description: `Token purchase: ${amount} tokens`,
         status: 'completed',
         created_at: new Date().toISOString()

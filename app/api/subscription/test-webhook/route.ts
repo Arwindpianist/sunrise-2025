@@ -135,8 +135,7 @@ export async function POST(request: Request) {
               user_id: userId,
               type: 'purchase',
               amount: purchaseAmount,
-              tokens: purchaseTokens,
-              description: 'Test token purchase',
+              description: `Test token purchase: ${purchaseTokens} tokens`,
               status: 'completed',
               created_at: new Date().toISOString()
             })
@@ -155,41 +154,67 @@ export async function POST(request: Request) {
         // Test token limit enforcement
         const currentTier = currentSubscription?.tier || 'free'
         const tierLimits = {
-          free: 50,
+          free: 15,
           basic: 100,
-          pro: 500,
-          enterprise: 1000
+          pro: -1, // Unlimited
+          enterprise: -1 // Unlimited
         }
         const currentLimit = tierLimits[currentTier as keyof typeof tierLimits] || 0
         
-        // Try to purchase more tokens than allowed
-        const overLimitTokens = currentLimit + 50
-        const overLimitAmount = overLimitTokens * 0.45 // Basic token price
+        result.actions.push(`Testing token limit for ${currentTier} tier (limit: ${currentLimit === -1 ? 'Unlimited' : currentLimit})`)
+        result.actions.push(`Current balance: ${currentBalance} tokens`)
         
-        result.actions.push(`Testing token limit for ${currentTier} tier (limit: ${currentLimit})`)
-        result.actions.push(`Attempting to purchase ${overLimitTokens} tokens (${overLimitTokens - currentLimit} over limit)`)
-        
-        // Check if this would exceed the limit
-        const wouldExceed = (currentBalance + overLimitTokens) > currentLimit
-        
-        if (wouldExceed) {
-          result.actions.push(`❌ Would exceed limit by ${(currentBalance + overLimitTokens) - currentLimit} tokens`)
+        // Check if unlimited tier
+        if (currentLimit === -1) {
+          result.actions.push(`✅ Unlimited tier - no token limits apply`)
           result.limitTest = {
             currentTier,
             currentBalance,
-            currentLimit,
-            attemptedPurchase: overLimitTokens,
-            wouldExceed: true,
-            overBy: (currentBalance + overLimitTokens) - currentLimit
+            currentLimit: 'Unlimited',
+            isUnlimited: true
           }
         } else {
-          result.actions.push(`✅ Purchase would be within limits`)
-          result.limitTest = {
-            currentTier,
-            currentBalance,
-            currentLimit,
-            attemptedPurchase: overLimitTokens,
-            wouldExceed: false
+          // Check current status for limited tiers
+          if (currentBalance >= currentLimit) {
+            result.actions.push(`❌ Already at or over limit! Current balance (${currentBalance}) >= Limit (${currentLimit})`)
+            result.limitTest = {
+              currentTier,
+              currentBalance,
+              currentLimit,
+              isOverLimit: true,
+              overBy: currentBalance - currentLimit
+            }
+          } else {
+            // Try to purchase tokens that would exceed the limit
+            const remainingSpace = currentLimit - currentBalance
+            const overLimitTokens = remainingSpace + 50
+            
+            result.actions.push(`Remaining space: ${remainingSpace} tokens`)
+            result.actions.push(`Attempting to purchase ${overLimitTokens} tokens (would exceed by ${overLimitTokens - remainingSpace} tokens)`)
+            
+            // Check if this would exceed the limit
+            const wouldExceed = (currentBalance + overLimitTokens) > currentLimit
+            
+            if (wouldExceed) {
+              result.actions.push(`❌ Would exceed limit by ${(currentBalance + overLimitTokens) - currentLimit} tokens`)
+              result.limitTest = {
+                currentTier,
+                currentBalance,
+                currentLimit,
+                attemptedPurchase: overLimitTokens,
+                wouldExceed: true,
+                overBy: (currentBalance + overLimitTokens) - currentLimit
+              }
+            } else {
+              result.actions.push(`✅ Purchase would be within limits`)
+              result.limitTest = {
+                currentTier,
+                currentBalance,
+                currentLimit,
+                attemptedPurchase: overLimitTokens,
+                wouldExceed: false
+              }
+            }
           }
         }
         
