@@ -54,6 +54,16 @@ async function getUserSubscriptionTier(supabase: any, userId: string): Promise<S
   }
 }
 
+// Validate that the returned tier is valid
+function validateSubscriptionTier(tier: any): SubscriptionTier {
+  const validTiers: SubscriptionTier[] = ['free', 'basic', 'pro', 'enterprise']
+  if (validTiers.includes(tier)) {
+    return tier
+  }
+  console.error('Invalid subscription tier returned:', tier, 'defaulting to free')
+  return 'free'
+}
+
 export async function GET(request: Request) {
   try {
     const cookieStore = cookies()
@@ -102,7 +112,15 @@ export async function GET(request: Request) {
       )
     }
 
-    const tier = await getUserSubscriptionTier(supabase, session.user.id)
+    const tier = validateSubscriptionTier(await getUserSubscriptionTier(supabase, session.user.id))
+    
+    console.log('Subscription limits check:', {
+      userId: session.user.id,
+      tier,
+      type,
+      availableTiers: Object.keys(SUBSCRIPTION_FEATURES),
+      tierFeatures: SUBSCRIPTION_FEATURES[tier]
+    })
     
     // Get current count
     const tableName = type === 'contacts' ? 'contacts' : 'events'
@@ -115,6 +133,20 @@ export async function GET(request: Request) {
       console.error(`Error counting ${type}:`, error)
       return new NextResponse(
         JSON.stringify({ error: `Failed to count ${type}` }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    // Validate that the tier exists in SUBSCRIPTION_FEATURES
+    if (!SUBSCRIPTION_FEATURES[tier]) {
+      console.error('Invalid subscription tier:', tier)
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid subscription tier' }),
         { 
           status: 500,
           headers: {
