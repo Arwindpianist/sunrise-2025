@@ -16,6 +16,7 @@ interface UseSubscriptionReturn {
   subscription: SubscriptionInfo | null
   loading: boolean
   error: string | null
+  userBalance: number
   canUseTelegram: boolean
   canCustomizeTemplates: boolean
   canUseCustomBranding: boolean
@@ -28,6 +29,7 @@ interface UseSubscriptionReturn {
 
 export function useSubscription(): UseSubscriptionReturn {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
+  const [userBalance, setUserBalance] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +38,7 @@ export function useSubscription(): UseSubscriptionReturn {
       setLoading(true)
       setError(null)
       
+      // Fetch subscription data
       const response = await fetch('/api/subscription')
       if (!response.ok) {
         throw new Error('Failed to fetch subscription')
@@ -59,6 +62,18 @@ export function useSubscription(): UseSubscriptionReturn {
       }
       
       setSubscription(validatedData)
+
+      // Fetch user balance
+      try {
+        const balanceResponse = await fetch('/api/user/balance')
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json()
+          setUserBalance(balanceData.balance || 0)
+        }
+      } catch (balanceError) {
+        console.error('Error fetching user balance:', balanceError)
+        setUserBalance(0)
+      }
     } catch (err: any) {
       console.error('Error fetching subscription:', err)
       setError(err.message)
@@ -69,6 +84,7 @@ export function useSubscription(): UseSubscriptionReturn {
         features: SUBSCRIPTION_FEATURES.free,
         totalTokensPurchased: 0
       })
+      setUserBalance(0)
     } finally {
       setLoading(false)
     }
@@ -122,6 +138,7 @@ export function useSubscription(): UseSubscriptionReturn {
     subscription,
     loading,
     error,
+    userBalance,
     canUseTelegram,
     canCustomizeTemplates,
     canUseCustomBranding,

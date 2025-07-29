@@ -22,6 +22,7 @@ import {
 import { useSubscription } from "@/lib/use-subscription"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import UpgradeModal from "./upgrade-modal"
+import { TokenLimitInfo, TokenLimitWarning } from "@/components/token-limit-warning"
 
 const tierIcons = {
   free: User,
@@ -48,6 +49,7 @@ export default function SubscriptionStatus() {
   const { 
     subscription, 
     loading, 
+    userBalance,
     canUseTelegram, 
     canCustomizeTemplates, 
     canUseCustomBranding,
@@ -146,24 +148,15 @@ export default function SubscriptionStatus() {
             </div>
           </div>
 
-          {/* Token Allowance (for Basic tier) */}
-          {subscription.tier === 'basic' && remainingTokenAllowance >= 0 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Lifetime Token Allowance</span>
-                <span className="font-medium">
-                  {SUBSCRIPTION_FEATURES.basic.maxTokens - subscription.totalTokensPurchased} remaining
-                </span>
-              </div>
-              <Progress 
-                value={(subscription.totalTokensPurchased / SUBSCRIPTION_FEATURES.basic.maxTokens) * 100} 
-                className="h-2"
-              />
-              <p className="text-xs text-gray-500">
-                {subscription.totalTokensPurchased} of {SUBSCRIPTION_FEATURES.basic.maxTokens} tokens used
-              </p>
-            </div>
-          )}
+          {/* Token Limit Progress */}
+          <TokenLimitInfo tier={subscription.tier} currentBalance={userBalance} />
+
+          {/* Token Limit Warning */}
+          <TokenLimitWarning 
+            tier={subscription.tier} 
+            currentBalance={userBalance} 
+            onUpgrade={() => handleUpgradeClick('pro', 'Unlock unlimited tokens')}
+          />
 
           {/* Feature Status */}
           <div className="space-y-3">
