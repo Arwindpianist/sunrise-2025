@@ -19,6 +19,7 @@ import { TOKEN_TOPUPS, getTokenPrice, calculateTokenPackPrice, getTierInfo } fro
 import SubscriptionStatus from "@/components/subscription-status"
 import { canBuyTokens, getRemainingTokenAllowance } from "@/lib/subscription"
 import { getPlanChangeInfo, isPlanUpgrade, formatProrationInfo } from "@/lib/billing-utils"
+import { TokenLimitInfo, TokenLimitWarning } from "@/components/token-limit-warning"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -79,6 +80,11 @@ export default function BalancePage() {
       if (success === 'true' && sessionId) {
         handleSubscriptionSuccess(sessionId)
       }
+
+      // Set up auto-refresh every 30 seconds to keep balance updated
+      const refreshInterval = setInterval(refreshUserData, 30000)
+      
+      return () => clearInterval(refreshInterval)
     }
   }, [user, router])
 
@@ -175,6 +181,11 @@ export default function BalancePage() {
     } catch (error) {
       console.error('Error handling subscription success:', error)
     }
+  }
+
+  const refreshUserData = async () => {
+    await fetchUserData()
+    await fetchTransactions()
   }
 
   const handleUpgradeToBasic = async () => {
@@ -480,6 +491,20 @@ export default function BalancePage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Token Limit Progress */}
+        <div className="mt-6 sm:mt-8">
+          <TokenLimitInfo tier={userTier as any} currentBalance={userBalance} />
+        </div>
+
+        {/* Token Limit Warning */}
+        <div className="mt-6 sm:mt-8">
+          <TokenLimitWarning 
+            tier={userTier as any} 
+            currentBalance={userBalance} 
+            onUpgrade={() => router.push('/pricing')}
+          />
         </div>
 
         {/* Subscription Status */}

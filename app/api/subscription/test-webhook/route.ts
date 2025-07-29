@@ -110,8 +110,8 @@ export async function POST(request: Request) {
 
       case 'test_token_purchase':
         // Test token purchase functionality
-        const purchaseAmount = 50
-        const purchaseTokens = 100
+        const purchaseAmount = 25
+        const purchaseTokens = 50
         const newBalanceAfterPurchase = currentBalance + purchaseTokens
         
         // Update balance
