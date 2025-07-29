@@ -64,11 +64,20 @@ function LoginForm() {
       })
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        })
+        // Check if the error is related to email confirmation
+        if (error.message.includes('Email not confirmed') || error.message.includes('email not confirmed')) {
+          toast({
+            title: "Email Not Confirmed",
+            description: "Please check your email and click the confirmation link before signing in. If you don't see the email, check your spam folder.",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          })
+        }
         return
       }
 
