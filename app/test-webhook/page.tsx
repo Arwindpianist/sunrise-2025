@@ -62,6 +62,56 @@ export default function TestWebhookPage() {
     }
   }
 
+  const runReset = async () => {
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to reset your account",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/subscription/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id
+        }),
+      })
+
+      const result = await response.json()
+      setResults(result)
+
+      if (result.success) {
+        toast({
+          title: "Reset Successful!",
+          description: `Successfully reset: ${result.actions.join(', ')}`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Reset Failed",
+          description: result.error || "Unknown error occurred",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Reset error:', error)
+      toast({
+        title: "Reset Error",
+        description: "Failed to reset account",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!user) {
     return (
       <div className="container mx-auto p-6">
@@ -120,6 +170,20 @@ export default function TestWebhookPage() {
               variant="default"
             >
               Full Test (Create + Credit)
+            </Button>
+          </div>
+
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-semibold mb-4">Reset for Real Testing</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Reset your account to free tier with 15 tokens to test real subscription purchases.
+            </p>
+            <Button 
+              onClick={() => runReset()} 
+              disabled={loading}
+              variant="destructive"
+            >
+              Reset to Free Tier (15 tokens)
             </Button>
           </div>
         </CardContent>
