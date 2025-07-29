@@ -58,6 +58,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // Prevent free users from using upgrade endpoint
+    if (currentSubscription.tier === 'free') {
+      return new NextResponse(
+        JSON.stringify({ error: "Free users must use the subscription creation endpoint" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
     // Check if this is actually an upgrade
     if (!isPlanUpgrade(currentSubscription.tier as SubscriptionTier, tier as SubscriptionTier)) {
       return new NextResponse(

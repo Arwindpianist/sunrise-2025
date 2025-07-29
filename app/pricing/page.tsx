@@ -70,8 +70,8 @@ export default function PricingPage() {
     try {
       const planTier = plan.toLowerCase()
       
-      // Check if this is an upgrade
-      if (currentSubscription && isPlanUpgrade(userTier as any, planTier as any)) {
+      // Check if this is an upgrade (only for paid subscriptions)
+      if (currentSubscription && userTier !== 'free' && isPlanUpgrade(userTier as any, planTier as any)) {
         // Handle upgrade with proration
         const response = await fetch('/api/subscription/upgrade', {
           method: 'POST',
