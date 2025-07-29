@@ -1,5 +1,4 @@
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from './subscription'
-import { sendTokenLimitWarning } from './zoho-email'
 
 export interface TokenLimitInfo {
   currentBalance: number
@@ -105,24 +104,17 @@ export function shouldWarnAboutTokenLimit(tier: SubscriptionTier, currentBalance
   return percentageUsed >= 80 // Warn when 80% or more is used
 }
 
-// Send token limit warning email
+// Note: Email sending is handled server-side only
+// This function is kept for type compatibility but doesn't send emails from client-side
 export async function sendTokenLimitWarningEmail(
   userEmail: string,
   userName: string,
   tier: SubscriptionTier,
   currentBalance: number
 ): Promise<boolean> {
-  const limit = getTokenLimit(tier)
-  
-  if (limit === -1) return false // No limit to warn about
-  
-  return await sendTokenLimitWarning(
-    userEmail,
-    userName,
-    tier,
-    currentBalance,
-    limit
-  )
+  // Email sending is handled server-side in API routes
+  // This is a placeholder for client-side compatibility
+  return false
 }
 
 // Validate token usage before sending messages

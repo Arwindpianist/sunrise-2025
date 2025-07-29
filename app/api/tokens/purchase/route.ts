@@ -1,7 +1,8 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { canPurchaseTokens, getTokenLimitInfo, shouldWarnAboutTokenLimit, sendTokenLimitWarningEmail } from '@/lib/token-limits'
+import { canPurchaseTokens, getTokenLimitInfo, shouldWarnAboutTokenLimit } from '@/lib/token-limits'
+import { sendTokenLimitWarning } from '@/lib/zoho-email'
 import { SUBSCRIPTION_FEATURES } from '@/lib/subscription'
 
 export async function POST(request: Request) {
@@ -98,11 +99,13 @@ export async function POST(request: Request) {
           .single()
         
         if (user?.email) {
-          await sendTokenLimitWarningEmail(
+          const limit = SUBSCRIPTION_FEATURES[currentTier as keyof typeof SUBSCRIPTION_FEATURES]?.maxTokens || 0
+          await sendTokenLimitWarning(
             user.email,
             user.full_name || 'User',
-            currentTier as any,
-            newBalance
+            currentTier,
+            newBalance,
+            limit
           )
           console.log(`Token limit warning email sent to ${user.email}`)
         }
