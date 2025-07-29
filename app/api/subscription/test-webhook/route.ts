@@ -88,12 +88,15 @@ export async function POST(request: Request) {
         const tokensToCredit = 10
         const newBalance = currentBalance + tokensToCredit
         
+        // Use upsert with onConflict to handle unique constraint
         const { error: updateError } = await supabaseAdmin
           .from('user_balances')
           .upsert({
             user_id: userId,
             balance: newBalance,
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
           })
 
         if (updateError) {
@@ -132,6 +135,7 @@ export async function POST(request: Request) {
         const subscriptionData = {
           user_id: userId,
           tier: 'basic',
+          plan_id: 'basic', // Add the required plan_id field
           status: 'active',
           stripe_subscription_id: 'test_sub_' + Date.now(),
           current_period_start: new Date().toISOString(),
@@ -160,6 +164,7 @@ export async function POST(request: Request) {
         const fullSubscriptionData = {
           user_id: userId,
           tier: 'basic',
+          plan_id: 'basic', // Add the required plan_id field
           status: 'active',
           stripe_subscription_id: 'test_sub_full_' + Date.now(),
           current_period_start: new Date().toISOString(),
@@ -190,6 +195,8 @@ export async function POST(request: Request) {
             user_id: userId,
             balance: fullNewBalance,
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
           })
 
         if (fullBalanceError) {

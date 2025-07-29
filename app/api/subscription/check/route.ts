@@ -157,6 +157,8 @@ export async function GET(request: Request) {
               user_id: session.user.id,
               balance: newBalance,
               updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
             })
 
           result.tokensCredited = 10

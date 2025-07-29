@@ -115,6 +115,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     const subscriptionData = {
       user_id: userId,
       tier: plan,
+      plan_id: plan, // Add the required plan_id field
       status: 'active',
       stripe_subscription_id: subscription.id,
       current_period_start: getStripeDate((subscription as any).current_period_start),
@@ -233,6 +234,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
     .from('user_subscriptions')
     .update({
       tier: plan,
+      plan_id: plan, // Add the required plan_id field
       status: subscription.status === 'active' ? 'active' : 'inactive',
       current_period_start: getStripeDate((subscription as any).current_period_start),
       current_period_end: getStripeDate((subscription as any).current_period_end),
@@ -304,6 +306,8 @@ async function handlePlanChangeTokens(
           user_id: userId,
           balance: newBalance,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         })
 
       if (updateError) {
@@ -357,14 +361,16 @@ async function creditMonthlyTokens(userId: string, plan: string, supabase: any) 
   const currentBalance = balanceData?.balance || 0
   const newBalance = currentBalance + features.monthlyTokens
 
-  // Update user balance
-  const { error: updateError } = await supabase
-    .from('user_balances')
-    .upsert({
-      user_id: userId,
-      balance: newBalance,
-      updated_at: new Date().toISOString()
-    })
+      // Update user balance
+    const { error: updateError } = await supabase
+      .from('user_balances')
+      .upsert({
+        user_id: userId,
+        balance: newBalance,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      })
 
   if (updateError) {
     console.error('Error updating user balance:', updateError)
