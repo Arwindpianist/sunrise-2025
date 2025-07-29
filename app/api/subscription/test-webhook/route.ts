@@ -108,6 +108,94 @@ export async function POST(request: Request) {
         }
         break
 
+      case 'test_token_purchase':
+        // Test token purchase functionality
+        const purchaseAmount = 50
+        const purchaseTokens = 100
+        const newBalanceAfterPurchase = currentBalance + purchaseTokens
+        
+        // Update balance
+        const { error: purchaseBalanceError } = await supabaseAdmin
+          .from('user_balances')
+          .upsert({
+            user_id: userId,
+            balance: newBalanceAfterPurchase,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
+          })
+
+        if (purchaseBalanceError) {
+          result.error = `Failed to update balance after purchase: ${purchaseBalanceError.message}`
+        } else {
+          // Create transaction record
+          const { error: transactionError } = await supabaseAdmin
+            .from('transactions')
+            .insert({
+              user_id: userId,
+              type: 'purchase',
+              amount: purchaseAmount,
+              tokens: purchaseTokens,
+              description: 'Test token purchase',
+              status: 'completed',
+              created_at: new Date().toISOString()
+            })
+
+          if (transactionError) {
+            result.error = `Failed to create transaction: ${transactionError.message}`
+          } else {
+            result.actions.push(`Purchased ${purchaseTokens} tokens for $${purchaseAmount}`)
+            result.newBalance = newBalanceAfterPurchase
+            result.success = true
+          }
+        }
+        break
+
+      case 'test_token_limit':
+        // Test token limit enforcement
+        const currentTier = currentSubscription?.tier || 'free'
+        const tierLimits = {
+          free: 50,
+          basic: 100,
+          pro: 500,
+          enterprise: 1000
+        }
+        const currentLimit = tierLimits[currentTier as keyof typeof tierLimits] || 0
+        
+        // Try to purchase more tokens than allowed
+        const overLimitTokens = currentLimit + 50
+        const overLimitAmount = overLimitTokens * 0.45 // Basic token price
+        
+        result.actions.push(`Testing token limit for ${currentTier} tier (limit: ${currentLimit})`)
+        result.actions.push(`Attempting to purchase ${overLimitTokens} tokens (${overLimitTokens - currentLimit} over limit)`)
+        
+        // Check if this would exceed the limit
+        const wouldExceed = (currentBalance + overLimitTokens) > currentLimit
+        
+        if (wouldExceed) {
+          result.actions.push(`❌ Would exceed limit by ${(currentBalance + overLimitTokens) - currentLimit} tokens`)
+          result.limitTest = {
+            currentTier,
+            currentBalance,
+            currentLimit,
+            attemptedPurchase: overLimitTokens,
+            wouldExceed: true,
+            overBy: (currentBalance + overLimitTokens) - currentLimit
+          }
+        } else {
+          result.actions.push(`✅ Purchase would be within limits`)
+          result.limitTest = {
+            currentTier,
+            currentBalance,
+            currentLimit,
+            attemptedPurchase: overLimitTokens,
+            wouldExceed: false
+          }
+        }
+        
+        result.success = true
+        break
+
       case 'update_subscription':
         // Test subscription update functionality
         if (currentSubscription) {

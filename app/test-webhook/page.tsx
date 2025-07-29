@@ -171,6 +171,22 @@ export default function TestWebhookPage() {
             >
               Full Test (Create + Credit)
             </Button>
+
+            <Button 
+              onClick={() => runTest('test_token_purchase')} 
+              disabled={loading}
+              variant="outline"
+            >
+              Test Token Purchase
+            </Button>
+            
+            <Button 
+              onClick={() => runTest('test_token_limit')} 
+              disabled={loading}
+              variant="outline"
+            >
+              Test Token Limits
+            </Button>
           </div>
 
           <div className="mt-6 pt-6 border-t">

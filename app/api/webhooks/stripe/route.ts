@@ -5,6 +5,7 @@ import { NextResponse } from "next/server"
 import Stripe from 'stripe'
 import { SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import { getPlanChangeInfo, calculateProratedTokens } from "@/lib/billing-utils"
+import { sendSubscriptionConfirmation, sendMonthlyTokenCredit } from "@/lib/zoho-email"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
@@ -145,6 +146,28 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     } else {
       // Credit initial monthly tokens for new subscription
       await creditMonthlyTokens(userId, plan, supabase)
+    }
+
+    // Send subscription confirmation email
+    try {
+      const { data: user } = await supabase
+        .from('users')
+        .select('email, full_name')
+        .eq('id', userId)
+        .single()
+      
+      if (user?.email) {
+        const monthlyPrice = SUBSCRIPTION_FEATURES[plan as keyof typeof SUBSCRIPTION_FEATURES]?.monthlyPrice || 0
+        await sendSubscriptionConfirmation(
+          user.email,
+          user.full_name || 'User',
+          plan,
+          monthlyPrice
+        )
+        console.log(`Confirmation email sent to ${user.email}`)
+      }
+    } catch (emailError) {
+      console.error('Error sending confirmation email:', emailError)
     }
   }
 }
@@ -391,6 +414,28 @@ async function creditMonthlyTokens(userId: string, plan: string, supabase: any) 
 
   if (transactionError) {
     console.error('Error recording transaction:', transactionError)
+  }
+
+  // Send monthly token credit email
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single()
+    
+    if (user?.email && features.monthlyTokens > 0) {
+      await sendMonthlyTokenCredit(
+        user.email,
+        user.full_name || 'User',
+        plan,
+        features.monthlyTokens,
+        newBalance
+      )
+      console.log(`Monthly token credit email sent to ${user.email}`)
+    }
+  } catch (emailError) {
+    console.error('Error sending monthly token credit email:', emailError)
   }
 
   console.log(`Credited ${features.monthlyTokens} tokens to user ${userId} for ${plan} subscription`)
