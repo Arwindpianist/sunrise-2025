@@ -131,7 +131,7 @@ export async function POST(request: Request) {
         break
 
       case 'create_subscription':
-        // Test creating a new subscription
+        // Test creating/updating a subscription
         const subscriptionData = {
           user_id: userId,
           tier: 'basic',
@@ -140,27 +140,50 @@ export async function POST(request: Request) {
           stripe_subscription_id: 'test_sub_' + Date.now(),
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
 
-        const { data: newSubscription, error: createError } = await supabaseAdmin
-          .from('user_subscriptions')
-          .insert(subscriptionData)
-          .select()
-          .single()
+        let newSubscription;
+        let createError;
+
+        if (currentSubscription) {
+          // Update existing subscription
+          const { data: updatedSubscription, error: updateError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .update(subscriptionData)
+            .eq('id', currentSubscription.id)
+            .select()
+            .single()
+
+          newSubscription = updatedSubscription;
+          createError = updateError;
+          result.actions.push('Updated existing subscription to basic')
+        } else {
+          // Create new subscription
+          const { data: createdSubscription, error: insertError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .insert({
+              ...subscriptionData,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          newSubscription = createdSubscription;
+          createError = insertError;
+          result.actions.push('Created new test subscription')
+        }
 
         if (createError) {
-          result.error = `Failed to create subscription: ${createError.message}`
+          result.error = `Failed to create/update subscription: ${createError.message}`
         } else {
-          result.actions.push('Created new test subscription')
           result.newSubscription = newSubscription
           result.success = true
         }
         break
 
       case 'full_test':
-        // Test the complete flow: create subscription + credit tokens
+        // Test the complete flow: create/update subscription + credit tokens
         const fullSubscriptionData = {
           user_id: userId,
           tier: 'basic',
@@ -169,23 +192,44 @@ export async function POST(request: Request) {
           stripe_subscription_id: 'test_sub_full_' + Date.now(),
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
 
-        // Create subscription
-        const { data: fullSubscription, error: fullCreateError } = await supabaseAdmin
-          .from('user_subscriptions')
-          .insert(fullSubscriptionData)
-          .select()
-          .single()
+        let fullSubscription;
+        let fullCreateError;
 
-        if (fullCreateError) {
-          result.error = `Failed to create subscription: ${fullCreateError.message}`
-          break
+        if (currentSubscription) {
+          // Update existing subscription
+          const { data: updatedSubscription, error: updateError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .update(fullSubscriptionData)
+            .eq('id', currentSubscription.id)
+            .select()
+            .single()
+
+          fullSubscription = updatedSubscription;
+          fullCreateError = updateError;
+          result.actions.push('Updated existing subscription to basic')
+        } else {
+          // Create new subscription
+          const { data: createdSubscription, error: insertError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .insert({
+              ...fullSubscriptionData,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          fullSubscription = createdSubscription;
+          fullCreateError = insertError;
+          result.actions.push('Created new test subscription')
         }
 
-        result.actions.push('Created new test subscription')
+        if (fullCreateError) {
+          result.error = `Failed to create/update subscription: ${fullCreateError.message}`
+          break
+        }
 
         // Credit tokens
         const fullNewBalance = currentBalance + 10

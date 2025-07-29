@@ -125,6 +125,7 @@ export async function GET(request: Request) {
 
           result.updatedSubscription = updatedSubscription
           result.updateError = updateError ? updateError.message : null
+          result.action = "Updated existing subscription"
         } else {
           // Create new subscription
           const { data: newSubscription, error: createError } = await supabaseAdmin
@@ -138,6 +139,7 @@ export async function GET(request: Request) {
 
           result.newSubscription = newSubscription
           result.createError = createError ? createError.message : null
+          result.action = "Created new subscription"
         }
 
         // Credit initial tokens
