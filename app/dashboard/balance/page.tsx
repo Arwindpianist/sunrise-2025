@@ -265,6 +265,15 @@ export default function BalancePage() {
   const getUpgradeRecommendation = () => {
     if (!currentSubscription || userTier === 'enterprise') return null
     
+    // Check if subscription dates are valid
+    const startDate = new Date(currentSubscription.current_period_start)
+    const endDate = new Date(currentSubscription.current_period_end)
+    
+    // If dates are invalid or the same, skip upgrade recommendation
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate.getTime() === endDate.getTime()) {
+      return null
+    }
+    
     const nextTier = userTier === 'free' ? 'basic' : userTier === 'basic' ? 'pro' : 'enterprise'
     const planChangeInfo = getPlanChangeInfo(
       userTier as any,

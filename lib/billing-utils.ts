@@ -24,11 +24,19 @@ export function calculateProration(
 ): ProrationInfo {
   const totalDays = Math.ceil((currentPeriodEnd.getTime() - currentPeriodStart.getTime()) / (1000 * 60 * 60 * 24))
   const daysRemaining = Math.ceil((currentPeriodEnd.getTime() - changeDate.getTime()) / (1000 * 60 * 60 * 24))
-  const prorationRatio = Math.max(0, daysRemaining / totalDays)
+  
+  // Handle edge cases where totalDays is 0 or negative
+  let prorationRatio = 0
+  if (totalDays > 0) {
+    prorationRatio = Math.max(0, daysRemaining / totalDays)
+  } else if (totalDays === 0) {
+    // If start and end dates are the same, treat as full period
+    prorationRatio = 1
+  }
   
   return {
-    daysRemaining,
-    daysInPeriod: totalDays,
+    daysRemaining: Math.max(0, daysRemaining),
+    daysInPeriod: Math.max(1, totalDays),
     prorationRatio,
     proratedTokens: 0, // Will be calculated based on plan
     proratedAmount: 0  // Will be calculated based on plan
@@ -109,6 +117,12 @@ export function isPlanUpgrade(fromTier: SubscriptionTier, toTier: SubscriptionTi
 // Format proration information for display
 export function formatProrationInfo(prorationInfo: ProrationInfo): string {
   const percentage = Math.round(prorationInfo.prorationRatio * 100)
+  
+  // Handle edge cases
+  if (prorationInfo.daysInPeriod === 1 && prorationInfo.daysRemaining === 0) {
+    return "New billing period (0 days remaining)"
+  }
+  
   return `${percentage}% of billing period remaining (${prorationInfo.daysRemaining} days)`
 }
 
