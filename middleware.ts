@@ -3,6 +3,41 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Subscription security check
+  const { pathname } = request.nextUrl
+  if (pathname.startsWith('/api/subscription/upgrade') || 
+      pathname.startsWith('/api/subscription/downgrade') ||
+      pathname.startsWith('/api/subscription/cancel')) {
+    
+    // Check if this is a legitimate request
+    const userAgent = request.headers.get('user-agent') || ''
+    const referer = request.headers.get('referer') || ''
+    
+    // Block requests that don't come from our application
+    if (!referer.includes('sunrise-2025.com') && !referer.includes('localhost')) {
+      console.warn(`[SUBSCRIPTION SECURITY] Blocked unauthorized subscription change attempt from ${referer}`)
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized subscription change attempt' }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Block requests without proper headers
+    if (!userAgent.includes('Mozilla') && !userAgent.includes('Chrome') && !userAgent.includes('Safari')) {
+      console.warn(`[SUBSCRIPTION SECURITY] Blocked subscription change with suspicious user agent: ${userAgent}`)
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid request' }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+  }
+
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req: request, res })
 
@@ -22,7 +57,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Only match dashboard routes
+    // Match dashboard routes and subscription API routes
     '/dashboard/:path*',
+    '/api/subscription/:path*',
   ],
 } 

@@ -105,6 +105,32 @@ export async function POST(request: Request) {
         existingSubscription.current_period_start,
         existingSubscription.current_period_end
       )
+      
+      // For upgrades, verify the existing subscription is valid
+      if (isUpgrade && existingSubscription.stripe_subscription_id) {
+        try {
+          const stripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id)
+          
+          if (stripeSubscription.status !== 'active' && stripeSubscription.status !== 'trialing') {
+            return new NextResponse(
+              JSON.stringify({ error: "Your current subscription is not active. Please update your payment method first." }),
+              { 
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              }
+            )
+          }
+        } catch (stripeError: any) {
+          console.error("Error verifying existing subscription:", stripeError)
+          return new NextResponse(
+            JSON.stringify({ error: "Unable to verify your current subscription. Please contact support." }),
+            { 
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            }
+          )
+        }
+      }
     }
 
     // Get the base URL for redirects

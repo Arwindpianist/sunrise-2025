@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import { getPlanChangeInfo, isPlanUpgrade, formatProrationInfo } from "@/lib/billing-utils"
+import { verifySubscriptionChange, logSubscriptionVerification } from "@/lib/subscription-verification"
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get current subscription
+    // Get current subscription first for verification
     const { data: currentSubscription, error: subscriptionError } = await supabase
       .from("user_subscriptions")
       .select("*")
@@ -51,6 +52,25 @@ export async function POST(request: Request) {
     if (subscriptionError || !currentSubscription) {
       return new NextResponse(
         JSON.stringify({ error: "No active subscription found" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    // Verify subscription change is legitimate
+    const verification = await verifySubscriptionChange(session.user.id, tier, currentSubscription.tier)
+    
+    // Log the verification attempt for security monitoring
+    logSubscriptionVerification(session.user.id, 'upgrade_attempt', verification, { 
+      requestedTier: tier, 
+      currentTier: currentSubscription.tier 
+    })
+
+    if (!verification.isValid) {
+      return new NextResponse(
+        JSON.stringify({ error: verification.error || "Subscription verification failed" }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -110,7 +130,7 @@ export async function POST(request: Request) {
         }
       )
 
-      // Update subscription in database
+      // Only update database after successful Stripe update
       await supabase
         .from("user_subscriptions")
         .update({
