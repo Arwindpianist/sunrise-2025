@@ -61,9 +61,27 @@ export async function POST(request: Request) {
       contact.email // Email is required by database schema
     )
 
+    const invalidContacts = contacts.filter(contact => 
+      contact.first_name && 
+      !contact.email // Contacts without email addresses
+    )
+
     if (validContacts.length === 0) {
+      const errorMessage = invalidContacts.length > 0 
+        ? `No valid contacts found. All contacts must have an email address. Found ${invalidContacts.length} contacts without email addresses.`
+        : 'No valid contacts found. All contacts must have an email address.'
+      
       return new NextResponse(
-        JSON.stringify({ error: 'No valid contacts found. All contacts must have an email address.' }),
+        JSON.stringify({ 
+          error: errorMessage,
+          totalContacts: contacts.length,
+          validContacts: validContacts.length,
+          invalidContacts: invalidContacts.length,
+          invalidContactExamples: invalidContacts.slice(0, 3).map(c => ({
+            name: `${c.first_name} ${c.last_name || ''}`.trim(),
+            phone: c.phone || 'No phone'
+          }))
+        }),
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -184,11 +202,20 @@ export async function POST(request: Request) {
 
     return new NextResponse(
       JSON.stringify({ 
-        message: `Successfully imported ${insertedCount} contacts${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`,
+        message: `Successfully imported ${insertedCount} contacts${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}${invalidContacts.length > 0 ? ` (${invalidContacts.length} contacts without email addresses skipped)` : ''}`,
         imported: insertedCount,
         duplicates: duplicateCount,
-        total: validContacts.length,
-        skipped: duplicateCount
+        total: contacts.length,
+        validContacts: validContacts.length,
+        invalidContacts: invalidContacts.length,
+        skipped: duplicateCount + invalidContacts.length,
+        summary: {
+          totalProcessed: contacts.length,
+          validWithEmail: validContacts.length,
+          invalidWithoutEmail: invalidContacts.length,
+          duplicatesSkipped: duplicateCount,
+          successfullyImported: insertedCount
+        }
       }),
       { 
         status: 200,

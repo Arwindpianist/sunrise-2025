@@ -3,7 +3,9 @@ import { SubscriptionTier, SUBSCRIPTION_FEATURES, hasReachedContactLimit, hasRea
 // Check if user can create more contacts
 export async function canCreateContact(): Promise<{ allowed: boolean; currentCount: number; maxAllowed: number; tier: SubscriptionTier; limitInfo: any }> {
   try {
-    const response = await fetch('/api/subscription/limits?type=contacts')
+    // Get the base URL for server-side requests
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/subscription/limits?type=contacts`)
     if (!response.ok) {
       throw new Error('Failed to check contact limits')
     }
@@ -30,7 +32,9 @@ export async function canCreateContact(): Promise<{ allowed: boolean; currentCou
 // Check if user can create more events
 export async function canCreateEvent(): Promise<{ allowed: boolean; currentCount: number; maxAllowed: number; tier: SubscriptionTier; limitInfo: any }> {
   try {
-    const response = await fetch('/api/subscription/limits?type=events')
+    // Get the base URL for server-side requests
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/subscription/limits?type=events`)
     if (!response.ok) {
       throw new Error('Failed to check event limits')
     }
