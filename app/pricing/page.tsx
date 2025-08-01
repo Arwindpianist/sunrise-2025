@@ -70,8 +70,8 @@ export default function PricingPage() {
     try {
       const planTier = plan.toLowerCase()
       
-      // Check if this is an upgrade (only for paid subscriptions)
-      if (currentSubscription && userTier !== 'free' && isPlanUpgrade(userTier as any, planTier as any)) {
+      // Check if this is an upgrade (only for users with existing paid subscriptions)
+      if (currentSubscription && currentSubscription.tier !== 'free' && isPlanUpgrade(currentSubscription.tier as any, planTier as any)) {
         // Handle upgrade with proration
         const response = await fetch('/api/subscription/upgrade', {
           method: 'POST',
@@ -100,7 +100,7 @@ export default function PricingPage() {
         return
       }
 
-      // Create new subscription
+      // Create new subscription (for free users or downgrades)
       const response = await fetch('/api/subscription/create', {
         method: 'POST',
         headers: {
@@ -110,7 +110,8 @@ export default function PricingPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create subscription')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create subscription')
       }
 
       const { url } = await response.json()

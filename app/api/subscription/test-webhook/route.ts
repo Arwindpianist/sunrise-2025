@@ -23,11 +23,36 @@ export const dynamic = "force-dynamic"
 // Test endpoint to simulate webhook functionality
 export async function POST(request: Request) {
   try {
-    const { userId, testType } = await request.json()
+    // Prevent usage in production
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse(
+        JSON.stringify({ error: "Test webhook is not available in production" }),
+        { 
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    const { userId, testType, confirmation } = await request.json()
 
     if (!userId) {
       return new NextResponse(
         JSON.stringify({ error: "User ID required" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    // Require explicit confirmation for subscription creation
+    if ((testType === 'create_subscription' || testType === 'full_test') && confirmation !== 'I_UNDERSTAND_THIS_CREATES_A_SUBSCRIPTION_WITHOUT_PAYMENT') {
+      return new NextResponse(
+        JSON.stringify({ 
+          error: "Confirmation required for subscription creation. Add confirmation: 'I_UNDERSTAND_THIS_CREATES_A_SUBSCRIPTION_WITHOUT_PAYMENT' to proceed.",
+          requiresConfirmation: true
+        }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     if (subscriptionError || !currentSubscription) {
       return new NextResponse(
-        JSON.stringify({ error: "No active subscription found" }),
+        JSON.stringify({ error: "No active subscription found. Please use the subscription creation endpoint for new subscriptions." }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     // Prevent free users from using upgrade endpoint
     if (currentSubscription.tier === 'free') {
       return new NextResponse(
-        JSON.stringify({ error: "Free users must use the subscription creation endpoint" }),
+        JSON.stringify({ error: "Free users must use the subscription creation endpoint. Please go back and select a plan to subscribe." }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },

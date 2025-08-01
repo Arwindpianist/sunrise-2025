@@ -2,10 +2,14 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, Users, MessageSquare, Clock, Star, ArrowRight } from "lucide-react"
+import LaunchPopup from "@/components/launch-popup"
 
 export default function HomePage() {
   return (
     <div className="bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
+      {/* Launch Popup */}
+      <LaunchPopup />
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-12 sm:py-20 text-center">
         <div className="max-w-4xl mx-auto">
@@ -68,7 +72,7 @@ export default function HomePage() {
         </div>
       </section>
 
-            {/* Features */}
+      {/* Features */}
       <section className="bg-white py-12 sm:py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl sm:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-800">Everything You Need for Perfect Events</h2>
