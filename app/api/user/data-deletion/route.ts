@@ -1,7 +1,25 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { logSubscriptionSecurityEvent } from '@/lib/subscription-security'
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-06-30.basil',
+})
+
+// Create admin client for user deletion
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +61,28 @@ export async function POST(request: Request) {
       confirmation: confirmation
     })
 
-    // Delete all user data in the correct order to handle foreign key constraints
+    // Step 1: Get user's Stripe subscription and customer info before deletion
+    let stripeCustomerId: string | null = null
+    let stripeSubscriptionId: string | null = null
+    
+    try {
+      const { data: subscriptionData } = await supabase
+        .from('user_subscriptions')
+        .select('stripe_subscription_id, stripe_customer_id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (subscriptionData) {
+        stripeSubscriptionId = subscriptionData.stripe_subscription_id
+        stripeCustomerId = subscriptionData.stripe_customer_id
+      }
+    } catch (error) {
+      console.log('No active subscription found for user:', userId)
+    }
+
+    // Step 2: Delete all user data in the correct order to handle foreign key constraints
     const deletionSteps = [
       {
         name: 'email_logs',
@@ -104,27 +143,27 @@ export async function POST(request: Request) {
       },
       {
         name: 'transactions',
-        query: supabase.from('transactions').delete().eq('user_id', userId)
+        query: () => supabase.from('transactions').delete().eq('user_id', userId)
       },
       {
         name: 'user_balances',
-        query: supabase.from('user_balances').delete().eq('user_id', userId)
+        query: () => supabase.from('user_balances').delete().eq('user_id', userId)
       },
       {
         name: 'user_subscriptions',
-        query: supabase.from('user_subscriptions').delete().eq('user_id', userId)
+        query: () => supabase.from('user_subscriptions').delete().eq('user_id', userId)
       },
       {
         name: 'referrals',
-        query: supabase.from('referrals').delete().eq('referrer_id', userId)
+        query: () => supabase.from('referrals').delete().eq('referrer_id', userId)
       },
       {
         name: 'contacts',
-        query: supabase.from('contacts').delete().eq('user_id', userId)
+        query: () => supabase.from('contacts').delete().eq('user_id', userId)
       },
       {
         name: 'events',
-        query: supabase.from('events').delete().eq('user_id', userId)
+        query: () => supabase.from('events').delete().eq('user_id', userId)
       }
     ]
 
@@ -132,7 +171,7 @@ export async function POST(request: Request) {
 
     for (const step of deletionSteps) {
       try {
-        const { error } = await step.query
+        const { error } = await step.query()
         if (error) {
           console.error(`Error deleting ${step.name}:`, error)
           deletionResults.push({ table: step.name, success: false, error: error.message })
@@ -166,46 +205,95 @@ export async function POST(request: Request) {
       )
     }
 
-    // For user account deletion, we'll use a different approach
-    // Instead of admin.deleteUser, we'll mark the user as deleted in our system
-    // and let them sign out, which will effectively delete their session
-    try {
-      // Log successful data deletion
-      logSubscriptionSecurityEvent(userId, 'data_deletion_completed', {
-        deletionResults,
-        timestamp: new Date().toISOString()
-      })
-      
-      console.log(`User data successfully deleted for user: ${userId}`)
-
-      return new NextResponse(
-        JSON.stringify({ 
-          message: 'Account and all associated data have been permanently deleted',
-          deletionResults,
+    // Step 3: Cancel Stripe subscription if exists
+    if (stripeSubscriptionId) {
+      try {
+        console.log(`Canceling Stripe subscription: ${stripeSubscriptionId}`)
+        await stripe.subscriptions.cancel(stripeSubscriptionId)
+        logSubscriptionSecurityEvent(userId, 'stripe_subscription_canceled', {
+          subscriptionId: stripeSubscriptionId,
           timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
+        })
+        console.log(`Stripe subscription canceled: ${stripeSubscriptionId}`)
+      } catch (error: any) {
+        console.error('Error canceling Stripe subscription:', error)
+        logSubscriptionSecurityEvent(userId, 'stripe_subscription_cancel_failed', {
+          subscriptionId: stripeSubscriptionId,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+
+    // Step 4: Delete Stripe customer if exists
+    if (stripeCustomerId) {
+      try {
+        console.log(`Deleting Stripe customer: ${stripeCustomerId}`)
+        await stripe.customers.del(stripeCustomerId)
+        logSubscriptionSecurityEvent(userId, 'stripe_customer_deleted', {
+          customerId: stripeCustomerId,
+          timestamp: new Date().toISOString()
+        })
+        console.log(`Stripe customer deleted: ${stripeCustomerId}`)
+      } catch (error: any) {
+        console.error('Error deleting Stripe customer:', error)
+        logSubscriptionSecurityEvent(userId, 'stripe_customer_delete_failed', {
+          customerId: stripeCustomerId,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+
+    // Step 5: Delete user from Supabase Auth using admin client
+    try {
+      console.log(`Deleting user from Supabase Auth: ${userId}`)
+      
+      const { data: { user: adminUser }, error: adminError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      
+      if (adminError) {
+        console.error('Error deleting user from Supabase Auth:', adminError)
+        logSubscriptionSecurityEvent(userId, 'supabase_user_delete_failed', {
+          error: adminError.message,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        console.log(`User deleted from Supabase Auth: ${userId}`)
+        logSubscriptionSecurityEvent(userId, 'supabase_user_deleted', {
+          timestamp: new Date().toISOString()
+        })
+      }
     } catch (error: any) {
-      console.error('Exception in data deletion process:', error)
-      logSubscriptionSecurityEvent(userId, 'data_deletion_error', {
+      console.error('Exception deleting user from Supabase Auth:', error)
+      logSubscriptionSecurityEvent(userId, 'supabase_user_delete_exception', {
         error: error.message,
         timestamp: new Date().toISOString()
       })
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'Data deletion process failed',
-          details: error.message 
-        }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
     }
+
+    // Log successful complete deletion
+    logSubscriptionSecurityEvent(userId, 'account_deletion_completed', {
+      deletionResults,
+      stripeSubscriptionCanceled: !!stripeSubscriptionId,
+      stripeCustomerDeleted: !!stripeCustomerId,
+      timestamp: new Date().toISOString()
+    })
+    
+    console.log(`Complete account deletion successful for user: ${userId}`)
+
+    return new NextResponse(
+      JSON.stringify({ 
+        message: 'Account and all associated data have been permanently deleted',
+        deletionResults,
+        stripeSubscriptionCanceled: !!stripeSubscriptionId,
+        stripeCustomerDeleted: !!stripeCustomerId,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   } catch (error: any) {
     console.error('Error in data deletion:', error)
     return new NextResponse(
