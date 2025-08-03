@@ -46,20 +46,6 @@ export async function verifyUserSubscription(userId: string): Promise<Subscripti
       isValid: true,
       subscription
     }
-      
-      if (stripeSubscription.status !== 'active' && stripeSubscription.status !== 'trialing') {
-        logSubscriptionSecurityEvent(userId, 'inactive_stripe_subscription', { 
-          status: stripeSubscription.status,
-          subscriptionId: subscription.stripe_subscription_id
-        })
-        return {
-          isValid: false,
-          error: `Subscription status is ${stripeSubscription.status}, not active`,
-          subscription,
-          stripeSubscription,
-          requiresPayment: stripeSubscription.status === 'past_due' || stripeSubscription.status === 'unpaid'
-        }
-      }
 
 
   } catch (error: any) {
@@ -88,52 +74,9 @@ export async function verifySubscriptionChange(
       return verification
     }
 
-    // Additional checks for subscription changes
-    if (verification.subscription && verification.stripeSubscription) {
-      // Verify the subscription metadata matches
-      const metadata = verification.stripeSubscription.metadata
-      if (metadata.user_id !== userId) {
-        logSubscriptionSecurityEvent(userId, 'change_metadata_mismatch', { 
-          metadataUserId: metadata.user_id,
-          expectedUserId: userId
-        })
-        return {
-          isValid: false,
-          error: "Subscription metadata mismatch",
-          subscription: verification.subscription,
-          stripeSubscription: verification.stripeSubscription
-        }
-      }
-
-      // Verify the current tier matches
-      if (verification.subscription.tier !== currentTier) {
-        logSubscriptionSecurityEvent(userId, 'change_tier_mismatch', { 
-          currentTier: verification.subscription.tier,
-          expectedTier: currentTier
-        })
-        return {
-          isValid: false,
-          error: "Current tier mismatch",
-          subscription: verification.subscription,
-          stripeSubscription: verification.stripeSubscription
-        }
-      }
-
-      // Verify the subscription is not in a problematic state
-      if (verification.stripeSubscription.status === 'past_due' || 
-          verification.stripeSubscription.status === 'unpaid') {
-        logSubscriptionSecurityEvent(userId, 'change_payment_required', { 
-          status: verification.stripeSubscription.status
-        })
-        return {
-          isValid: false,
-          error: "Payment required before subscription changes",
-          subscription: verification.subscription,
-          stripeSubscription: verification.stripeSubscription,
-          requiresPayment: true
-        }
-      }
-    }
+    // Since we don't store stripe_subscription_id in the database,
+    // we can't perform Stripe-specific verification here
+    // This verification will happen in the webhook when the payment is processed
 
     return verification
   } catch (error: any) {
