@@ -121,26 +121,12 @@ export async function POST(request: Request) {
       confirmation: confirmation
     })
 
-    // Step 1: Get user's Stripe subscription and customer info before deletion
+    // Step 1: Get Stripe subscription info (if any)
     let stripeCustomerId: string | null = null
     let stripeSubscriptionId: string | null = null
     
-    try {
-      const { data: subscriptionData } = await supabase
-        .from('user_subscriptions')
-        .select('stripe_subscription_id, stripe_customer_id')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (subscriptionData) {
-        stripeSubscriptionId = subscriptionData.stripe_subscription_id
-        stripeCustomerId = subscriptionData.stripe_customer_id
-      }
-    } catch (error) {
-      console.log('No active subscription found for user:', userId)
-    }
+    // Note: We don't store stripe_subscription_id or stripe_customer_id in the database
+    // So we can't retrieve them for cancellation. Stripe will handle cleanup.
 
     // Step 2: Delete all user data in the correct order to handle foreign key constraints
     const deletionSteps = [

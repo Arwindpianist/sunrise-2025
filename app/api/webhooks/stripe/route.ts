@@ -121,8 +121,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       user_id: userId,
       tier: plan,
       status: 'active',
-      stripe_customer_id: session.customer as string,
-      stripe_subscription_id: subscription.id,
       current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
       current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString()
@@ -196,7 +194,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
         current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('user_id', userId)
+      .eq('status', 'active')
 
     if (updateError) {
       console.error('Error updating subscription period:', updateError)
@@ -237,7 +236,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
       current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString()
     })
-    .eq('stripe_subscription_id', subscription.id)
+    .eq('user_id', userId)
+    .eq('status', 'active')
 
   if (updateError) {
     console.error('Error updating subscription:', updateError)
@@ -270,7 +270,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
       status: 'cancelled',
       updated_at: new Date().toISOString()
     })
-    .eq('stripe_subscription_id', subscription.id)
+    .eq('user_id', userId)
+    .eq('status', 'active')
 
   if (updateError) {
     console.error('Error cancelling subscription:', updateError)
