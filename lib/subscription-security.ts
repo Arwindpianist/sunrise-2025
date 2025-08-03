@@ -1,5 +1,10 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-06-30.basil',
+})
 
 /**
  * Security layer for subscription operations
@@ -10,6 +15,7 @@ export interface SubscriptionSecurityCheck {
   isAllowed: boolean
   error?: string
   requiresStripeVerification: boolean
+  requiresPaymentCompletion: boolean
 }
 
 /**
@@ -35,27 +41,31 @@ export async function checkSubscriptionOperation(
 
     switch (operation) {
       case 'create':
-        // New subscriptions are always allowed (they go through Stripe checkout)
+        // New subscriptions must go through Stripe checkout
         return {
-          isAllowed: true,
-          requiresStripeVerification: true
+          isAllowed: false,
+          error: "Direct subscription creation not allowed. Use Stripe checkout.",
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: true
         }
 
       case 'update':
         // Updates should only happen through Stripe webhooks
         return {
           isAllowed: false,
-          error: "Direct subscription updates are not allowed. Changes must go through Stripe.",
-          requiresStripeVerification: true
+          error: "Direct subscription updates are not allowed. Changes must go through Stripe webhooks.",
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: true
         }
 
       case 'upgrade':
-        // Upgrades require Stripe verification
+        // Upgrades require Stripe verification and payment completion
         if (!currentSubscription) {
           return {
             isAllowed: false,
             error: "No active subscription found for upgrade",
-            requiresStripeVerification: true
+            requiresStripeVerification: true,
+            requiresPaymentCompletion: true
           }
         }
         
@@ -63,13 +73,35 @@ export async function checkSubscriptionOperation(
           return {
             isAllowed: false,
             error: "Subscription missing Stripe subscription ID",
-            requiresStripeVerification: true
+            requiresStripeVerification: true,
+            requiresPaymentCompletion: true
+          }
+        }
+
+        // Verify payment status with Stripe
+        try {
+          const stripeSubscription = await stripe.subscriptions.retrieve(currentSubscription.stripe_subscription_id)
+          if (stripeSubscription.status !== 'active' && stripeSubscription.status !== 'trialing') {
+            return {
+              isAllowed: false,
+              error: "Subscription payment not completed",
+              requiresStripeVerification: true,
+              requiresPaymentCompletion: true
+            }
+          }
+        } catch (stripeError) {
+          return {
+            isAllowed: false,
+            error: "Unable to verify subscription payment status",
+            requiresStripeVerification: true,
+            requiresPaymentCompletion: true
           }
         }
 
         return {
           isAllowed: true,
-          requiresStripeVerification: true
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: true
         }
 
       case 'downgrade':
@@ -78,13 +110,15 @@ export async function checkSubscriptionOperation(
           return {
             isAllowed: false,
             error: "No active subscription found for downgrade",
-            requiresStripeVerification: true
+            requiresStripeVerification: true,
+            requiresPaymentCompletion: false
           }
         }
 
         return {
           isAllowed: true,
-          requiresStripeVerification: true
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: false
         }
 
       case 'cancel':
@@ -93,20 +127,23 @@ export async function checkSubscriptionOperation(
           return {
             isAllowed: false,
             error: "No active subscription found for cancellation",
-            requiresStripeVerification: true
+            requiresStripeVerification: true,
+            requiresPaymentCompletion: false
           }
         }
 
         return {
           isAllowed: true,
-          requiresStripeVerification: true
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: false
         }
 
       default:
         return {
           isAllowed: false,
           error: "Unknown subscription operation",
-          requiresStripeVerification: true
+          requiresStripeVerification: true,
+          requiresPaymentCompletion: true
         }
     }
   } catch (error: any) {
@@ -114,7 +151,8 @@ export async function checkSubscriptionOperation(
     return {
       isAllowed: false,
       error: "Security check failed",
-      requiresStripeVerification: true
+      requiresStripeVerification: true,
+      requiresPaymentCompletion: true
     }
   }
 }
@@ -125,15 +163,59 @@ export async function checkSubscriptionOperation(
  */
 export async function verifySubscriptionChangeSource(
   userId: string,
-  source: 'stripe_webhook' | 'api_call' | 'direct_database'
+  source: 'stripe_webhook' | 'api_call' | 'direct_database',
+  webhookSignature?: string
 ): Promise<boolean> {
-  // Only allow changes from Stripe webhooks
+  // Only allow changes from Stripe webhooks with proper signature verification
   if (source !== 'stripe_webhook') {
     console.warn(`[SECURITY] Unauthorized subscription change attempt from ${source} for user ${userId}`)
+    logSubscriptionSecurityEvent(userId, 'unauthorized_change_attempt', { source })
+    return false
+  }
+  
+  // Additional verification for webhook signature
+  if (!webhookSignature) {
+    console.warn(`[SECURITY] Missing webhook signature for user ${userId}`)
+    logSubscriptionSecurityEvent(userId, 'missing_webhook_signature', {})
     return false
   }
   
   return true
+}
+
+/**
+ * Verify payment completion with Stripe
+ */
+export async function verifyPaymentCompletion(
+  subscriptionId: string,
+  userId: string
+): Promise<{ isValid: boolean; error?: string }> {
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+      return {
+        isValid: false,
+        error: `Payment not completed. Subscription status: ${subscription.status}`
+      }
+    }
+    
+    // Verify the subscription belongs to the user
+    if (subscription.metadata?.user_id !== userId) {
+      return {
+        isValid: false,
+        error: "Subscription metadata mismatch"
+      }
+    }
+    
+    return { isValid: true }
+  } catch (error: any) {
+    console.error("Error verifying payment completion:", error)
+    return {
+      isValid: false,
+      error: "Unable to verify payment completion"
+    }
+  }
 }
 
 /**
@@ -148,6 +230,42 @@ export function logSubscriptionSecurityEvent(
     timestamp: new Date().toISOString(),
     userId,
     event,
-    details
+    details,
+    ip: process.env.REMOTE_ADDR || 'unknown'
   })
+}
+
+/**
+ * Rate limiting for subscription operations
+ */
+const operationAttempts = new Map<string, { count: number; lastAttempt: number }>()
+
+export function checkRateLimit(
+  userId: string,
+  operation: string,
+  maxAttempts: number = 5,
+  windowMs: number = 60000 // 1 minute
+): boolean {
+  const key = `${userId}:${operation}`
+  const now = Date.now()
+  const attempt = operationAttempts.get(key)
+  
+  if (!attempt) {
+    operationAttempts.set(key, { count: 1, lastAttempt: now })
+    return true
+  }
+  
+  if (now - attempt.lastAttempt > windowMs) {
+    operationAttempts.set(key, { count: 1, lastAttempt: now })
+    return true
+  }
+  
+  if (attempt.count >= maxAttempts) {
+    logSubscriptionSecurityEvent(userId, 'rate_limit_exceeded', { operation, attempts: attempt.count })
+    return false
+  }
+  
+  attempt.count++
+  attempt.lastAttempt = now
+  return true
 } 
