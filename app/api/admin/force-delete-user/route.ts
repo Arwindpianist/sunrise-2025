@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     // Check if user is disabled
     if (user.user_metadata?.deleted) {
-      console.log(`User ${userId} is disabled, attempting force deletion`)
+      console.log(`User ${userId} is disabled, attempting email change approach`)
       
       // Try to sign out all sessions first
       try {
@@ -72,43 +72,77 @@ export async function POST(request: Request) {
         console.log('Could not sign out user sessions:', signOutError)
       }
 
-      // Try to delete the user completely
-      const { data: { user: deletedUser }, error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      // Instead of deleting, change the email to free up the original email
+      const newEmail = `deleted_${Date.now()}_${email}`
       
-      if (deleteError) {
-        console.error('Force deletion failed:', deleteError)
-        logSubscriptionSecurityEvent(userId, 'force_delete_failed', {
+      try {
+        const { data: { user: updatedUser }, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          email: newEmail,
+          user_metadata: { 
+            ...user.user_metadata,
+            original_email: email,
+            force_deleted: true,
+            force_deleted_at: new Date().toISOString()
+          },
+          email_confirm: false,
+          phone_confirm: false
+        })
+        
+        if (updateError) {
+          console.error('Email change failed:', updateError)
+          logSubscriptionSecurityEvent(userId, 'force_delete_email_change_failed', {
+            email,
+            error: updateError.message,
+            timestamp: new Date().toISOString()
+          })
+          
+          return new NextResponse(
+            JSON.stringify({ 
+              error: 'Unable to free up email address. Please contact support.',
+              details: updateError.message 
+            }),
+            { 
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        } else {
+          console.log(`User email changed successfully: ${email} -> ${newEmail}`)
+          logSubscriptionSecurityEvent(userId, 'force_delete_email_change_success', {
+            originalEmail: email,
+            newEmail,
+            timestamp: new Date().toISOString()
+          })
+          
+          return new NextResponse(
+            JSON.stringify({ 
+              message: 'Email address freed up successfully. You can now create a new account with the original email.',
+              userId,
+              originalEmail: email,
+              newEmail,
+              timestamp: new Date().toISOString()
+            }),
+            { 
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        }
+      } catch (error: any) {
+        console.error('Exception in email change:', error)
+        logSubscriptionSecurityEvent(userId, 'force_delete_email_change_exception', {
           email,
-          error: deleteError.message,
+          error: error.message,
           timestamp: new Date().toISOString()
         })
         
         return new NextResponse(
           JSON.stringify({ 
-            error: 'Unable to completely delete user account. This may be due to database constraints.',
-            details: deleteError.message 
+            error: 'Failed to free up email address',
+            details: error.message 
           }),
           { 
             status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      } else {
-        console.log(`User force deleted successfully: ${userId}`)
-        logSubscriptionSecurityEvent(userId, 'force_delete_success', {
-          email,
-          timestamp: new Date().toISOString()
-        })
-        
-        return new NextResponse(
-          JSON.stringify({ 
-            message: 'User completely deleted. You can now create a new account with this email.',
-            userId,
-            email,
-            timestamp: new Date().toISOString()
-          }),
-          { 
-            status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         )

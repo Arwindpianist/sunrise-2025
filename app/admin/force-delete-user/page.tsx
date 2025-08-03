@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { Trash2, AlertTriangle, CheckCircle } from "lucide-react"
+import { Trash2, AlertTriangle, CheckCircle, Mail } from "lucide-react"
 
 export default function ForceDeleteUserPage() {
   const [email, setEmail] = useState("")
@@ -24,7 +24,6 @@ export default function ForceDeleteUserPage() {
     setIsLoading(true)
 
     try {
-      // First, we need to get the user ID from the email
       const response = await fetch('/api/admin/force-delete-user', {
         method: 'POST',
         headers: {
@@ -36,20 +35,20 @@ export default function ForceDeleteUserPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to force delete user')
+        throw new Error(result.error || 'Failed to free up email address')
       }
 
       toast({
         title: "Success",
-        description: result.message || "User force deleted successfully. You can now create a new account with this email.",
+        description: result.message || "Email address freed up successfully. You can now create a new account with this email.",
       })
 
       setEmail("")
     } catch (error: any) {
-      console.error('Error force deleting user:', error)
+      console.error('Error freeing up email:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to force delete user",
+        description: error.message || "Failed to free up email address",
         variant: "destructive",
       })
     } finally {
@@ -62,24 +61,24 @@ export default function ForceDeleteUserPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center text-red-600">
-            <Trash2 className="h-5 w-5 mr-2" />
-            Force Delete User
+            <Mail className="h-5 w-5 mr-2" />
+            Free Up Email Address
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <div className="flex items-center text-yellow-800">
               <AlertTriangle className="h-4 w-4 mr-2" />
-              <span className="text-sm font-medium">Warning</span>
+              <span className="text-sm font-medium">Email Address Recovery</span>
             </div>
             <p className="text-sm text-yellow-700 mt-1">
-              This will completely remove a disabled user from the authentication system, allowing you to create a new account with the same email.
+              This will change the email of a disabled user account, freeing up the original email address for new account creation.
             </p>
           </div>
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium text-gray-700">
-              Email Address
+              Email Address to Free Up
             </label>
             <Input
               id="email"
@@ -100,12 +99,12 @@ export default function ForceDeleteUserPage() {
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Force Deleting...
+                Freeing Up Email...
               </>
             ) : (
               <>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Force Delete User
+                <Mail className="h-4 w-4 mr-2" />
+                Free Up Email Address
               </>
             )}
           </Button>
@@ -113,11 +112,23 @@ export default function ForceDeleteUserPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-center text-blue-800">
               <CheckCircle className="h-4 w-4 mr-2" />
-              <span className="text-sm font-medium">After Deletion</span>
+              <span className="text-sm font-medium">After Email Change</span>
             </div>
             <p className="text-sm text-blue-700 mt-1">
-              You will be able to create a new account with the same email address.
+              You will be able to create a new account with the original email address. The disabled account will be preserved with a different email.
             </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="text-sm text-gray-700">
+              <strong>How it works:</strong>
+              <ul className="mt-1 space-y-1">
+                <li>• Changes disabled user's email to a unique identifier</li>
+                <li>• Frees up the original email for new registration</li>
+                <li>• Preserves the disabled account for audit purposes</li>
+                <li>• Maintains security and compliance</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
