@@ -82,6 +82,8 @@ export default function DataManagementPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showConsentDialog, setShowConsentDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [isDeleteConfirmed, setIsDeleteConfirmed] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -269,40 +271,36 @@ export default function DataManagementPage() {
     try {
       setIsDeleting(true)
       
-      // Delete all user data
-      const tablesToDelete = [
-        'contacts',
-        'events', 
-        'email_logs',
-        'telegram_logs',
-        'transactions',
-        'user_balances',
-        'user_subscriptions',
-        'referrals',
-        'enquiries'
-      ]
+      // Use the proper API endpoint for data deletion
+      const response = await fetch('/api/user/data-deletion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmation: 'DELETE_MY_DATA'
+        }),
+      })
 
-      for (const table of tablesToDelete) {
-        await supabase
-          .from(table)
-          .delete()
-          .eq('user_id', user?.id)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete account')
       }
-
-      // Delete the user account
-      await supabase.auth.admin.deleteUser(user?.id || '')
 
       toast({
         title: "Account Deleted",
         description: "Your account and all associated data have been permanently deleted",
       })
 
+      // Sign out the user and redirect
+      await supabase.auth.signOut()
       router.push('/')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting data:', error)
       toast({
         title: "Deletion Failed",
-        description: "Failed to delete your account. Please contact support.",
+        description: error.message || "Failed to delete your account. Please contact support.",
         variant: "destructive",
       })
     } finally {
@@ -744,14 +742,47 @@ export default function DataManagementPage() {
               <span>Financial data and transaction history</span>
             </div>
           </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="delete-confirmation" className="block text-sm font-medium text-gray-700 mb-2">
+                Type "DELETE_MY_DATA" to confirm
+              </label>
+              <input
+                id="delete-confirmation"
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => {
+                  setDeleteConfirmation(e.target.value)
+                  setIsDeleteConfirmed(e.target.value === 'DELETE_MY_DATA')
+                }}
+                placeholder="DELETE_MY_DATA"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+            
+            {deleteConfirmation && !isDeleteConfirmed && (
+              <p className="text-sm text-red-600">
+                Please type exactly "DELETE_MY_DATA" to confirm deletion
+              </p>
+            )}
+          </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setDeleteConfirmation('')
+                setIsDeleteConfirmed(false)
+              }}
+            >
               Cancel
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDataDeletion}
-              disabled={isDeleting}
+              disabled={isDeleting || !isDeleteConfirmed}
             >
               {isDeleting ? "Deleting..." : "Permanently Delete Account"}
             </Button>

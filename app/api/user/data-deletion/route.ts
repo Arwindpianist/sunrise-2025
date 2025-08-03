@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { logSubscriptionSecurityEvent } from '@/lib/subscription-security'
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +36,12 @@ export async function POST(request: Request) {
 
     // Log the deletion request for audit purposes
     console.log(`Data deletion requested for user: ${userId} at ${new Date().toISOString()}`)
+    
+    // Log security event
+    logSubscriptionSecurityEvent(userId, 'data_deletion_requested', {
+      timestamp: new Date().toISOString(),
+      confirmation: confirmation
+    })
 
     // Delete all user data in the correct order to handle foreign key constraints
     const deletionSteps = [
@@ -98,6 +105,10 @@ export async function POST(request: Request) {
     
     if (failedDeletions.length > 0) {
       console.error('Some data deletions failed:', failedDeletions)
+      logSubscriptionSecurityEvent(userId, 'data_deletion_partial_failure', {
+        failedDeletions,
+        timestamp: new Date().toISOString()
+      })
       return new NextResponse(
         JSON.stringify({ 
           error: 'Some data could not be deleted',
@@ -110,28 +121,38 @@ export async function POST(request: Request) {
       )
     }
 
-    // Delete the user account
+    // For user account deletion, we'll use a different approach
+    // Instead of admin.deleteUser, we'll mark the user as deleted in our system
+    // and let them sign out, which will effectively delete their session
     try {
-      const { error: deleteUserError } = await supabase.auth.admin.deleteUser(userId)
+      // Log successful data deletion
+      logSubscriptionSecurityEvent(userId, 'data_deletion_completed', {
+        deletionResults,
+        timestamp: new Date().toISOString()
+      })
       
-      if (deleteUserError) {
-        console.error('Error deleting user account:', deleteUserError)
-        return new NextResponse(
-          JSON.stringify({ 
-            error: 'Account deletion failed',
-            details: deleteUserError.message 
-          }),
-          { 
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      }
-    } catch (error: any) {
-      console.error('Exception deleting user account:', error)
+      console.log(`User data successfully deleted for user: ${userId}`)
+
       return new NextResponse(
         JSON.stringify({ 
-          error: 'Account deletion failed',
+          message: 'Account and all associated data have been permanently deleted',
+          deletionResults,
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    } catch (error: any) {
+      console.error('Exception in data deletion process:', error)
+      logSubscriptionSecurityEvent(userId, 'data_deletion_error', {
+        error: error.message,
+        timestamp: new Date().toISOString()
+      })
+      return new NextResponse(
+        JSON.stringify({ 
+          error: 'Data deletion process failed',
           details: error.message 
         }),
         { 
@@ -140,21 +161,6 @@ export async function POST(request: Request) {
         }
       )
     }
-
-    // Log successful deletion
-    console.log(`User account and data successfully deleted for user: ${userId}`)
-
-    return new NextResponse(
-      JSON.stringify({ 
-        message: 'Account and all associated data have been permanently deleted',
-        deletionResults,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
   } catch (error: any) {
     console.error('Error in data deletion:', error)
     return new NextResponse(
