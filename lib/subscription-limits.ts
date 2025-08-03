@@ -16,14 +16,37 @@ export async function canCreateContact(): Promise<{ allowed: boolean; currentCou
     }
 
     // Get user's subscription tier
-    const { data: subscription } = await supabase
+    const { data: subscription, error: subError } = await supabase
       .from('user_subscriptions')
       .select('tier, status')
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .single()
 
-    const tier = (subscription?.tier as SubscriptionTier) || 'free'
+    // If no active subscription, check for any subscription or default to free
+    let tier: SubscriptionTier = 'free'
+    if (subscription) {
+      tier = subscription.tier as SubscriptionTier
+    } else if (subError && subError.code === 'PGRST116') {
+      // No subscription found, check if user is in trial period
+      const { data: profile } = await supabase.auth.getUser()
+      if (profile.user) {
+        const createdAt = new Date(profile.user.created_at)
+        const now = new Date()
+        const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        
+        if (daysSinceCreation <= 30) {
+          tier = 'free' // Trial period
+        }
+      }
+    }
+
+    console.log('Contact limit check:', {
+      userId: session.user.id,
+      tier,
+      subscriptionFound: !!subscription,
+      subError: subError?.message
+    })
     
     // Get current contact count
     const { count: currentCount, error: countError } = await supabase
@@ -37,6 +60,14 @@ export async function canCreateContact(): Promise<{ allowed: boolean; currentCou
 
     const maxAllowed = SUBSCRIPTION_FEATURES[tier]?.maxContacts || SUBSCRIPTION_FEATURES.free.maxContacts
     const allowed = !hasReachedContactLimit(tier, currentCount || 0)
+
+    console.log('Contact limit calculation:', {
+      tier,
+      currentCount: currentCount || 0,
+      maxAllowed,
+      allowed,
+      features: SUBSCRIPTION_FEATURES[tier]
+    })
 
     return {
       allowed,

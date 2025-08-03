@@ -288,6 +288,8 @@ export async function POST(request: Request) {
     if (newContacts.length > 0) {
       const limitCheck = await canCreateContact()
       
+      console.log('Limit check result:', limitCheck)
+      
       if (!limitCheck.allowed) {
         const limitInfo = limitCheck.maxAllowed === -1 ? 'unlimited' : limitCheck.maxAllowed
         return new NextResponse(
