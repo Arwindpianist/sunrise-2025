@@ -109,6 +109,14 @@ export function useSubscription(): UseSubscriptionReturn {
       }
       
       const data = await response.json()
+      
+      // If we get a URL, redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url
+        return data
+      }
+      
+      // If no URL, assume the subscription was updated directly
       setSubscription(data)
       return data
     } catch (err: any) {

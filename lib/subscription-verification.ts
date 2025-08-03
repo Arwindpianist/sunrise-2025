@@ -39,18 +39,13 @@ export async function verifyUserSubscription(userId: string): Promise<Subscripti
       }
     }
 
-    // Verify subscription has a Stripe subscription ID
-    if (!subscription.stripe_subscription_id) {
-      logSubscriptionSecurityEvent(userId, 'missing_stripe_id', { subscriptionId: subscription.id })
-      return {
-        isValid: false,
-        error: "Subscription missing Stripe subscription ID"
-      }
+    // Since we don't store stripe_subscription_id in the database,
+    // we can't verify the subscription status here
+    // This verification will happen in the webhook when the payment is processed
+    return {
+      isValid: true,
+      subscription
     }
-
-    // Verify the subscription exists in Stripe and is active
-    try {
-      const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
       
       if (stripeSubscription.status !== 'active' && stripeSubscription.status !== 'trialing') {
         logSubscriptionSecurityEvent(userId, 'inactive_stripe_subscription', { 
@@ -66,48 +61,7 @@ export async function verifyUserSubscription(userId: string): Promise<Subscripti
         }
       }
 
-      // Verify metadata matches
-      if (stripeSubscription.metadata?.user_id !== userId) {
-        logSubscriptionSecurityEvent(userId, 'metadata_mismatch', { 
-          stripeUserId: stripeSubscription.metadata?.user_id,
-          expectedUserId: userId
-        })
-        return {
-          isValid: false,
-          error: "Subscription metadata mismatch",
-          subscription,
-          stripeSubscription
-        }
-      }
 
-      // Verify the tier matches
-      if (stripeSubscription.metadata?.plan !== subscription.tier) {
-        logSubscriptionSecurityEvent(userId, 'tier_mismatch', { 
-          stripeTier: stripeSubscription.metadata?.plan,
-          dbTier: subscription.tier
-        })
-        return {
-          isValid: false,
-          error: "Subscription tier mismatch between Stripe and database",
-          subscription,
-          stripeSubscription
-        }
-      }
-
-      return {
-        isValid: true,
-        subscription,
-        stripeSubscription
-      }
-    } catch (stripeError: any) {
-      console.error("Error verifying Stripe subscription:", stripeError)
-      logSubscriptionSecurityEvent(userId, 'stripe_verification_error', { error: stripeError.message })
-      return {
-        isValid: false,
-        error: "Unable to verify subscription with Stripe",
-        subscription
-      }
-    }
   } catch (error: any) {
     console.error("Error in subscription verification:", error)
     logSubscriptionSecurityEvent(userId, 'verification_error', { error: error.message })

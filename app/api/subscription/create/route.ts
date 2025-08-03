@@ -137,24 +137,13 @@ export async function POST(request: Request) {
       },
     }
 
-    if (isUpgrade && existingSubscription?.stripe_subscription_id) {
-      // Handle upgrade with proration - use subscription update instead
-      // For upgrades, we'll handle this differently in the webhook
-      checkoutParams.line_items = [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ]
-    } else {
-      // New subscription or downgrade
-      checkoutParams.line_items = [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ]
-    }
+    // Always create a new checkout session for upgrades since we don't store stripe_subscription_id
+    checkoutParams.line_items = [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ]
 
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create(checkoutParams)

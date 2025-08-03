@@ -49,6 +49,12 @@ export default function UpgradeModal({
     try {
       const result = await onUpgrade(targetTier)
       
+      // If we get a URL, redirect to Stripe checkout
+      if (result && result.url) {
+        window.location.href = result.url
+        return
+      }
+      
       // If we get a client secret, we need to redirect to payment
       if (result && result.clientSecret) {
         // Redirect to payment page or handle payment flow
@@ -56,7 +62,7 @@ export default function UpgradeModal({
         return
       }
       
-      // If no client secret, upgrade was successful
+      // If no URL or client secret, upgrade was successful
       onClose()
     } catch (error) {
       console.error('Upgrade failed:', error)
