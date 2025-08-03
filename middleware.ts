@@ -44,6 +44,20 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { session } } = await supabase.auth.getSession()
 
+  // Check if user is disabled (deleted account)
+  if (session?.user?.user_metadata?.deleted) {
+    console.log(`[ACCOUNT DELETION] Blocked access for deleted user: ${session.user.id}`)
+    
+    // Sign out the user
+    await supabase.auth.signOut()
+    
+    // Redirect to home page with deletion message
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/'
+    redirectUrl.searchParams.set('message', 'account_deleted')
+    return NextResponse.redirect(redirectUrl)
+  }
+
   // If there's no session and the user is trying to access a protected route
   if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
     const redirectUrl = request.nextUrl.clone()

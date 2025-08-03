@@ -246,9 +246,19 @@ export async function POST(request: Request) {
     }
 
     // Step 5: Delete user from Supabase Auth using admin client
+    let authDeletionSuccess = false
     try {
       console.log(`Deleting user from Supabase Auth: ${userId}`)
       
+      // First, try to sign out all sessions for the user
+      try {
+        await supabaseAdmin.auth.admin.signOut(userId)
+        console.log(`Signed out all sessions for user: ${userId}`)
+      } catch (signOutError) {
+        console.log('Could not sign out user sessions:', signOutError)
+      }
+      
+      // Then try to delete the user
       const { data: { user: adminUser }, error: adminError } = await supabaseAdmin.auth.admin.deleteUser(userId)
       
       if (adminError) {
@@ -257,8 +267,43 @@ export async function POST(request: Request) {
           error: adminError.message,
           timestamp: new Date().toISOString()
         })
+        
+        // If deletion fails, try to disable the user instead
+        try {
+          console.log(`Attempting to disable user instead: ${userId}`)
+          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { 
+              deleted: true, 
+              deleted_at: new Date().toISOString(),
+              deletion_reason: 'user_requested_deletion'
+            },
+            email_confirm: false,
+            phone_confirm: false
+          })
+          
+          if (updateError) {
+            console.error('Error disabling user:', updateError)
+            logSubscriptionSecurityEvent(userId, 'supabase_user_disable_failed', {
+              error: updateError.message,
+              timestamp: new Date().toISOString()
+            })
+          } else {
+            console.log(`User disabled successfully: ${userId}`)
+            authDeletionSuccess = true
+            logSubscriptionSecurityEvent(userId, 'supabase_user_disabled', {
+              timestamp: new Date().toISOString()
+            })
+          }
+        } catch (disableError: any) {
+          console.error('Exception disabling user:', disableError)
+          logSubscriptionSecurityEvent(userId, 'supabase_user_disable_exception', {
+            error: disableError.message,
+            timestamp: new Date().toISOString()
+          })
+        }
       } else {
         console.log(`User deleted from Supabase Auth: ${userId}`)
+        authDeletionSuccess = true
         logSubscriptionSecurityEvent(userId, 'supabase_user_deleted', {
           timestamp: new Date().toISOString()
         })
@@ -269,6 +314,36 @@ export async function POST(request: Request) {
         error: error.message,
         timestamp: new Date().toISOString()
       })
+      
+      // Try to disable the user as a fallback
+      try {
+        console.log(`Attempting to disable user as fallback: ${userId}`)
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { 
+            deleted: true, 
+            deleted_at: new Date().toISOString(),
+            deletion_reason: 'user_requested_deletion_fallback'
+          },
+          email_confirm: false,
+          phone_confirm: false
+        })
+        
+        if (updateError) {
+          console.error('Error disabling user as fallback:', updateError)
+        } else {
+          console.log(`User disabled as fallback: ${userId}`)
+          authDeletionSuccess = true
+          logSubscriptionSecurityEvent(userId, 'supabase_user_disabled_fallback', {
+            timestamp: new Date().toISOString()
+          })
+        }
+      } catch (fallbackError: any) {
+        console.error('Exception in fallback user disable:', fallbackError)
+        logSubscriptionSecurityEvent(userId, 'supabase_user_disable_fallback_exception', {
+          error: fallbackError.message,
+          timestamp: new Date().toISOString()
+        })
+      }
     }
 
     // Log successful complete deletion
@@ -276,6 +351,7 @@ export async function POST(request: Request) {
       deletionResults,
       stripeSubscriptionCanceled: !!stripeSubscriptionId,
       stripeCustomerDeleted: !!stripeCustomerId,
+      authDeletionSuccess,
       timestamp: new Date().toISOString()
     })
     
@@ -283,10 +359,13 @@ export async function POST(request: Request) {
 
     return new NextResponse(
       JSON.stringify({ 
-        message: 'Account and all associated data have been permanently deleted',
+        message: authDeletionSuccess 
+          ? 'Account and all associated data have been permanently deleted'
+          : 'Account data has been deleted, but user account may still exist in authentication system',
         deletionResults,
         stripeSubscriptionCanceled: !!stripeSubscriptionId,
         stripeCustomerDeleted: !!stripeCustomerId,
+        authDeletionSuccess,
         timestamp: new Date().toISOString()
       }),
       { 

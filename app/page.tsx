@@ -1,10 +1,30 @@
+"use client"
+
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, Users, MessageSquare, Clock, Star, ArrowRight } from "lucide-react"
+import { Calendar, Users, MessageSquare, Clock, Star, ArrowRight, CheckCircle } from "lucide-react"
 import LaunchPopup from "@/components/launch-popup"
+import { toast } from "@/components/ui/use-toast"
 
 export default function HomePage() {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Handle URL parameters for messages
+    const message = searchParams.get('message')
+    
+    if (message === 'account_deleted') {
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been successfully deleted. Thank you for using our service.",
+        variant: "default",
+      })
+    }
+  }, [searchParams])
+
   return (
     <div className="bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       {/* Launch Popup */}

@@ -82,6 +82,19 @@ function LoginForm() {
       }
 
       if (data.session) {
+        // Check if user account is disabled/deleted
+        if (data.user?.user_metadata?.deleted) {
+          // Sign out the user immediately
+          await supabase.auth.signOut()
+          
+          toast({
+            title: "Account Deleted",
+            description: "This account has been deleted and cannot be accessed. Please contact support if you believe this is an error.",
+            variant: "destructive",
+          })
+          return
+        }
+
         const redirectTo = searchParams.get('redirectedFrom') || '/dashboard'
         router.replace(redirectTo)
       }
