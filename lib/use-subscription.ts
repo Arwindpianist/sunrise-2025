@@ -177,7 +177,7 @@ export function useLimits() {
     }
   }
   
-  const features = subscription.features
+  const features = subscription.features || SUBSCRIPTION_FEATURES.free
   
   return {
     contactLimit: {

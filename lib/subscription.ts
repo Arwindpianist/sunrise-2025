@@ -313,8 +313,8 @@ export function getUpgradeRecommendation(
 
 // Get feature comparison for upgrade modal
 export function getFeatureComparison(currentTier: SubscriptionTier, targetTier: SubscriptionTier) {
-  const current = SUBSCRIPTION_FEATURES[currentTier];
-  const target = SUBSCRIPTION_FEATURES[targetTier];
+  const current = SUBSCRIPTION_FEATURES[currentTier] || SUBSCRIPTION_FEATURES.free;
+  const target = SUBSCRIPTION_FEATURES[targetTier] || SUBSCRIPTION_FEATURES.basic;
   
   return {
     current: current,
