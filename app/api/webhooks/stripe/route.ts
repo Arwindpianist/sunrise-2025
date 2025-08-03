@@ -1,29 +1,16 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import Stripe from 'stripe'
 import { SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import { getPlanChangeInfo, calculateProratedTokens } from "@/lib/billing-utils"
-import { sendSubscriptionConfirmation, sendMonthlyTokenCredit } from "@/lib/zoho-email"
+import { verifySubscriptionChangeSource, logSubscriptionSecurityEvent, verifyPaymentCompletion } from "@/lib/subscription-security"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
-// Create a Supabase client with service role key for webhook operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
 
 export const dynamic = "force-dynamic"
 
@@ -38,32 +25,41 @@ export async function POST(request: Request) {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message)
+      logSubscriptionSecurityEvent('unknown', 'webhook_signature_failed', { error: err.message })
       return new NextResponse(
         JSON.stringify({ error: 'Webhook signature verification failed' }),
         { status: 400 }
       )
     }
 
+    const supabase = createRouteHandlerClient({ cookies })
+
+    // Log webhook event for security monitoring
+    logSubscriptionSecurityEvent('webhook', 'stripe_event_received', { 
+      eventType: event.type,
+      eventId: event.id 
+    })
+
     // Handle the event
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, supabaseAdmin)
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, supabase, signature)
         break
       
       case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, supabaseAdmin)
-        break
-      
-      case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabaseAdmin)
+        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, supabase, signature)
         break
       
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabaseAdmin)
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabase, signature)
         break
       
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabaseAdmin)
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabase, signature)
+        break
+      
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabase, signature)
         break
       
       default:
@@ -73,6 +69,7 @@ export async function POST(request: Request) {
     return new NextResponse(JSON.stringify({ received: true }), { status: 200 })
   } catch (error: any) {
     console.error('Webhook error:', error)
+    logSubscriptionSecurityEvent('webhook', 'webhook_error', { error: error.message })
     return new NextResponse(
       JSON.stringify({ error: 'Webhook handler failed' }),
       { status: 500 }
@@ -80,7 +77,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, supabase: any) {
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, supabase: any, signature: string) {
   if (session.mode === 'subscription' && session.subscription) {
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription
     const userId = session.metadata?.user_id
@@ -90,6 +87,24 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
 
     if (!userId || !plan) {
       console.error('Missing user_id or plan in session metadata')
+      logSubscriptionSecurityEvent('unknown', 'missing_metadata', { sessionId: session.id })
+      return
+    }
+
+    // Verify webhook source
+    if (!verifySubscriptionChangeSource(userId, 'stripe_webhook', signature)) {
+      logSubscriptionSecurityEvent(userId, 'unauthorized_webhook', { sessionId: session.id })
+      return
+    }
+
+    // Verify payment completion
+    const paymentVerification = await verifyPaymentCompletion(subscription.id, userId)
+    if (!paymentVerification.isValid) {
+      console.error('Payment verification failed:', paymentVerification.error)
+      logSubscriptionSecurityEvent(userId, 'payment_verification_failed', { 
+        sessionId: session.id,
+        error: paymentVerification.error 
+      })
       return
     }
 
@@ -101,43 +116,44 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       .eq('status', 'active')
       .single()
 
-    // Safely handle Stripe timestamps
-    const getStripeDate = (timestamp: number | undefined) => {
-      if (!timestamp) return new Date().toISOString()
-      try {
-        return new Date(timestamp * 1000).toISOString()
-      } catch (error) {
-        console.warn('Invalid Stripe timestamp:', timestamp)
-        return new Date().toISOString()
-      }
-    }
-
     // Create or update subscription in database
     const subscriptionData = {
       user_id: userId,
       tier: plan,
-      plan_id: plan, // Add the required plan_id field
       status: 'active',
+      stripe_customer_id: session.customer as string,
       stripe_subscription_id: subscription.id,
-      current_period_start: getStripeDate((subscription as any).current_period_start),
-      current_period_end: getStripeDate((subscription as any).current_period_end),
+      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString()
     }
 
     if (existingSubscription) {
       // Update existing subscription
-      await supabase
+      const { error: updateError } = await supabase
         .from('user_subscriptions')
         .update(subscriptionData)
         .eq('id', existingSubscription.id)
+
+      if (updateError) {
+        console.error('Error updating subscription:', updateError)
+        logSubscriptionSecurityEvent(userId, 'subscription_update_failed', { error: updateError })
+        return
+      }
     } else {
       // Create new subscription
-      await supabase
+      const { error: createError } = await supabase
         .from('user_subscriptions')
         .insert({
           ...subscriptionData,
           created_at: new Date().toISOString()
         })
+
+      if (createError) {
+        console.error('Error creating subscription:', createError)
+        logSubscriptionSecurityEvent(userId, 'subscription_creation_failed', { error: createError })
+        return
+      }
     }
 
     // Handle token allocation based on whether this is an upgrade or new subscription
@@ -148,31 +164,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       await creditMonthlyTokens(userId, plan, supabase)
     }
 
-    // Send subscription confirmation email
-    try {
-      const { data: user } = await supabase
-        .from('users')
-        .select('email, full_name')
-        .eq('id', userId)
-        .single()
-      
-      if (user?.email) {
-        const monthlyPrice = SUBSCRIPTION_FEATURES[plan as keyof typeof SUBSCRIPTION_FEATURES]?.monthlyPrice || 0
-        await sendSubscriptionConfirmation(
-          user.email,
-          user.full_name || 'User',
-          plan,
-          monthlyPrice
-        )
-        console.log(`Confirmation email sent to ${user.email}`)
-      }
-    } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError)
-    }
+    logSubscriptionSecurityEvent(userId, 'subscription_activated', { 
+      plan, 
+      isUpgrade, 
+      sessionId: session.id 
+    })
   }
 }
 
-async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: any) {
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: any, signature: string) {
   if ((invoice as any).subscription) {
     const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string) as Stripe.Subscription
     const userId = subscription.metadata?.user_id
@@ -183,33 +183,104 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
       return
     }
 
-    // Safely handle Stripe timestamps
-    const getStripeDate = (timestamp: number | undefined) => {
-      if (!timestamp) return new Date().toISOString()
-      try {
-        return new Date(timestamp * 1000).toISOString()
-      } catch (error) {
-        console.warn('Invalid Stripe timestamp:', timestamp)
-        return new Date().toISOString()
-      }
+    // Verify webhook source
+    if (!verifySubscriptionChangeSource(userId, 'stripe_webhook', signature)) {
+      return
     }
 
     // Update subscription period in database
-    await supabase
+    const { error: updateError } = await supabase
       .from('user_subscriptions')
       .update({
-        current_period_start: getStripeDate((subscription as any).current_period_start),
-        current_period_end: getStripeDate((subscription as any).current_period_end),
+        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscription.id)
 
+    if (updateError) {
+      console.error('Error updating subscription period:', updateError)
+      return
+    }
+
     // Credit monthly tokens for regular billing cycle
     await creditMonthlyTokens(userId, plan, supabase)
+
+    logSubscriptionSecurityEvent(userId, 'payment_succeeded', { 
+      plan, 
+      invoiceId: invoice.id 
+    })
   }
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any) {
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any, signature: string) {
+  const userId = subscription.metadata?.user_id
+  const plan = subscription.metadata?.plan
+
+  if (!userId || !plan) {
+    console.error('Missing user_id or plan in subscription metadata')
+    return
+  }
+
+  // Verify webhook source
+  if (!verifySubscriptionChangeSource(userId, 'stripe_webhook', signature)) {
+    return
+  }
+
+  // Update subscription status in database
+  const { error: updateError } = await supabase
+    .from('user_subscriptions')
+    .update({
+      tier: plan,
+      status: subscription.status === 'active' ? 'active' : 'inactive',
+      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('stripe_subscription_id', subscription.id)
+
+  if (updateError) {
+    console.error('Error updating subscription:', updateError)
+    return
+  }
+
+  logSubscriptionSecurityEvent(userId, 'subscription_updated', { 
+    plan, 
+    status: subscription.status 
+  })
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any, signature: string) {
+  const userId = subscription.metadata?.user_id
+
+  if (!userId) {
+    console.error('Missing user_id in subscription metadata')
+    return
+  }
+
+  // Verify webhook source
+  if (!verifySubscriptionChangeSource(userId, 'stripe_webhook', signature)) {
+    return
+  }
+
+  // Update subscription status to cancelled
+  const { error: updateError } = await supabase
+    .from('user_subscriptions')
+    .update({
+      status: 'cancelled',
+      updated_at: new Date().toISOString()
+    })
+    .eq('stripe_subscription_id', subscription.id)
+
+  if (updateError) {
+    console.error('Error cancelling subscription:', updateError)
+    return
+  }
+
+  logSubscriptionSecurityEvent(userId, 'subscription_cancelled', {})
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any, signature: string) {
   if ((invoice as any).subscription) {
     const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string) as Stripe.Subscription
     const userId = subscription.metadata?.user_id
@@ -219,69 +290,29 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
       return
     }
 
-    console.log(`Payment failed for subscription ${subscription.id}, user ${userId}`)
+    // Verify webhook source
+    if (!verifySubscriptionChangeSource(userId, 'stripe_webhook', signature)) {
+      return
+    }
 
-    // Update subscription status to reflect payment failure
-    await supabase
+    // Update subscription status to past_due
+    const { error: updateError } = await supabase
       .from('user_subscriptions')
       .update({
-        status: 'payment_failed',
+        status: 'past_due',
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscription.id)
-  }
-}
 
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
-  const userId = subscription.metadata?.user_id
-  const plan = subscription.metadata?.plan
-
-  if (!userId || !plan) {
-    console.error('Missing user_id or plan in subscription metadata')
-    return
-  }
-
-  // Safely handle Stripe timestamps
-  const getStripeDate = (timestamp: number | undefined) => {
-    if (!timestamp) return new Date().toISOString()
-    try {
-      return new Date(timestamp * 1000).toISOString()
-    } catch (error) {
-      console.warn('Invalid Stripe timestamp:', timestamp)
-      return new Date().toISOString()
+    if (updateError) {
+      console.error('Error updating subscription status:', updateError)
+      return
     }
-  }
 
-  // Update subscription status in database
-  await supabase
-    .from('user_subscriptions')
-    .update({
-      tier: plan,
-      plan_id: plan, // Add the required plan_id field
-      status: subscription.status === 'active' ? 'active' : 'inactive',
-      current_period_start: getStripeDate((subscription as any).current_period_start),
-      current_period_end: getStripeDate((subscription as any).current_period_end),
-      updated_at: new Date().toISOString()
+    logSubscriptionSecurityEvent(userId, 'payment_failed', { 
+      invoiceId: invoice.id 
     })
-    .eq('stripe_subscription_id', subscription.id)
-}
-
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any) {
-  const userId = subscription.metadata?.user_id
-
-  if (!userId) {
-    console.error('Missing user_id in subscription metadata')
-    return
   }
-
-  // Update subscription status to cancelled
-  await supabase
-    .from('user_subscriptions')
-    .update({
-      status: 'cancelled',
-      updated_at: new Date().toISOString()
-    })
-    .eq('stripe_subscription_id', subscription.id)
 }
 
 async function handlePlanChangeTokens(
@@ -329,8 +360,6 @@ async function handlePlanChangeTokens(
           user_id: userId,
           balance: newBalance,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
         })
 
       if (updateError) {
@@ -384,16 +413,14 @@ async function creditMonthlyTokens(userId: string, plan: string, supabase: any) 
   const currentBalance = balanceData?.balance || 0
   const newBalance = currentBalance + features.monthlyTokens
 
-      // Update user balance
-    const { error: updateError } = await supabase
-      .from('user_balances')
-      .upsert({
-        user_id: userId,
-        balance: newBalance,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
+  // Update user balance
+  const { error: updateError } = await supabase
+    .from('user_balances')
+    .upsert({
+      user_id: userId,
+      balance: newBalance,
+      updated_at: new Date().toISOString()
+    })
 
   if (updateError) {
     console.error('Error updating user balance:', updateError)
@@ -414,28 +441,6 @@ async function creditMonthlyTokens(userId: string, plan: string, supabase: any) 
 
   if (transactionError) {
     console.error('Error recording transaction:', transactionError)
-  }
-
-  // Send monthly token credit email
-  try {
-    const { data: user } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .eq('id', userId)
-      .single()
-    
-    if (user?.email && features.monthlyTokens > 0) {
-      await sendMonthlyTokenCredit(
-        user.email,
-        user.full_name || 'User',
-        plan,
-        features.monthlyTokens,
-        newBalance
-      )
-      console.log(`Monthly token credit email sent to ${user.email}`)
-    }
-  } catch (emailError) {
-    console.error('Error sending monthly token credit email:', emailError)
   }
 
   console.log(`Credited ${features.monthlyTokens} tokens to user ${userId} for ${plan} subscription`)

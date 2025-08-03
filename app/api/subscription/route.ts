@@ -2,6 +2,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
+import { checkSubscriptionOperation, checkRateLimit, logSubscriptionSecurityEvent } from "@/lib/subscription-security"
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -113,7 +114,7 @@ export async function GET() {
   }
 }
 
-// Create or update subscription with Stripe payment
+// Redirect to Stripe checkout for subscription creation
 export async function POST(request: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies })
@@ -130,13 +131,37 @@ export async function POST(request: Request) {
       )
     }
 
-    const { tier, paymentMethodId } = await request.json()
+    // Rate limiting
+    if (!checkRateLimit(session.user.id, 'subscription_creation', 3, 60000)) {
+      return new NextResponse(
+        JSON.stringify({ error: "Too many subscription attempts. Please wait before trying again." }),
+        { 
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    const { tier } = await request.json()
 
     if (!tier || !SUBSCRIPTION_FEATURES[tier as SubscriptionTier]) {
       return new NextResponse(
         JSON.stringify({ error: "Invalid subscription tier" }),
         { 
           status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    }
+
+    // Security check - prevent direct subscription creation
+    const securityCheck = await checkSubscriptionOperation(session.user.id, 'create')
+    if (!securityCheck.isAllowed) {
+      logSubscriptionSecurityEvent(session.user.id, 'blocked_direct_creation', { tier })
+      return new NextResponse(
+        JSON.stringify({ error: securityCheck.error || "Direct subscription creation not allowed" }),
+        { 
+          status: 403,
           headers: { "Content-Type": "application/json" },
         }
       )
@@ -174,18 +199,16 @@ export async function POST(request: Request) {
     // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
       .from("user_subscriptions")
-      .select("stripe_subscription_id, total_tokens_purchased, id")
+      .select("stripe_customer_id, stripe_subscription_id, tier, current_period_start, current_period_end, id")
       .eq("user_id", session.user.id)
+      .eq("status", "active")
       .single()
 
-    // Create or get Stripe customer
-    let customerId: string
-    if (existingSubscription?.stripe_subscription_id) {
-      // Get customer from existing subscription
-      const existingStripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id)
-      customerId = existingStripeSubscription.customer as string
-    } else {
-      // Create new Stripe customer
+    let customerId = existingSubscription?.stripe_customer_id
+    let isUpgrade = false
+
+    if (!customerId) {
+      // Create Stripe customer for new subscription
       const customer = await stripe.customers.create({
         email: userData.email,
         metadata: {
@@ -193,132 +216,95 @@ export async function POST(request: Request) {
         },
       })
       customerId = customer.id
+    } else if (existingSubscription && existingSubscription.tier !== tier) {
+      // This is a plan change
+      isUpgrade = isPlanUpgrade(existingSubscription.tier as SubscriptionTier, tier as SubscriptionTier)
+      
+      // For upgrades, verify the existing subscription is valid
+      if (isUpgrade && existingSubscription.stripe_subscription_id) {
+        try {
+          const stripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id)
+          
+          if (stripeSubscription.status !== 'active' && stripeSubscription.status !== 'trialing') {
+            return new NextResponse(
+              JSON.stringify({ error: "Your current subscription is not active. Please update your payment method first." }),
+              { 
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              }
+            )
+          }
+        } catch (stripeError: any) {
+          console.error("Error verifying existing subscription:", stripeError)
+          return new NextResponse(
+            JSON.stringify({ error: "Unable to verify your current subscription. Please contact support." }),
+            { 
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            }
+          )
+        }
+      }
     }
 
-    // Create or update subscription in Stripe
-    let stripeSubscription
-    if (existingSubscription?.stripe_subscription_id) {
-      // Update existing subscription
-      stripeSubscription = await stripe.subscriptions.update(
-        existingSubscription.stripe_subscription_id,
-        {
-          items: [{ price: priceId }],
-          metadata: {
-            user_id: session.user.id,
-            plan: tier,
-          },
-        }
-      )
-    } else {
-      // Create new subscription
-      stripeSubscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceId }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
+    // Get the base URL for redirects
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sunrise-2025.com'
+
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      success_url: `${baseUrl}/dashboard/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      metadata: {
+        user_id: session.user.id,
+        plan: tier,
+        is_upgrade: isUpgrade.toString(),
+        from_tier: existingSubscription?.tier || 'free',
+      },
+      subscription_data: {
         metadata: {
           user_id: session.user.id,
           plan: tier,
+          is_upgrade: isUpgrade.toString(),
+          from_tier: existingSubscription?.tier || 'free',
         },
-      })
-    }
+      },
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+    })
 
-    // Update database with subscription info
-    const now = new Date()
-    
-    // Safely handle Stripe timestamps
-    const getStripeDate = (timestamp: number | undefined) => {
-      if (!timestamp) return now.toISOString()
-      try {
-        return new Date(timestamp * 1000).toISOString()
-      } catch (error) {
-        console.warn('Invalid Stripe timestamp:', timestamp)
-        return now.toISOString()
+    logSubscriptionSecurityEvent(session.user.id, 'checkout_session_created', { tier, isUpgrade })
+
+    return new NextResponse(
+      JSON.stringify({ 
+        sessionId: checkoutSession.id,
+        url: checkoutSession.url,
+        isUpgrade
+      }),
+      { 
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       }
-    }
-    
-    const subscriptionData = {
-      user_id: session.user.id,
-      tier,
-      status: 'active',
-      stripe_subscription_id: stripeSubscription.id,
-      current_period_start: getStripeDate((stripeSubscription as any).current_period_start),
-      current_period_end: getStripeDate((stripeSubscription as any).current_period_end),
-      total_tokens_purchased: existingSubscription?.total_tokens_purchased || 0,
-      updated_at: now.toISOString()
-    }
-
-    if (existingSubscription) {
-      // Update existing subscription
-      const { data: updatedSubscription, error: updateError } = await supabase
-        .from("user_subscriptions")
-        .update(subscriptionData)
-        .eq("id", existingSubscription.id)
-        .select()
-        .single()
-
-      if (updateError) {
-        console.error("Error updating subscription:", updateError)
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to update subscription" }),
-          { 
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      }
-
-      return new NextResponse(
-        JSON.stringify({
-          ...updatedSubscription,
-          features: SUBSCRIPTION_FEATURES[tier as SubscriptionTier],
-          clientSecret: (stripeSubscription.latest_invoice as any)?.payment_intent?.client_secret
-        }),
-        { 
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      )
-    } else {
-      // Create new subscription
-      const { data: newSubscription, error: createError } = await supabase
-        .from("user_subscriptions")
-        .insert({
-          ...subscriptionData,
-          created_at: now.toISOString()
-        })
-        .select()
-        .single()
-
-      if (createError) {
-        console.error("Error creating subscription:", createError)
-        return new NextResponse(
-          JSON.stringify({ error: "Failed to create subscription" }),
-          { 
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      }
-
-      return new NextResponse(
-        JSON.stringify({
-          ...newSubscription,
-          features: SUBSCRIPTION_FEATURES[tier as SubscriptionTier],
-          clientSecret: (stripeSubscription.latest_invoice as any)?.payment_intent?.client_secret
-        }),
-        { 
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      )
-    }
+    )
 
   } catch (error: any) {
-    console.error("Error in subscription POST:", error)
+    console.error("Error creating subscription checkout session:", error)
+    
+    let errorMessage = "Internal server error"
+    if (error.type === 'StripeInvalidRequestError') {
+      errorMessage = `Stripe error: ${error.message}`
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
     return new NextResponse(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -329,8 +315,6 @@ export async function POST(request: Request) {
 
 // Helper function to get Stripe price ID for each tier
 function getPriceIdForTier(tier: SubscriptionTier): string | null {
-  // You need to create these price IDs in your Stripe dashboard
-  // and replace them with your actual price IDs
   const priceIds: Record<string, string | undefined> = {
     basic: process.env.STRIPE_BASIC_PRICE_ID,
     pro: process.env.STRIPE_PRO_PRICE_ID,
@@ -338,4 +322,12 @@ function getPriceIdForTier(tier: SubscriptionTier): string | null {
   }
   
   return priceIds[tier] || null
+}
+
+// Helper function to check if this is a plan upgrade
+function isPlanUpgrade(fromTier: SubscriptionTier, toTier: SubscriptionTier): boolean {
+  const tierOrder = ['free', 'basic', 'pro', 'enterprise']
+  const fromIndex = tierOrder.indexOf(fromTier)
+  const toIndex = tierOrder.indexOf(toTier)
+  return toIndex > fromIndex
 } 

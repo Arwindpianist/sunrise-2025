@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
 import { getPlanChangeInfo, isPlanUpgrade, formatProrationInfo } from "@/lib/billing-utils"
+import { verifySubscriptionChange, logSubscriptionVerification } from "@/lib/subscription-verification"
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get current subscription
+    // Get current subscription first for verification
     const { data: currentSubscription, error: subscriptionError } = await supabase
       .from("user_subscriptions")
       .select("*")
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
 
     if (subscriptionError || !currentSubscription) {
       return new NextResponse(
-        JSON.stringify({ error: "No active subscription found. Please use the subscription creation endpoint for new subscriptions." }),
+        JSON.stringify({ error: "No active subscription found" }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -58,10 +59,18 @@ export async function POST(request: Request) {
       )
     }
 
-    // Prevent free users from using upgrade endpoint
-    if (currentSubscription.tier === 'free') {
+    // Verify subscription change is legitimate
+    const verification = await verifySubscriptionChange(session.user.id, tier, currentSubscription.tier)
+    
+    // Log the verification attempt for security monitoring
+    logSubscriptionVerification(session.user.id, 'upgrade_attempt', verification, { 
+      requestedTier: tier, 
+      currentTier: currentSubscription.tier 
+    })
+
+    if (!verification.isValid) {
       return new NextResponse(
-        JSON.stringify({ error: "Free users must use the subscription creation endpoint. Please go back and select a plan to subscribe." }),
+        JSON.stringify({ error: verification.error || "Subscription verification failed" }),
         { 
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -121,24 +130,13 @@ export async function POST(request: Request) {
         }
       )
 
-      // Safely handle Stripe timestamps
-      const getStripeDate = (timestamp: number | undefined) => {
-        if (!timestamp) return new Date().toISOString()
-        try {
-          return new Date(timestamp * 1000).toISOString()
-        } catch (error) {
-          console.warn('Invalid Stripe timestamp:', timestamp)
-          return new Date().toISOString()
-        }
-      }
-
-      // Update subscription in database
+      // Only update database after successful Stripe update
       await supabase
         .from("user_subscriptions")
         .update({
           tier: tier,
-          current_period_start: getStripeDate((updatedSubscription as any).current_period_start),
-          current_period_end: getStripeDate((updatedSubscription as any).current_period_end),
+          current_period_start: new Date((updatedSubscription as any).current_period_start * 1000).toISOString(),
+          current_period_end: new Date((updatedSubscription as any).current_period_end * 1000).toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq("id", currentSubscription.id)

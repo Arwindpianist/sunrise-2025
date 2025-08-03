@@ -70,10 +70,11 @@ export default function PricingPage() {
     try {
       const planTier = plan.toLowerCase()
       
-      // Check if this is an upgrade (only for users with existing paid subscriptions)
-      if (currentSubscription && currentSubscription.tier !== 'free' && isPlanUpgrade(currentSubscription.tier as any, planTier as any)) {
-        // Handle upgrade with proration
-        const response = await fetch('/api/subscription/upgrade', {
+      // Check if this is an upgrade
+      if (currentSubscription && isPlanUpgrade(userTier as any, planTier as any)) {
+        // For upgrades, we need to ensure proper Stripe verification
+        // Create a checkout session for the upgrade instead of direct database update
+        const response = await fetch('/api/subscription/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -83,24 +84,19 @@ export default function PricingPage() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to upgrade subscription')
+          throw new Error(errorData.error || 'Failed to create upgrade checkout session')
         }
 
-        const result = await response.json()
+        const { url } = await response.json()
         
-        // Show success message with proration info
-        toast({
-          title: "Upgrade Successful!",
-          description: `Your plan has been upgraded to ${plan}. ${result.planChangeInfo.prorationInfo}`,
-        })
-
-        // Refresh user data
-        await fetchUserTier()
-        setLoading(false)
+        // Redirect to Stripe checkout for upgrade
+        if (url) {
+          window.location.href = url
+        }
         return
       }
 
-      // Create new subscription (for free users or downgrades)
+      // Create new subscription
       const response = await fetch('/api/subscription/create', {
         method: 'POST',
         headers: {
@@ -110,8 +106,7 @@ export default function PricingPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create subscription')
+        throw new Error('Failed to create subscription')
       }
 
       const { url } = await response.json()

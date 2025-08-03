@@ -2,39 +2,40 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Maintenance configuration
-const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true'
-const MAINTENANCE_ALLOWED_IPS = process.env.MAINTENANCE_ALLOWED_IPS?.split(',') || []
-const MAINTENANCE_BYPASS_SECRET = process.env.MAINTENANCE_BYPASS_SECRET
-
 export async function middleware(request: NextRequest) {
-  // Check maintenance mode first
-  if (MAINTENANCE_MODE) {
-    // Allow access to maintenance page itself
-    if (request.nextUrl.pathname === '/maintenance') {
-      return NextResponse.next()
-    }
-
-    // Check for bypass secret in query parameter
-    if (MAINTENANCE_BYPASS_SECRET && request.nextUrl.searchParams.get('bypass') === MAINTENANCE_BYPASS_SECRET) {
-      return NextResponse.next()
-    }
-
-    // Check for allowed IPs
-    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
-    if (clientIP && MAINTENANCE_ALLOWED_IPS.includes(clientIP)) {
-      return NextResponse.next()
-    }
-
-    // Redirect all requests to maintenance page
-    const maintenanceUrl = new URL('/maintenance', request.url)
+  // Subscription security check
+  const { pathname } = request.nextUrl
+  if (pathname.startsWith('/api/subscription/upgrade') || 
+      pathname.startsWith('/api/subscription/downgrade') ||
+      pathname.startsWith('/api/subscription/cancel')) {
     
-    // Preserve the original URL as a query parameter for redirect after maintenance
-    if (request.nextUrl.pathname !== '/') {
-      maintenanceUrl.searchParams.set('redirect', request.nextUrl.pathname + request.nextUrl.search)
+    // Check if this is a legitimate request
+    const userAgent = request.headers.get('user-agent') || ''
+    const referer = request.headers.get('referer') || ''
+    
+    // Block requests that don't come from our application
+    if (!referer.includes('sunrise-2025.com') && !referer.includes('localhost')) {
+      console.warn(`[SUBSCRIPTION SECURITY] Blocked unauthorized subscription change attempt from ${referer}`)
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized subscription change attempt' }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    return NextResponse.redirect(maintenanceUrl)
+    // Block requests without proper headers
+    if (!userAgent.includes('Mozilla') && !userAgent.includes('Chrome') && !userAgent.includes('Safari')) {
+      console.warn(`[SUBSCRIPTION SECURITY] Blocked subscription change with suspicious user agent: ${userAgent}`)
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid request' }),
+        { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
   }
 
   const res = NextResponse.next()
@@ -56,7 +57,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all routes for maintenance mode
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Match dashboard routes and subscription API routes
+    '/dashboard/:path*',
+    '/api/subscription/:path*',
   ],
 } 
