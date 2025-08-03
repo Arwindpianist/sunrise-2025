@@ -85,8 +85,8 @@ export default function SubscriptionStatus() {
     return null
   }
 
-  const TierIcon = tierIcons[subscription.tier]
-  const features = subscription.features
+  const TierIcon = tierIcons[subscription.tier] || tierIcons.free
+  const features = subscription.features || SUBSCRIPTION_FEATURES.free
   const isTrial = subscription.status === 'trial'
   const isActive = subscription.status === 'active'
 

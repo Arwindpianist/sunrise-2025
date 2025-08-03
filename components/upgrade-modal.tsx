@@ -39,8 +39,9 @@ export default function UpgradeModal({
 }: UpgradeModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   
-  const currentFeatures = SUBSCRIPTION_FEATURES[currentTier]
-  const targetFeatures = SUBSCRIPTION_FEATURES[targetTier]
+  // Add safety checks to prevent undefined errors
+  const currentFeatures = SUBSCRIPTION_FEATURES[currentTier] || SUBSCRIPTION_FEATURES.free
+  const targetFeatures = SUBSCRIPTION_FEATURES[targetTier] || SUBSCRIPTION_FEATURES.basic
   const comparison = getFeatureComparison(currentTier, targetTier)
   
   const handleUpgrade = async () => {
