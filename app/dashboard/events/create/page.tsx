@@ -22,7 +22,7 @@ import { emailTemplates, type EmailTemplateVars } from "@/components/email-templ
 import { telegramTemplates, type TelegramTemplateVars } from "@/components/telegram-templates"
 import { format } from "date-fns"
 import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight, AlertTriangle } from "lucide-react"
-import { canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
+import { canCreateEventClient as canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits-client"
 
 const stripePromise = typeof window !== 'undefined' && window.location.protocol === 'https:' 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
