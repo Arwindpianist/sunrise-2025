@@ -60,8 +60,8 @@ export async function POST(request: Request) {
     const userId = user.id
     console.log(`Found user: ${userId} for email: ${email}`)
 
-    // Check if user is disabled
-    if (user.user_metadata?.deleted) {
+    // Check if user is disabled or proceed with cleanup
+    if (user.user_metadata?.deleted || user.user_metadata?.force_deleted) {
       console.log(`User ${userId} is disabled, cleaning up all data and changing email`)
       
       // Step 1: Clean up all user data from database tables
@@ -182,7 +182,8 @@ export async function POST(request: Request) {
       }
 
       // Step 3: Change the email to free up the original email
-      const newEmail = `deleted_${Date.now()}_${email}`
+      const timestamp = Date.now()
+      const newEmail = `deleted_${timestamp}_${email}`
       
       try {
         const { data: { user: updatedUser }, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -192,7 +193,8 @@ export async function POST(request: Request) {
             original_email: email,
             force_deleted: true,
             force_deleted_at: new Date().toISOString(),
-            cleanup_results: cleanupResults
+            cleanup_results: cleanupResults,
+            email_changed_at: new Date().toISOString()
           },
           email_confirm: false,
           phone_confirm: false
@@ -264,13 +266,47 @@ export async function POST(request: Request) {
         )
       }
     } else {
-      return new NextResponse(
-        JSON.stringify({ error: 'User is not disabled. Only disabled users can be force deleted.' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
+      // User is not disabled, try to disable first
+      console.log(`User ${userId} is not disabled, attempting to disable first`)
+      
+      try {
+        const { data: { user: disabledUser }, error: disableError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { 
+            ...user.user_metadata,
+            deleted: true,
+            deleted_at: new Date().toISOString()
+          },
+          email_confirm: false,
+          phone_confirm: false
+        })
+        
+        if (disableError) {
+          console.error('Failed to disable user:', disableError)
+          return new NextResponse(
+            JSON.stringify({ error: 'Failed to disable user account' }),
+            { 
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
         }
-      )
+        
+        // Now proceed with the cleanup process
+        console.log(`User ${userId} disabled successfully, proceeding with cleanup`)
+        
+        // Recursive call to handle the cleanup
+        return await POST(request)
+        
+      } catch (error: any) {
+        console.error('Exception disabling user:', error)
+        return new NextResponse(
+          JSON.stringify({ error: 'Failed to disable user account' }),
+          { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
     }
   } catch (error: any) {
     console.error('Error in force delete:', error)
