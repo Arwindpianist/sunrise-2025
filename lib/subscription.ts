@@ -168,7 +168,7 @@ export function canPerformAction(
   userTier: SubscriptionTier,
   action: 'use_telegram' | 'customize_templates' | 'custom_branding' | 'use_api' | 'buy_tokens'
 ): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier];
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   
   switch (action) {
     case 'use_telegram':
@@ -191,7 +191,7 @@ export function canBuyTokens(
   userTier: SubscriptionTier,
   totalTokensPurchased: number
 ): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier];
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   
   if (!features.canBuyTokens) return false;
   
@@ -208,7 +208,7 @@ export function hasReachedContactLimit(
   userTier: SubscriptionTier,
   currentContactCount: number
 ): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier];
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   return features.maxContacts !== -1 && currentContactCount >= features.maxContacts;
 }
 
@@ -217,7 +217,7 @@ export function hasReachedEventLimit(
   userTier: SubscriptionTier,
   currentEventCount: number
 ): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier];
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   return features.maxEvents !== -1 && currentEventCount >= features.maxEvents;
 }
 
@@ -331,7 +331,7 @@ export function getRemainingTokenAllowance(
 ): number {
   if (userTier !== 'basic') return -1; // Unlimited
   
-  const features = SUBSCRIPTION_FEATURES[userTier];
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.basic;
   const remaining = features.maxTokens - totalTokensPurchased;
   return Math.max(0, remaining);
 } 
