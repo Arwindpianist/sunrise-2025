@@ -76,8 +76,8 @@ function parseCSV(csvContent: string): ImportedContact[] {
   const headers = parseCSVRow(headerLine)
   
   // Find column indices for Google Contacts format
-  const firstNameIndex = headers.findIndex(h => h === 'First Name')
-  const lastNameIndex = headers.findIndex(h => h === 'Last Name')
+  const firstNameIndex = headers.findIndex(h => h === 'First Name') || headers.findIndex(h => h === 'Given Name')
+  const lastNameIndex = headers.findIndex(h => h === 'Last Name') || headers.findIndex(h => h === 'Family Name')
   const emailIndex = headers.findIndex(h => h === 'E-mail 1 - Value')
   const phoneIndex = headers.findIndex(h => h === 'Phone 1 - Value')
   const notesIndex = headers.findIndex(h => h === 'Notes')
@@ -102,13 +102,13 @@ function parseCSV(csvContent: string): ImportedContact[] {
       const rawPhone = columns[phoneIndex] || undefined
       const cleanedPhone = cleanPhoneNumber(rawPhone)
       
-      const contact: ImportedContact = {
-        first_name: columns[firstNameIndex] || 'Unknown',
-        last_name: columns[lastNameIndex] || undefined,
-        email: columns[emailIndex] || undefined,
-        phone: cleanedPhone,
-        notes: columns[notesIndex] || undefined,
-      }
+             const contact: ImportedContact = {
+         first_name: firstNameIndex >= 0 ? columns[firstNameIndex] : 'Unknown',
+         last_name: lastNameIndex >= 0 ? columns[lastNameIndex] : undefined,
+         email: emailIndex >= 0 ? columns[emailIndex] : undefined,
+         phone: phoneIndex >= 0 ? cleanedPhone : undefined,
+         notes: notesIndex >= 0 ? columns[notesIndex] : undefined,
+       }
       
       // Only add contacts that have at least a first name or email
       if (contact.first_name !== 'Unknown' || contact.email) {

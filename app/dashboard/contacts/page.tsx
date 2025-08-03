@@ -25,7 +25,7 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Plus, Upload, Link as LinkIcon, Search, Edit2, Trash2, Settings, Phone, Mail, User, FileText, MoreVertical, Copy, AlertTriangle, MessageCircle, MessageSquare, ChevronDown, ChevronUp } from "lucide-react"
-import { canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits"
+import { canCreateContactClient as canCreateContact, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits-client"
 import { Textarea } from "@/components/ui/textarea"
 import CategoryManager from "@/components/category-manager"
 import PhoneImport from "@/components/phone-import"
