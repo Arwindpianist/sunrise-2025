@@ -535,7 +535,7 @@ export default function BalancePage() {
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-blue-900">
-                        Upgrade to {upgradeRec.nextTier.charAt(0).toUpperCase() + upgradeRec.nextTier.slice(1)}
+                        Upgrade to {upgradeRec.nextTier ? upgradeRec.nextTier.charAt(0).toUpperCase() + upgradeRec.nextTier.slice(1) : 'Unknown'}
                       </h3>
                       <p className="text-sm text-blue-700 mt-1">
                         {formatProrationInfo(upgradeRec.planChangeInfo.prorationInfo)}

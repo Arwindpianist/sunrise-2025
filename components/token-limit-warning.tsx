@@ -100,7 +100,7 @@ export function TokenLimitWarning({ tier, currentBalance, totalTokensPurchased =
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p><strong>Current Plan:</strong> {tier.charAt(0).toUpperCase() + tier.slice(1)}</p>
+          <p><strong>Current Plan:</strong> {tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unknown'}</p>
           <p><strong>Token Limit:</strong> {limitInfo.currentLimit} tokens</p>
           {limitInfo.recommendedUpgrade && (
             <p><strong>Recommended:</strong> {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} (unlimited tokens)</p>
@@ -161,7 +161,7 @@ export function TokenLimitInfo({ tier, currentBalance, totalTokensPurchased = 0 
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{limitInfo.remainingTokens} tokens remaining</span>
-            <span>{tier.charAt(0).toUpperCase() + tier.slice(1)} Plan</span>
+            <span>{tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unknown'} Plan</span>
           </div>
         </div>
 

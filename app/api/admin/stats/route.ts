@@ -220,7 +220,7 @@ async function generateSubscriptionData(supabase: any) {
   const tierCounts: { [key: string]: number } = {}
   
   subscriptions?.forEach((sub: any) => {
-    const tier = sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) // Capitalize first letter
+    const tier = sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Unknown' // Capitalize first letter
     tierCounts[tier] = (tierCounts[tier] || 0) + 1
   })
   

@@ -62,7 +62,7 @@ export const emailTemplates = {
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #333; margin: 0 0 15px 0;">Subscription Details</h3>
             <p style="margin: 5px 0; color: #666;">
-              <strong>Plan:</strong> ${tier.charAt(0).toUpperCase() + tier.slice(1)}
+              <strong>Plan:</strong> ${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unknown'}
             </p>
             <p style="margin: 5px 0; color: #666;">
               <strong>Amount:</strong> RM${amount.toFixed(2)}
@@ -178,7 +178,7 @@ export const emailTemplates = {
           <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #155724; margin: 0 0 15px 0;">Token Credit Summary</h3>
             <p style="margin: 5px 0; color: #155724;">
-              <strong>Plan:</strong> ${tier.charAt(0).toUpperCase() + tier.slice(1)}
+              <strong>Plan:</strong> ${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unknown'}
             </p>
             <p style="margin: 5px 0; color: #155724;">
               <strong>Tokens Credited:</strong> ${tokensCredited} tokens
