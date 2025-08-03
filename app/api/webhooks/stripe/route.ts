@@ -303,7 +303,8 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
         status: 'past_due',
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('user_id', userId)
+      .eq('status', 'active')
 
     if (updateError) {
       console.error('Error updating subscription status:', updateError)

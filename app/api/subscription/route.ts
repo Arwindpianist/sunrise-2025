@@ -207,16 +207,17 @@ export async function POST(request: Request) {
     let customerId: string | null = null
     let isUpgrade = false
 
-    if (!existingSubscription) {
-      // Create Stripe customer for new subscription
-      const customer = await stripe.customers.create({
-        email: userData.email,
-        metadata: {
-          user_id: session.user.id,
-        },
-      })
-      customerId = customer.id
-    } else if (existingSubscription.tier !== tier) {
+    // Always create a Stripe customer for new subscriptions
+    // For existing subscriptions, we'll need to create a new customer since we don't store stripe_customer_id
+    const customer = await stripe.customers.create({
+      email: userData.email,
+      metadata: {
+        user_id: session.user.id,
+      },
+    })
+    customerId = customer.id
+
+    if (existingSubscription && existingSubscription.tier !== tier) {
       // This is a plan change
       isUpgrade = isPlanUpgrade(existingSubscription.tier as SubscriptionTier, tier as SubscriptionTier)
       
