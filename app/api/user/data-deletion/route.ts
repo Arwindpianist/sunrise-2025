@@ -47,11 +47,60 @@ export async function POST(request: Request) {
     const deletionSteps = [
       {
         name: 'email_logs',
-        query: supabase.from('email_logs').delete().eq('user_id', userId)
+        query: async () => {
+          // First get event IDs, then delete email logs
+          const { data: eventIds } = await supabase
+            .from('events')
+            .select('id')
+            .eq('user_id', userId)
+          
+          if (eventIds && eventIds.length > 0) {
+            const eventIdArray = eventIds.map(e => e.id)
+            return supabase
+              .from('email_logs')
+              .delete()
+              .in('event_id', eventIdArray)
+          }
+          return { error: null }
+        }
       },
       {
         name: 'telegram_logs',
-        query: supabase.from('telegram_logs').delete().eq('user_id', userId)
+        query: async () => {
+          // First get event IDs, then delete telegram logs
+          const { data: eventIds } = await supabase
+            .from('events')
+            .select('id')
+            .eq('user_id', userId)
+          
+          if (eventIds && eventIds.length > 0) {
+            const eventIdArray = eventIds.map(e => e.id)
+            return supabase
+              .from('telegram_logs')
+              .delete()
+              .in('event_id', eventIdArray)
+          }
+          return { error: null }
+        }
+      },
+      {
+        name: 'event_contacts',
+        query: async () => {
+          // First get event IDs, then delete event contacts
+          const { data: eventIds } = await supabase
+            .from('events')
+            .select('id')
+            .eq('user_id', userId)
+          
+          if (eventIds && eventIds.length > 0) {
+            const eventIdArray = eventIds.map(e => e.id)
+            return supabase
+              .from('event_contacts')
+              .delete()
+              .in('event_id', eventIdArray)
+          }
+          return { error: null }
+        }
       },
       {
         name: 'transactions',
@@ -68,10 +117,6 @@ export async function POST(request: Request) {
       {
         name: 'referrals',
         query: supabase.from('referrals').delete().eq('referrer_id', userId)
-      },
-      {
-        name: 'enquiries',
-        query: supabase.from('enquiries').delete().eq('user_id', userId)
       },
       {
         name: 'contacts',
