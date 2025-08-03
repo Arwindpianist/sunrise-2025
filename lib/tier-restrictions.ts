@@ -2,7 +2,7 @@ import { SubscriptionTier, SUBSCRIPTION_FEATURES } from './subscription'
 
 // Check if user can use a specific feature
 export function canUseFeature(userTier: SubscriptionTier, feature: string): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier]
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   
   switch (feature) {
     case 'telegram':
@@ -170,7 +170,7 @@ export function getFeatureUpgradeRecommendation(userTier: SubscriptionTier, feat
 
 // Check if user has reached a limit
 export function hasReachedLimit(userTier: SubscriptionTier, currentCount: number, limitType: 'contacts' | 'events' | 'tokens'): boolean {
-  const features = SUBSCRIPTION_FEATURES[userTier]
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   
   switch (limitType) {
     case 'contacts':
@@ -186,7 +186,7 @@ export function hasReachedLimit(userTier: SubscriptionTier, currentCount: number
 
 // Get limit information
 export function getLimitInfo(userTier: SubscriptionTier, currentCount: number, limitType: 'contacts' | 'events' | 'tokens') {
-  const features = SUBSCRIPTION_FEATURES[userTier]
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   let maxAllowed: number
   
   switch (limitType) {
@@ -229,7 +229,7 @@ export function getLimitInfo(userTier: SubscriptionTier, currentCount: number, l
 
 // Get tier display information
 export function getTierDisplayInfo(userTier: SubscriptionTier) {
-  const features = SUBSCRIPTION_FEATURES[userTier]
+  const features = SUBSCRIPTION_FEATURES[userTier] || SUBSCRIPTION_FEATURES.free;
   return {
     name: features.name,
     color: userTier === 'enterprise' ? 'text-purple-600' :

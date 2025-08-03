@@ -21,7 +21,8 @@ export interface TokenPurchaseValidation {
 
 // Get token limit for a tier
 export function getTokenLimit(tier: SubscriptionTier): number {
-  return SUBSCRIPTION_FEATURES[tier].maxTokens
+  const features = SUBSCRIPTION_FEATURES[tier] || SUBSCRIPTION_FEATURES.free;
+  return features.maxTokens;
 }
 
 // Get actual tokens used (for free tier) or purchased (for paid tiers)
