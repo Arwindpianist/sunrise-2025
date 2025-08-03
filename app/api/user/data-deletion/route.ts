@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id
-    const { confirmation } = await request.json()
+    const { confirmation, forceDelete } = await request.json()
 
     if (!confirmation || confirmation !== 'DELETE_MY_DATA') {
       return new NextResponse(
@@ -50,6 +50,66 @@ export async function POST(request: Request) {
           headers: { 'Content-Type': 'application/json' },
         }
       )
+    }
+
+    // If forceDelete is true, try to completely remove the user from Supabase Auth
+    if (forceDelete) {
+      try {
+        console.log(`Force deleting user from Supabase Auth: ${userId}`)
+        
+        // First, try to sign out all sessions
+        try {
+          await supabaseAdmin.auth.admin.signOut(userId)
+          console.log(`Signed out all sessions for user: ${userId}`)
+        } catch (signOutError) {
+          console.log('Could not sign out user sessions:', signOutError)
+        }
+        
+        // Try to delete the user completely
+        const { data: { user: adminUser }, error: adminError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        
+        if (adminError) {
+          console.error('Force deletion failed:', adminError)
+          return new NextResponse(
+            JSON.stringify({ 
+              error: 'Unable to completely delete user account. Please contact support.',
+              details: adminError.message 
+            }),
+            { 
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        } else {
+          console.log(`User force deleted from Supabase Auth: ${userId}`)
+          logSubscriptionSecurityEvent(userId, 'supabase_user_force_deleted', {
+            timestamp: new Date().toISOString()
+          })
+          
+          return new NextResponse(
+            JSON.stringify({ 
+              message: 'Account completely deleted. You can now create a new account with the same email.',
+              timestamp: new Date().toISOString()
+            }),
+            { 
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        }
+      } catch (error: any) {
+        console.error('Exception in force deletion:', error)
+        return new NextResponse(
+          JSON.stringify({ 
+            error: 'Force deletion failed',
+            details: error.message 
+          }),
+          { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
     }
 
     // Log the deletion request for audit purposes
