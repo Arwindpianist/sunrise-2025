@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     for (const user of users) {
       try {
         // Get current balance using admin client
-        const { data: currentBalance } = await supabaseAdmin
+        const { data: currentBalance, error: balanceError } = await supabaseAdmin
           .from('user_balances')
           .select('balance')
           .eq('user_id', user.id)
@@ -105,17 +105,35 @@ export async function POST(request: Request) {
         const oldBalance = currentBalance?.balance || 0
         const newBalance = oldBalance + tokens
 
-        // Update user balance using admin client
-        const { error: balanceError } = await supabaseAdmin
-          .from('user_balances')
-          .upsert({
-            user_id: user.id,
-            balance: newBalance,
-            updated_at: new Date().toISOString()
-          })
+        // Update or create user balance using admin client
+        let balanceUpdateError = null
+        
+        if (currentBalance) {
+          // Update existing record
+          const { error: updateError } = await supabaseAdmin
+            .from('user_balances')
+            .update({
+              balance: newBalance,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+          
+          balanceUpdateError = updateError
+        } else {
+          // Insert new record
+          const { error: insertError } = await supabaseAdmin
+            .from('user_balances')
+            .insert({
+              user_id: user.id,
+              balance: newBalance,
+              updated_at: new Date().toISOString()
+            })
+          
+          balanceUpdateError = insertError
+        }
 
-        if (balanceError) {
-          console.error(`Error updating balance for user ${user.id}:`, balanceError)
+        if (balanceUpdateError) {
+          console.error(`Error updating balance for user ${user.id}:`, balanceUpdateError)
           errors.push(`Failed to update user ${user.id}`)
           continue
         }
