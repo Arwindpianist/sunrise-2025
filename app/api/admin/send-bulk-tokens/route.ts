@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { tokens, message } = body
+    const { tokens, message, action = 'add' } = body // Add action parameter
 
     if (!tokens || tokens <= 0) {
       return new NextResponse(
@@ -103,7 +103,14 @@ export async function POST(request: Request) {
           .single()
 
         const oldBalance = currentBalance?.balance || 0
-        const newBalance = oldBalance + tokens
+        
+        // Calculate new balance based on action
+        let newBalance = oldBalance
+        if (action === 'add') {
+          newBalance = oldBalance + tokens
+        } else if (action === 'deduct') {
+          newBalance = Math.max(0, oldBalance - tokens) // Prevent negative balance
+        }
 
         // Update or create user balance using admin client
         let balanceUpdateError = null
@@ -120,16 +127,18 @@ export async function POST(request: Request) {
           
           balanceUpdateError = updateError
         } else {
-          // Insert new record
-          const { error: insertError } = await supabaseAdmin
-            .from('user_balances')
-            .insert({
-              user_id: user.id,
-              balance: newBalance,
-              updated_at: new Date().toISOString()
-            })
-          
-          balanceUpdateError = insertError
+          // Insert new record (only for add action)
+          if (action === 'add') {
+            const { error: insertError } = await supabaseAdmin
+              .from('user_balances')
+              .insert({
+                user_id: user.id,
+                balance: newBalance,
+                updated_at: new Date().toISOString()
+              })
+            
+            balanceUpdateError = insertError
+          }
         }
 
         if (balanceUpdateError) {
@@ -139,13 +148,18 @@ export async function POST(request: Request) {
         }
 
         // Record the transaction using admin client
+        const transactionAmount = action === 'add' ? tokens : -tokens
+        const transactionDescription = action === 'add' 
+          ? (message || `Complimentary tokens from admin`)
+          : (message || `Token deduction by admin`)
+
         const { error: transactionError } = await supabaseAdmin
           .from('transactions')
           .insert({
             user_id: user.id,
             type: 'admin_adjustment', // Use valid enum value
-            amount: tokens,
-            description: message || `Complimentary tokens from admin`,
+            amount: transactionAmount,
+            description: transactionDescription,
             status: 'completed',
             created_at: new Date().toISOString()
           })
@@ -155,8 +169,8 @@ export async function POST(request: Request) {
           // Don't fail the entire operation if transaction recording fails
         }
 
-        // Send email notification
-        if (user.email) {
+        // Send email notification (only for add action)
+        if (action === 'add' && user.email) {
           try {
             const userName = user.full_name || user.email.split('@')[0]
             const emailSent = await sendComplimentaryTokens(
@@ -186,15 +200,17 @@ export async function POST(request: Request) {
     }
 
     // Log the admin action
-    console.log(`Admin ${userEmail} sent ${tokens} complimentary tokens to ${updatedCount} users and ${emailSentCount} emails sent`)
+    const actionText = action === 'add' ? 'sent' : 'deducted'
+    console.log(`Admin ${userEmail} ${actionText} ${tokens} tokens to ${updatedCount} users and ${emailSentCount} emails sent`)
 
     return new NextResponse(
       JSON.stringify({ 
         success: true,
-        message: `Successfully sent ${tokens} tokens to ${updatedCount} users`,
+        message: `Successfully ${actionText} ${tokens} tokens to ${updatedCount} users`,
         updatedCount,
         emailSentCount,
         totalUsers: users.length,
+        action,
         errors: errors.length > 0 ? errors : undefined,
         emailErrors: emailErrors.length > 0 ? emailErrors : undefined
       }),

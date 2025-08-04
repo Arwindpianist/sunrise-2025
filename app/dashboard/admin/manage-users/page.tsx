@@ -317,6 +317,7 @@ export default function ManageUsersPage() {
         body: JSON.stringify({
           tokens: tokens,
           message: bulkMessage,
+          action: 'add', // Explicitly set action to add
         }),
       })
 
@@ -339,6 +340,67 @@ export default function ManageUsersPage() {
       toast({
         title: "Error",
         description: error.message || "Failed to send bulk tokens",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingBulk(false)
+    }
+  }
+
+  const deductBulkTokens = async () => {
+    if (!bulkTokens || !bulkMessage) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const tokens = parseInt(bulkTokens)
+    if (isNaN(tokens) || tokens <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid positive number of tokens",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSendingBulk(true)
+
+    try {
+      const response = await fetch('/api/admin/send-bulk-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tokens: tokens,
+          message: bulkMessage,
+          action: 'deduct', // Set action to deduct
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to deduct bulk tokens')
+      }
+
+      toast({
+        title: "Success",
+        description: `Deducted ${tokens} tokens from ${data.updatedCount} users.`,
+      })
+
+      // Reset form
+      setBulkTokens("")
+      setBulkMessage("")
+    } catch (error: any) {
+      console.error('Error deducting bulk tokens:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deduct bulk tokens",
         variant: "destructive",
       })
     } finally {
@@ -628,6 +690,87 @@ export default function ManageUsersPage() {
                   <>
                     <Gift className="h-4 w-4 mr-2" />
                     Send to All Users
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Coins className="h-5 w-5 text-red-500" />
+                <span>Deduct Tokens</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  This will deduct tokens from all users. Use this feature carefully, especially to correct previous bulk token distributions that had issues.
+                </AlertDescription>
+              </Alert>
+       
+              <div>
+                <Label htmlFor="deduct-tokens">Number of Tokens to Deduct</Label>
+                <Input
+                  id="deduct-tokens"
+                  type="number"
+                  placeholder="10"
+                  value={bulkTokens}
+                  onChange={(e) => setBulkTokens(e.target.value)}
+                />
+              </div>
+       
+              <div>
+                <Label htmlFor="deduct-message">Reason (Optional)</Label>
+                <Textarea
+                  id="deduct-message"
+                  placeholder="Correcting previous bulk distribution..."
+                  value={bulkMessage}
+                  onChange={(e) => setBulkMessage(e.target.value)}
+                  rows={4}
+                />
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-gray-500">
+                    This message will be recorded in the transaction history.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulkMessage("Correcting previous bulk token distribution that was sent without proper email notifications.")}
+                    >
+                      Correction Message
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulkMessage("Removing tokens from previous bulk distribution due to technical issues.")}
+                    >
+                      Technical Issue Message
+                    </Button>
+                  </div>
+                </div>
+              </div>
+       
+              <Button 
+                onClick={deductBulkTokens} 
+                disabled={isSendingBulk || !bulkTokens}
+                className="w-full"
+                variant="destructive"
+              >
+                {isSendingBulk ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deducting Tokens...
+                  </>
+                ) : (
+                  <>
+                    <Coins className="h-4 w-4 mr-2" />
+                    Deduct from All Users
                   </>
                 )}
               </Button>
