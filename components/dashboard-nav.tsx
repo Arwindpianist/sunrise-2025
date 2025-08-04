@@ -137,18 +137,32 @@ export function DashboardNav() {
         </Button>
       </Link>
       {isAdmin && (
-        <Link href="/dashboard/admin">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start",
-              pathname.startsWith("/dashboard/admin") && "bg-accent"
-            )}
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            Admin
-          </Button>
-        </Link>
+        <>
+          <Link href="/dashboard/admin">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                pathname.startsWith("/dashboard/admin") && !pathname.startsWith("/dashboard/admin/manage-users") && "bg-accent"
+              )}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Admin
+            </Button>
+          </Link>
+          <Link href="/dashboard/admin/manage-users">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start ml-4",
+                pathname.startsWith("/dashboard/admin/manage-users") && "bg-accent"
+              )}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Manage Users
+            </Button>
+          </Link>
+        </>
       )}
       
       {/* Subscription Status Indicator */}
