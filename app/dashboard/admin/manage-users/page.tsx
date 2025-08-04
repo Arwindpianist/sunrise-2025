@@ -328,7 +328,7 @@ export default function ManageUsersPage() {
 
       toast({
         title: "Success",
-        description: `Sent ${tokens} tokens to ${data.updatedCount} users`,
+        description: `Sent ${tokens} tokens to ${data.updatedCount} users. ${data.emailSentCount} email notifications sent.`,
       })
 
       // Reset form
@@ -556,10 +556,10 @@ export default function ManageUsersPage() {
               <Alert>
                 <Gift className="h-4 w-4" />
                 <AlertDescription>
-                  This will send complimentary tokens to all active users. Use this feature sparingly for special occasions or promotions.
+                  This will send complimentary tokens to all active users and notify them via email using Zoho SMTP. Use this feature sparingly for special occasions or promotions.
                 </AlertDescription>
               </Alert>
-
+       
               <div>
                 <Label htmlFor="bulk-tokens">Number of Tokens</Label>
                 <Input
@@ -570,7 +570,7 @@ export default function ManageUsersPage() {
                   onChange={(e) => setBulkTokens(e.target.value)}
                 />
               </div>
-
+       
               <div>
                 <Label htmlFor="bulk-message">Message (Optional)</Label>
                 <Textarea
@@ -578,12 +578,41 @@ export default function ManageUsersPage() {
                   placeholder="Happy holidays! Here are some complimentary tokens..."
                   value={bulkMessage}
                   onChange={(e) => setBulkMessage(e.target.value)}
+                  rows={4}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  This message will be included in the transaction description.
-                </p>
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-gray-500">
+                    This message will be included in the email notification sent to all users.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulkMessage("Happy holidays! 🎉 We're excited to share some complimentary tokens with you as a special gift. Enjoy creating amazing events and connecting with your contacts!")}
+                    >
+                      Holiday Message
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulkMessage("Thank you for being part of the Sunrise community! 🌅 We're sending you some complimentary tokens as a token of our appreciation. Keep creating amazing events!")}
+                    >
+                      Appreciation Message
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBulkMessage("Special promotion alert! 🎁 We've added complimentary tokens to your account. Use them to reach more contacts and grow your events!")}
+                    >
+                      Promotion Message
+                    </Button>
+                  </div>
+                </div>
               </div>
-
+       
               <Button 
                 onClick={sendBulkTokens} 
                 disabled={isSendingBulk || !bulkTokens}
@@ -593,7 +622,7 @@ export default function ManageUsersPage() {
                 {isSendingBulk ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
+                    Sending Tokens & Emails...
                   </>
                 ) : (
                   <>

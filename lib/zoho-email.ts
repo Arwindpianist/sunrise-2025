@@ -213,6 +213,75 @@ export const emailTemplates = {
         </div>
       </div>
     `
+  }),
+
+  complimentaryTokens: (userName: string, tokensCredited: number, newBalance: number, customMessage: string) => ({
+    subject: `🎉 Special Gift: Complimentary Tokens from Sunrise!`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); padding: 30px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 28px;">🎁 Special Gift from Sunrise! 🌅</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">We've added complimentary tokens to your account</p>
+        </div>
+        
+        <div style="padding: 30px; background: white;">
+          <h2 style="color: #333; margin-bottom: 20px;">Hi ${userName},</h2>
+          
+          <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+            We're excited to share some good news with you! As a valued member of the Sunrise community, we've added <strong>${tokensCredited} complimentary tokens</strong> to your account.
+          </p>
+          
+          ${customMessage ? `
+          <div style="background: #e3f2fd; border: 1px solid #bbdefb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin: 0 0 15px 0;">A Special Message</h3>
+            <p style="margin: 0; color: #1976d2; font-style: italic;">"${customMessage}"</p>
+          </div>
+          ` : ''}
+          
+          <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #155724; margin: 0 0 15px 0;">Token Credit Summary</h3>
+            <p style="margin: 5px 0; color: #155724;">
+              <strong>Tokens Added:</strong> ${tokensCredited} tokens
+            </p>
+            <p style="margin: 5px 0; color: #155724;">
+              <strong>New Balance:</strong> ${newBalance} tokens
+            </p>
+            <p style="margin: 5px 0; color: #155724;">
+              <strong>Type:</strong> Complimentary Gift
+            </p>
+          </div>
+          
+          <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+            These tokens are yours to use for sending emails, SMS, and Telegram messages to your contacts. Create amazing events and stay connected with your audience!
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://sunrise-2025.com/dashboard" 
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold;">
+              Go to Dashboard
+            </a>
+          </div>
+          
+          <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+            Thank you for being part of the Sunrise family. We're committed to helping you create meaningful connections and successful events.
+          </p>
+          
+          <p style="color: #666; line-height: 1.6;">
+            Best regards,<br>
+            The Sunrise Team 🌅
+          </p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+          <p style="margin: 0;">
+            <strong>Sunrise - Event Management Platform</strong><br>
+            Create, connect, and celebrate with ease<br>
+            Visit us at <a href="https://sunrise-2025.com" style="color: #667eea;">https://sunrise-2025.com</a><br>
+            If you have any questions, please contact us at support@sunrise-2025.com
+          </p>
+        </div>
+      </div>
+    `
   })
 }
 
@@ -256,6 +325,22 @@ export async function sendMonthlyTokenCredit(
   newBalance: number
 ): Promise<boolean> {
   const template = emailTemplates.monthlyTokenCredit(userName, tier, tokensCredited, newBalance)
+  return await sendEmail({
+    to: userEmail,
+    subject: template.subject,
+    html: template.html
+  })
+}
+
+// Send complimentary tokens email
+export async function sendComplimentaryTokens(
+  userEmail: string,
+  userName: string,
+  tokensCredited: number,
+  newBalance: number,
+  customMessage: string
+): Promise<boolean> {
+  const template = emailTemplates.complimentaryTokens(userName, tokensCredited, newBalance, customMessage)
   return await sendEmail({
     to: userEmail,
     subject: template.subject,

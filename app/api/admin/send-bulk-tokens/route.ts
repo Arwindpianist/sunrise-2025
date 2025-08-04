@@ -2,6 +2,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+import { sendComplimentaryTokens } from "@/lib/zoho-email"
 
 export const dynamic = "force-dynamic"
 
@@ -60,10 +61,10 @@ export async function POST(request: Request) {
       }
     )
 
-    // Get all users using admin client
+    // Get all users with their email and name using admin client
     const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('id, email, full_name')
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -87,7 +88,9 @@ export async function POST(request: Request) {
     }
 
     let updatedCount = 0
+    let emailSentCount = 0
     const errors: string[] = []
+    const emailErrors: string[] = []
 
     // Process each user
     for (const user of users) {
@@ -134,6 +137,29 @@ export async function POST(request: Request) {
           // Don't fail the entire operation if transaction recording fails
         }
 
+        // Send email notification
+        if (user.email) {
+          try {
+            const userName = user.full_name || user.email.split('@')[0]
+            const emailSent = await sendComplimentaryTokens(
+              user.email,
+              userName,
+              tokens,
+              newBalance,
+              message || ''
+            )
+            
+            if (emailSent) {
+              emailSentCount++
+            } else {
+              emailErrors.push(`Failed to send email to ${user.email}`)
+            }
+          } catch (emailError) {
+            console.error(`Error sending email to ${user.email}:`, emailError)
+            emailErrors.push(`Failed to send email to ${user.email}`)
+          }
+        }
+
         updatedCount++
       } catch (error) {
         console.error(`Error processing user ${user.id}:`, error)
@@ -142,15 +168,17 @@ export async function POST(request: Request) {
     }
 
     // Log the admin action
-    console.log(`Admin ${userEmail} sent ${tokens} complimentary tokens to ${updatedCount} users`)
+    console.log(`Admin ${userEmail} sent ${tokens} complimentary tokens to ${updatedCount} users and ${emailSentCount} emails sent`)
 
     return new NextResponse(
       JSON.stringify({ 
         success: true,
         message: `Successfully sent ${tokens} tokens to ${updatedCount} users`,
         updatedCount,
+        emailSentCount,
         totalUsers: users.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        emailErrors: emailErrors.length > 0 ? emailErrors : undefined
       }),
       { 
         status: 200,
