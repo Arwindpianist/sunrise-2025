@@ -12,6 +12,7 @@ interface ImportedContact {
   phone?: string
   category?: string
   notes?: string
+  telegram_chat_id?: string
 }
 
 function parseVCard(vcardContent: string): ImportedContact[] {
@@ -81,6 +82,8 @@ function parseCSV(csvContent: string): ImportedContact[] {
   const emailIndex = headers.findIndex(h => h === 'E-mail 1 - Value')
   const phoneIndex = headers.findIndex(h => h === 'Phone 1 - Value')
   const notesIndex = headers.findIndex(h => h === 'Notes')
+  const categoryIndex = headers.findIndex(h => h === 'Category')
+  const telegramChatIdIndex = headers.findIndex(h => h === 'Telegram Chat ID')
   
   console.log('CSV Headers found:', {
     firstNameIndex,
@@ -88,6 +91,8 @@ function parseCSV(csvContent: string): ImportedContact[] {
     emailIndex,
     phoneIndex,
     notesIndex,
+    categoryIndex,
+    telegramChatIdIndex,
     headers: headers.slice(0, 10) // Log first 10 headers for debugging
   })
   
@@ -108,6 +113,8 @@ function parseCSV(csvContent: string): ImportedContact[] {
          email: emailIndex >= 0 ? columns[emailIndex] : undefined,
          phone: phoneIndex >= 0 ? cleanedPhone : undefined,
          notes: notesIndex >= 0 ? columns[notesIndex] : undefined,
+         category: categoryIndex >= 0 ? columns[categoryIndex] : undefined,
+         telegram_chat_id: telegramChatIdIndex >= 0 ? columns[telegramChatIdIndex] : undefined,
        }
       
       // Only add contacts that have at least a first name or email
@@ -259,6 +266,7 @@ export async function POST(request: Request) {
       phone: contact.phone || null,
       category: category || contact.category || 'other',
       notes: contact.notes || null,
+      telegram_chat_id: contact.telegram_chat_id || null,
     }))
 
     // Remove duplicates within the batch (same email addresses)

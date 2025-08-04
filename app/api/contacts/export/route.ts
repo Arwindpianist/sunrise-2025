@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     let filename: string
 
     if (format === 'google') {
-      // Google Contacts format
+      // Google Contacts format with additional fields for flawless re-import
       const headers = [
         'Name',
         'Given Name',
@@ -65,6 +65,8 @@ export async function GET(request: Request) {
         'E-mail 1 - Value',
         'Phone 1 - Value',
         'Notes',
+        'Category',
+        'Telegram Chat ID',
         'Group Membership'
       ]
 
@@ -77,13 +79,15 @@ export async function GET(request: Request) {
           `"${contact.email || ''}"`,
           `"${contact.phone || ''}"`,
           `"${contact.notes || ''}"`,
+          `"${contact.category || ''}"`,
+          `"${contact.telegram_chat_id || ''}"`,
           '"* My Contacts"'
         ].join(','))
       ].join('\n')
 
       filename = `google-contacts-${new Date().toISOString().split('T')[0]}.csv`
     } else {
-      // Simple CSV format
+      // Simple CSV format with all fields for flawless re-import
       const headers = [
         'First Name',
         'Last Name', 
@@ -91,6 +95,7 @@ export async function GET(request: Request) {
         'Phone 1 - Value',
         'Notes',
         'Category',
+        'Telegram Chat ID',
         'Created At'
       ]
 
@@ -103,6 +108,7 @@ export async function GET(request: Request) {
           `"${contact.phone || ''}"`,
           `"${contact.notes || ''}"`,
           `"${contact.category || ''}"`,
+          `"${contact.telegram_chat_id || ''}"`,
           `"${contact.created_at || ''}"`
         ].join(','))
       ].join('\n')
