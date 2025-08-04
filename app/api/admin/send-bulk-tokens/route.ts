@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
@@ -47,8 +48,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get all users
-    const { data: users, error: usersError } = await supabase
+    // Create service role client to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Get all users using admin client
+    const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
       .select('id')
 
@@ -79,8 +92,8 @@ export async function POST(request: Request) {
     // Process each user
     for (const user of users) {
       try {
-        // Get current balance
-        const { data: currentBalance } = await supabase
+        // Get current balance using admin client
+        const { data: currentBalance } = await supabaseAdmin
           .from('user_balances')
           .select('balance')
           .eq('user_id', user.id)
@@ -89,8 +102,8 @@ export async function POST(request: Request) {
         const oldBalance = currentBalance?.balance || 0
         const newBalance = oldBalance + tokens
 
-        // Update user balance
-        const { error: balanceError } = await supabase
+        // Update user balance using admin client
+        const { error: balanceError } = await supabaseAdmin
           .from('user_balances')
           .upsert({
             user_id: user.id,
@@ -104,8 +117,8 @@ export async function POST(request: Request) {
           continue
         }
 
-        // Record the transaction
-        const { error: transactionError } = await supabase
+        // Record the transaction using admin client
+        const { error: transactionError } = await supabaseAdmin
           .from('transactions')
           .insert({
             user_id: user.id,

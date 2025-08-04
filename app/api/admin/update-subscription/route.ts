@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import Stripe from 'stripe'
@@ -90,8 +91,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get current subscription
-    const { data: existingSubscription } = await supabase
+    // Create service role client to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Get current subscription using admin client
+    const { data: existingSubscription } = await supabaseAdmin
       .from('user_subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -109,8 +122,8 @@ export async function POST(request: Request) {
     }
 
     if (existingSubscription) {
-      // Update existing subscription
-      const { error: updateError } = await supabase
+      // Update existing subscription using admin client
+      const { error: updateError } = await supabaseAdmin
         .from('user_subscriptions')
         .update(subscriptionData)
         .eq('id', existingSubscription.id)
@@ -126,8 +139,8 @@ export async function POST(request: Request) {
         )
       }
     } else {
-      // Create new subscription
-      const { error: createError } = await supabase
+      // Create new subscription using admin client
+      const { error: createError } = await supabaseAdmin
         .from('user_subscriptions')
         .insert({
           ...subscriptionData,

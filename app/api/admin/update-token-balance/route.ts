@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
@@ -57,8 +58,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get current balance
-    const { data: currentBalance } = await supabase
+    // Create service role client to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Get current balance using admin client
+    const { data: currentBalance } = await supabaseAdmin
       .from('user_balances')
       .select('balance')
       .eq('user_id', userId)
@@ -66,8 +79,8 @@ export async function POST(request: Request) {
 
     const oldBalance = currentBalance?.balance || 0
 
-    // Update or create user balance
-    const { error: balanceError } = await supabase
+    // Update or create user balance using admin client
+    const { error: balanceError } = await supabaseAdmin
       .from('user_balances')
       .upsert({
         user_id: userId,
@@ -86,8 +99,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Record the transaction
-    const { error: transactionError } = await supabase
+    // Record the transaction using admin client
+    const { error: transactionError } = await supabaseAdmin
       .from('transactions')
       .insert({
         user_id: userId,
