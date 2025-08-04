@@ -2,7 +2,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
-// import { sendComplimentaryTokens } from "@/lib/zoho-email"
+import { sendComplimentaryTokens } from "@/lib/zoho-email"
 
 export const dynamic = "force-dynamic"
 
@@ -169,27 +169,23 @@ export async function POST(request: Request) {
           // Don't fail the entire operation if transaction recording fails
         }
 
-        // Send email notification (only for add action) - temporarily disabled
+        // Send email notification (only for add action)
         if (action === 'add' && user.email) {
           try {
-            // Temporarily disable email sending to avoid import issues
-            // const userName = user.full_name || user.email.split('@')[0]
-            // const emailSent = await sendComplimentaryTokens(
-            //   user.email,
-            //   userName,
-            //   tokens,
-            //   newBalance,
-            //   message || ''
-            // )
+            const userName = user.full_name || user.email.split('@')[0]
+            const emailSent = await sendComplimentaryTokens(
+              user.email,
+              userName,
+              tokens,
+              newBalance,
+              message || ''
+            )
             
-            // if (emailSent) {
-            //   emailSentCount++
-            // } else {
-            //   emailErrors.push(`Failed to send email to ${user.email}`)
-            // }
-            
-            // For now, just count as if email was sent
-            emailSentCount++
+            if (emailSent) {
+              emailSentCount++
+            } else {
+              emailErrors.push(`Failed to send email to ${user.email}`)
+            }
           } catch (emailError) {
             console.error(`Error sending email to ${user.email}:`, emailError)
             emailErrors.push(`Failed to send email to ${user.email}`)
