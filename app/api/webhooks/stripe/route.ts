@@ -78,12 +78,24 @@ export async function POST(request: Request) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, supabase: any, signature: string) {
-  if (session.mode === 'subscription' && session.subscription) {
-    const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription
-    const userId = session.metadata?.user_id
-    const plan = session.metadata?.plan
-    const isUpgrade = session.metadata?.is_upgrade === 'true'
-    const fromTier = session.metadata?.from_tier || 'free'
+      if (session.mode === 'subscription' && session.subscription) {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as Stripe.Subscription
+      const userId = session.metadata?.user_id
+      const plan = session.metadata?.plan
+      const isUpgrade = session.metadata?.is_upgrade === 'true'
+      const fromTier = session.metadata?.from_tier || 'free'
+      
+      console.log('Processing subscription webhook:', {
+        sessionId: session.id,
+        subscriptionId: subscription.id,
+        userId,
+        plan,
+        isUpgrade,
+        fromTier,
+        subscriptionStatus: subscription.status,
+        currentPeriodStart: (subscription as any).current_period_start,
+        currentPeriodEnd: (subscription as any).current_period_end
+      })
 
     if (!userId || !plan) {
       console.error('Missing user_id or plan in session metadata')
@@ -117,12 +129,42 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       .single()
 
     // Create or update subscription in database
+    const currentPeriodStart = (subscription as any).current_period_start
+    const currentPeriodEnd = (subscription as any).current_period_end
+    
+    // Validate timestamps before conversion
+    if (!currentPeriodStart || !currentPeriodEnd) {
+      console.error('Invalid subscription timestamps:', { currentPeriodStart, currentPeriodEnd })
+      logSubscriptionSecurityEvent(userId, 'invalid_subscription_timestamps', { 
+        sessionId: session.id,
+        currentPeriodStart,
+        currentPeriodEnd
+      })
+      return
+    }
+    
+    // Safely convert timestamps with error handling
+    let currentPeriodStartISO, currentPeriodEndISO
+    try {
+      currentPeriodStartISO = new Date(currentPeriodStart * 1000).toISOString()
+      currentPeriodEndISO = new Date(currentPeriodEnd * 1000).toISOString()
+    } catch (error: any) {
+      console.error('Error converting timestamps:', error, { currentPeriodStart, currentPeriodEnd })
+      logSubscriptionSecurityEvent(userId, 'timestamp_conversion_error', { 
+        sessionId: session.id,
+        currentPeriodStart,
+        currentPeriodEnd,
+        error: error.message
+      })
+      return
+    }
+    
     const subscriptionData = {
       user_id: userId,
       tier: plan,
       status: 'active',
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_start: currentPeriodStartISO,
+      current_period_end: currentPeriodEndISO,
       updated_at: new Date().toISOString()
     }
 
@@ -187,11 +229,30 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
     }
 
     // Update subscription period in database
+    const currentPeriodStart = (subscription as any).current_period_start
+    const currentPeriodEnd = (subscription as any).current_period_end
+    
+    // Validate timestamps before conversion
+    if (!currentPeriodStart || !currentPeriodEnd) {
+      console.error('Invalid subscription timestamps in invoice payment:', { currentPeriodStart, currentPeriodEnd })
+      return
+    }
+    
+    // Safely convert timestamps with error handling
+    let currentPeriodStartISO, currentPeriodEndISO
+    try {
+      currentPeriodStartISO = new Date(currentPeriodStart * 1000).toISOString()
+      currentPeriodEndISO = new Date(currentPeriodEnd * 1000).toISOString()
+    } catch (error: any) {
+      console.error('Error converting timestamps in invoice payment:', error, { currentPeriodStart, currentPeriodEnd })
+      return
+    }
+    
     const { error: updateError } = await supabase
       .from('user_subscriptions')
       .update({
-        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        current_period_start: currentPeriodStartISO,
+        current_period_end: currentPeriodEndISO,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)
@@ -227,13 +288,32 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
   }
 
   // Update subscription status in database
+  const currentPeriodStart = (subscription as any).current_period_start
+  const currentPeriodEnd = (subscription as any).current_period_end
+  
+  // Validate timestamps before conversion
+  if (!currentPeriodStart || !currentPeriodEnd) {
+    console.error('Invalid subscription timestamps in subscription update:', { currentPeriodStart, currentPeriodEnd })
+    return
+  }
+  
+  // Safely convert timestamps with error handling
+  let currentPeriodStartISO, currentPeriodEndISO
+  try {
+    currentPeriodStartISO = new Date(currentPeriodStart * 1000).toISOString()
+    currentPeriodEndISO = new Date(currentPeriodEnd * 1000).toISOString()
+  } catch (error: any) {
+    console.error('Error converting timestamps in subscription update:', error, { currentPeriodStart, currentPeriodEnd })
+    return
+  }
+  
   const { error: updateError } = await supabase
     .from('user_subscriptions')
     .update({
       tier: plan,
       status: subscription.status === 'active' ? 'active' : 'inactive',
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_start: currentPeriodStartISO,
+      current_period_end: currentPeriodEndISO,
       updated_at: new Date().toISOString()
     })
     .eq('user_id', userId)
