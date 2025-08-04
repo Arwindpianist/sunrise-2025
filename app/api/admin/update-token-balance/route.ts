@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     )
 
     // Get current balance using admin client
-    const { data: currentBalance } = await supabaseAdmin
+    const { data: currentBalance, error: balanceError } = await supabaseAdmin
       .from('user_balances')
       .select('balance')
       .eq('user_id', userId)
@@ -80,16 +80,23 @@ export async function POST(request: Request) {
     const oldBalance = currentBalance?.balance || 0
 
     // Update or create user balance using admin client
-    const { error: balanceError } = await supabaseAdmin
+    // Use proper upsert with onConflict handling
+    const { error: updateError } = await supabaseAdmin
       .from('user_balances')
-      .upsert({
-        user_id: userId,
-        balance: balance,
-        updated_at: new Date().toISOString()
-      })
+      .upsert(
+        {
+          user_id: userId,
+          balance: balance,
+          updated_at: new Date().toISOString()
+        },
+        {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        }
+      )
 
-    if (balanceError) {
-      console.error('Error updating user balance:', balanceError)
+    if (updateError) {
+      console.error('Error updating user balance:', updateError)
       return new NextResponse(
         JSON.stringify({ error: 'Failed to update token balance' }),
         { 
