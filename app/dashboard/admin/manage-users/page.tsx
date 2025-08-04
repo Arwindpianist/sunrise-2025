@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
@@ -82,16 +82,19 @@ export default function ManageUsersPage() {
       }
 
       try {
+        // Get the user's email from the session
         const { data: { session } } = await supabase.auth.getSession()
         const userEmail = session?.user?.email
+
+        // Check if the user is an admin
         const isUserAdmin = userEmail === "arwindpianist@gmail.com"
+        setIsAdmin(isUserAdmin)
         
         if (!isUserAdmin) {
           router.push('/dashboard')
           return
         }
 
-        setIsAdmin(true)
         await fetchUsers()
       } catch (error) {
         console.error("Error checking admin status:", error)
@@ -129,36 +132,39 @@ export default function ManageUsersPage() {
 
   const fetchUserDetails = async (userId: string) => {
     try {
-      // Get user subscription
-      const { data: subscriptionData } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .single()
+      const response = await fetch(`/api/admin/get-user-details?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      // Get user balance
-      const { data: balanceData } = await supabase
-        .from('user_balances')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+      const data = await response.json()
 
-      setUserSubscription(subscriptionData)
-      setUserBalance(balanceData)
-    } catch (error) {
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch user details')
+      }
+
+      setSelectedUser(data.user)
+      setUserSubscription(data.subscription)
+      setUserBalance(data.balance)
+    } catch (error: any) {
       console.error('Error fetching user details:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch user details",
+        variant: "destructive",
+      })
     }
   }
 
   const handleUserSelect = async (userId: string) => {
     setSelectedUserId(userId)
-    const user = users.find(u => u.id === userId)
-    setSelectedUser(user || null)
     
     if (userId) {
       await fetchUserDetails(userId)
     } else {
+      setSelectedUser(null)
       setUserSubscription(null)
       setUserBalance(null)
     }
