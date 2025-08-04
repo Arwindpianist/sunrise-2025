@@ -143,7 +143,7 @@ export async function POST(request: Request) {
           .from('transactions')
           .insert({
             user_id: user.id,
-            type: 'complimentary_tokens',
+            type: 'admin_adjustment', // Use valid enum value
             amount: tokens,
             description: message || `Complimentary tokens from admin`,
             status: 'completed',
