@@ -89,6 +89,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [enquiries, setEnquiries] = useState<UserEnquiry[]>([])
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [subscriptionAnalytics, setSubscriptionAnalytics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedEnquiry, setSelectedEnquiry] = useState<UserEnquiry | null>(null)
@@ -145,7 +146,8 @@ export default function AdminDashboard() {
       await Promise.all([
         fetchStats(),
         fetchEnquiries(),
-        fetchRecentActivity()
+        fetchRecentActivity(),
+        fetchSubscriptionAnalytics()
       ])
     } catch (error) {
       console.error('Error fetching admin data:', error)
@@ -187,6 +189,18 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching activity:', error)
+    }
+  }
+
+  const fetchSubscriptionAnalytics = async () => {
+    try {
+      const response = await fetch('/api/admin/subscription-analytics')
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionAnalytics(data)
+      }
+    } catch (error) {
+      console.error('Error fetching subscription analytics:', error)
     }
   }
 
@@ -425,12 +439,76 @@ export default function AdminDashboard() {
       </div>
         )}
 
+        {/* Subscription Tier Breakdown */}
+        {stats && stats.subscriptionData && stats.subscriptionData.length > 0 && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Subscription Tier Distribution
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Breakdown of users by subscription tier (excluding test accounts)
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {stats.subscriptionData.map((tier, index) => (
+                    <div key={tier.tier} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="font-semibold text-lg">{tier.tier}</div>
+                        <div className="text-2xl font-bold text-blue-600">{tier.count}</div>
+                        <div className="text-sm text-gray-500">
+                          {stats.totalSubscriptions > 0 
+                            ? `${((tier.count / stats.totalSubscriptions) * 100).toFixed(1)}%`
+                            : '0%'
+                          } of total
+                        </div>
+                      </div>
+                      <div className="w-3 h-3 rounded-full" 
+                           style={{ backgroundColor: pieChartColors[index % pieChartColors.length] }}>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Summary Stats */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {formatCurrency(stats.monthlyRecurringRevenue)}
+                    </div>
+                    <div className="text-sm text-gray-500">Monthly Recurring Revenue</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {stats.totalSubscriptions}
+                    </div>
+                    <div className="text-sm text-gray-500">Active Subscriptions</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {stats.totalSubscriptions > 0 
+                        ? formatCurrency(stats.monthlyRecurringRevenue / stats.totalSubscriptions)
+                        : formatCurrency(0)
+                      }
+                    </div>
+                    <div className="text-sm text-gray-500">Average Revenue Per User</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="enquiries" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="enquiries">User Enquiries</TabsTrigger>
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
           </TabsList>
 
                     <TabsContent value="enquiries" className="space-y-4">
@@ -927,6 +1005,131 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="subscriptions" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Detailed Subscription Analytics
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Comprehensive breakdown of subscription tiers, revenue, and user data
+                </p>
+              </CardHeader>
+              <CardContent>
+                {subscriptionAnalytics ? (
+                  <div className="space-y-6">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {subscriptionAnalytics.summary.totalSubscriptions}
+                        </div>
+                        <div className="text-sm text-gray-500">Total Subscriptions</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {formatCurrency(subscriptionAnalytics.summary.totalRevenue)}
+                        </div>
+                        <div className="text-sm text-gray-500">Total Revenue</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {formatCurrency(subscriptionAnalytics.summary.averageRevenuePerUser)}
+                        </div>
+                        <div className="text-sm text-gray-500">Avg Revenue/User</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {subscriptionAnalytics.summary.totalTokensPurchased.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-500">Total Tokens</div>
+                      </div>
+                    </div>
+
+                    {/* Tier Breakdown */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Tier Breakdown</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {Object.entries(subscriptionAnalytics.tierBreakdown).map(([tier, data]: [string, any]) => (
+                          <Card key={tier}>
+                            <CardHeader>
+                              <CardTitle className="text-lg capitalize">{tier}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span>Users:</span>
+                                  <span className="font-semibold">{data.count}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Revenue:</span>
+                                  <span className="font-semibold text-green-600">
+                                    {formatCurrency(data.revenue)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Tokens:</span>
+                                  <span className="font-semibold text-blue-600">
+                                    {data.totalTokensPurchased.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Avg Tokens/User:</span>
+                                  <span className="font-semibold">
+                                    {data.count > 0 ? Math.round(data.totalTokensPurchased / data.count) : 0}
+                                  </span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stripe Data */}
+                    {subscriptionAnalytics.stripeData && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Stripe Integration Data</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-sm">Stripe Subscriptions</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span>Active Subscriptions:</span>
+                                  <span className="font-semibold">{subscriptionAnalytics.stripeData.totalSubscriptions}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Total Revenue:</span>
+                                  <span className="font-semibold text-green-600">
+                                    {formatCurrency(subscriptionAnalytics.stripeData.totalRevenue)}
+                                  </span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Last Updated */}
+                    <div className="text-sm text-gray-500 text-center">
+                      Last updated: {new Date(subscriptionAnalytics.lastUpdated).toLocaleString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Loading subscription analytics...</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

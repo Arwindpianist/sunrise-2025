@@ -1,6 +1,14 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-06-30.basil',
+})
+
+// User ID to exclude from all calculations
+const EXCLUDED_USER_ID = 'dd353545-03e8-43ad-a7a7-0715ebe7d765'
 
 export async function GET() {
   try {
@@ -23,12 +31,13 @@ export async function GET() {
       return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
     }
 
-    // Get total users count
+    // Get total users count (excluding the specified user)
     const { count: totalUsers } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
+      .neq('id', EXCLUDED_USER_ID)
 
-    // Get active users (users who signed up in the last 30 days)
+    // Get active users (users who signed up in the last 30 days, excluding the specified user)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
@@ -36,9 +45,10 @@ export async function GET() {
       .from('users')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString())
+      .neq('id', EXCLUDED_USER_ID)
 
-    // Get comprehensive revenue data
-    const revenueStats = await calculateRevenue(supabase)
+    // Get comprehensive revenue data from user_subscriptions and Stripe
+    const revenueStats = await calculateRevenueFromSubscriptions(supabase)
     const { totalRevenue, monthlyRecurringRevenue, subscriptionRevenue, tokenRevenue, totalSubscriptions } = revenueStats
 
     // Get total messages sent (email + telegram)
@@ -52,21 +62,24 @@ export async function GET() {
 
     const totalMessages = (emailMessages || 0) + (telegramMessages || 0)
 
-    // Get total events created
+    // Get total events created (excluding the specified user)
     const { count: totalEvents } = await supabase
       .from('events')
       .select('*', { count: 'exact', head: true })
+      .neq('user_id', EXCLUDED_USER_ID)
 
-    // Get total contacts
+    // Get total contacts (excluding the specified user)
     const { count: totalContacts } = await supabase
       .from('contacts')
       .select('*', { count: 'exact', head: true })
+      .neq('user_id', EXCLUDED_USER_ID)
 
-    // Get total tokens purchased
+    // Get total tokens purchased (excluding the specified user)
     const { data: tokenTransactions } = await supabase
       .from('transactions')
       .select('tokens')
       .eq('type', 'purchase')
+      .neq('user_id', EXCLUDED_USER_ID)
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
@@ -129,7 +142,7 @@ export async function GET() {
 // Helper functions to generate real chart data from database
 async function generateUserGrowthData(supabase: any) {
   try {
-    // Get all users created in the last 30 days in one query
+    // Get all users created in the last 30 days in one query (excluding the specified user)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
@@ -137,6 +150,7 @@ async function generateUserGrowthData(supabase: any) {
       .from('users')
       .select('created_at')
       .gte('created_at', thirtyDaysAgo.toISOString())
+      .neq('id', EXCLUDED_USER_ID)
       .order('created_at', { ascending: true })
     
     // Group users by date
@@ -168,7 +182,7 @@ async function generateUserGrowthData(supabase: any) {
 
 async function generateRevenueData(supabase: any) {
   try {
-    // Get all transactions in the last 30 days in one query
+    // Get all transactions in the last 30 days in one query (excluding the specified user)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
@@ -177,6 +191,7 @@ async function generateRevenueData(supabase: any) {
       .select('amount, created_at')
       .eq('type', 'purchase')
       .gte('created_at', thirtyDaysAgo.toISOString())
+      .neq('user_id', EXCLUDED_USER_ID)
       .order('created_at', { ascending: true })
     
     // Group transactions by date
@@ -207,35 +222,46 @@ async function generateRevenueData(supabase: any) {
 }
 
 async function generateSubscriptionData(supabase: any) {
-  // Get subscription distribution by tier, excluding free users
-  const { data: subscriptions } = await supabase
-    .from('user_subscriptions')
-    .select(`
+  try {
+    // Get subscription distribution by tier from user_subscriptions table (excluding the specified user)
+    const { data: subscriptions } = await supabase
+      .from('user_subscriptions')
+      .select(`
+        tier,
+        user_id
+      `)
+      .eq('status', 'active')
+      .neq('tier', 'free')
+      .neq('user_id', EXCLUDED_USER_ID)
+    
+    const tierCounts: { [key: string]: number } = {}
+    
+    subscriptions?.forEach((sub: any) => {
+      const tier = sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Unknown'
+      tierCounts[tier] = (tierCounts[tier] || 0) + 1
+    })
+    
+    // Convert to array format for chart
+    const data = Object.entries(tierCounts).map(([tier, count]) => ({
       tier,
-      user_id
-    `)
-    .eq('status', 'active')
-    .neq('tier', 'free')
-  
-  const tierCounts: { [key: string]: number } = {}
-  
-  subscriptions?.forEach((sub: any) => {
-    const tier = sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Unknown' // Capitalize first letter
-    tierCounts[tier] = (tierCounts[tier] || 0) + 1
-  })
-  
-  // Convert to array format for chart
-  const data = Object.entries(tierCounts).map(([tier, count]) => ({
-    tier,
-    count
-  }))
-  
-  return data.length > 0 ? data : [
-    { tier: 'Free', count: 0 },
-    { tier: 'Basic', count: 0 },
-    { tier: 'Pro', count: 0 },
-    { tier: 'Enterprise', count: 0 }
-  ]
+      count
+    }))
+    
+    return data.length > 0 ? data : [
+      { tier: 'Free', count: 0 },
+      { tier: 'Basic', count: 0 },
+      { tier: 'Pro', count: 0 },
+      { tier: 'Enterprise', count: 0 }
+    ]
+  } catch (error) {
+    console.error('Error generating subscription data:', error)
+    return [
+      { tier: 'Free', count: 0 },
+      { tier: 'Basic', count: 0 },
+      { tier: 'Pro', count: 0 },
+      { tier: 'Enterprise', count: 0 }
+    ]
+  }
 }
 
 async function generateMessageData(supabase: any) {
@@ -292,31 +318,35 @@ async function generateMessageData(supabase: any) {
   }
 }
 
-// Comprehensive revenue calculation function
-async function calculateRevenue(supabase: any) {
+// Comprehensive revenue calculation function using user_subscriptions and Stripe
+async function calculateRevenueFromSubscriptions(supabase: any) {
   try {
-    // Get all transactions (token purchases)
+    // Get all token purchase transactions (excluding the specified user)
     const { data: transactions } = await supabase
       .from('transactions')
       .select('amount, type, created_at')
       .eq('type', 'purchase')
+      .neq('user_id', EXCLUDED_USER_ID)
 
     // Calculate token revenue
     const tokenRevenue = transactions?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
 
-    // Get all active subscriptions (excluding admin users)
+    // Get all active subscriptions from user_subscriptions table (excluding the specified user)
     const { data: activeSubscriptions } = await supabase
       .from('user_subscriptions')
       .select(`
         tier,
         user_id,
         status,
-        created_at
+        created_at,
+        current_period_start,
+        current_period_end
       `)
       .eq('status', 'active')
       .neq('tier', 'free')
+      .neq('user_id', EXCLUDED_USER_ID)
 
-    // Calculate subscription revenue
+    // Calculate subscription revenue from database
     let subscriptionRevenue = 0
     let monthlyRecurringRevenue = 0
     const totalSubscriptions = activeSubscriptions?.length || 0
@@ -330,9 +360,22 @@ async function calculateRevenue(supabase: any) {
       monthlyRecurringRevenue += monthlyPrice
       
       // Calculate total subscription revenue (assuming average subscription age)
-      // For now, we'll estimate based on subscription count and average price
       subscriptionRevenue += monthlyPrice
     })
+
+    // Try to get actual revenue data from Stripe for more accuracy
+    try {
+      const stripeRevenue = await getStripeRevenue()
+      
+      // Use Stripe data if available, otherwise fall back to database calculations
+      if (stripeRevenue.totalRevenue > 0) {
+        subscriptionRevenue = stripeRevenue.subscriptionRevenue
+        monthlyRecurringRevenue = stripeRevenue.monthlyRecurringRevenue
+      }
+    } catch (stripeError) {
+      console.error('Error fetching Stripe revenue data:', stripeError)
+      // Continue with database calculations
+    }
 
     // Calculate total revenue
     const totalRevenue = tokenRevenue + subscriptionRevenue
@@ -353,5 +396,61 @@ async function calculateRevenue(supabase: any) {
       tokenRevenue: 0,
       totalSubscriptions: 0
     }
+  }
+}
+
+// Function to get actual revenue data from Stripe
+async function getStripeRevenue() {
+  try {
+    // Get all subscriptions from Stripe
+    const subscriptions = await stripe.subscriptions.list({
+      status: 'active',
+      limit: 100,
+      expand: ['data.default_payment_method']
+    })
+
+    let subscriptionRevenue = 0
+    let monthlyRecurringRevenue = 0
+
+    for (const subscription of subscriptions.data) {
+      // Get the latest invoice for this subscription
+      const invoices = await stripe.invoices.list({
+        subscription: subscription.id,
+        limit: 1,
+        status: 'paid'
+      })
+
+      if (invoices.data.length > 0) {
+        const latestInvoice = invoices.data[0]
+        const amountPaid = latestInvoice.amount_paid / 100 // Convert from cents to dollars
+        
+        subscriptionRevenue += amountPaid
+        monthlyRecurringRevenue += amountPaid
+      }
+    }
+
+    // Get all successful payments from Stripe
+    const payments = await stripe.paymentIntents.list({
+      limit: 100,
+      created: {
+        gte: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000) // Last 30 days
+      }
+    })
+
+    let totalRevenue = 0
+    for (const payment of payments.data) {
+      if (payment.status === 'succeeded') {
+        totalRevenue += payment.amount / 100 // Convert from cents to dollars
+      }
+    }
+
+    return {
+      totalRevenue,
+      subscriptionRevenue,
+      monthlyRecurringRevenue
+    }
+  } catch (error) {
+    console.error('Error fetching Stripe revenue:', error)
+    throw error
   }
 } 

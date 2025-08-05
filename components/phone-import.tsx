@@ -719,7 +719,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           </div>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-sm max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
+      <DialogContent className="w-[95vw] max-w-sm md:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm mx-auto">
         <DialogHeader className="px-3 sm:px-6">
           <DialogTitle className="text-lg sm:text-xl text-center">Import Contact</DialogTitle>
           <DialogDescription className="text-sm text-center">
@@ -732,104 +732,103 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">📋 Add Method</label>
             
-            {/* Google Contacts Export - Most Recommended */}
-            <div className="space-y-2">
-                             <Button
-                 variant="outline"
-                 onClick={() => setImportMethod('google')}
-                 className={`w-full justify-start h-12 text-left px-3 ${
-                   importMethod === 'google' 
-                     ? 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0' 
-                     : 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0'
-                 }`}
-               >
-                 <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                 <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                   <span className="font-medium text-sm truncate w-full">Google Contacts Export</span>
-                   <span className="text-xs font-light text-gray-200 truncate w-full">Export CSV from Google Contacts</span>
-                 </div>
-                 <div className="ml-1 bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded-full flex-shrink-0 hidden sm:block">
-                   <span>Recommended</span>
-                 </div>
-               </Button>
-              {importMethod === 'google' && (
-                <div className="space-y-2 pl-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={openGoogleContactsGuide}
-                    className="w-full text-xs text-blue-600 hover:text-blue-800 h-8"
-                  >
-                    📖 Quick Setup Guide
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* File Upload */}
-            <Button
-              variant={importMethod === 'file' ? 'default' : 'outline'}
-              onClick={() => setImportMethod('file')}
-              className="w-full justify-start h-12 text-left px-3"
-            >
-              <Upload className="h-4 w-4 mr-2 flex-shrink-0" />
-              <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                <span className="font-medium text-sm truncate w-full">Upload Contact File</span>
-                <span className="text-xs text-gray-500 truncate w-full">VCF or CSV files</span>
-              </div>
-            </Button>
-
-            {/* Native Contact Access - Mobile Only */}
-            {isNativeSupported && (
+            {/* Grid layout for desktop, stack for mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Google Contacts Export - Most Recommended */}
               <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setImportMethod('google')}
+                  className={`w-full justify-start h-16 md:h-20 text-left px-3 ${
+                    importMethod === 'google' 
+                      ? 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0' 
+                      : 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white border-0'
+                  }`}
+                >
+                  <FileText className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                    <span className="font-medium text-sm md:text-base truncate w-full">Google Contacts Export</span>
+                    <span className="text-xs font-light text-gray-200 truncate w-full">Export CSV from Google Contacts</span>
+                  </div>
+                  <div className="ml-1 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex-shrink-0 hidden sm:block">
+                    <span>Recommended</span>
+                  </div>
+                </Button>
+                {importMethod === 'google' && (
+                  <div className="space-y-2 pl-4">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={openGoogleContactsGuide}
+                      className="w-full text-xs text-blue-600 hover:text-blue-800 h-8"
+                    >
+                      📖 Quick Setup Guide
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* File Upload */}
+              <Button
+                variant={importMethod === 'file' ? 'default' : 'outline'}
+                onClick={() => setImportMethod('file')}
+                className="w-full justify-start h-16 md:h-20 text-left px-3"
+              >
+                <Upload className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                  <span className="font-medium text-sm md:text-base truncate w-full">Upload Contact File</span>
+                  <span className="text-xs text-gray-500 truncate w-full">VCF or CSV files</span>
+                </div>
+              </Button>
+
+              {/* Native Contact Access - Mobile Only */}
+              {isNativeSupported && (
                 <Button
                   variant={importMethod === 'native' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('native')}
-                  className="w-full justify-start h-12 text-left px-3"
+                  className="w-full justify-start h-16 md:h-20 text-left px-3"
                 >
-                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <Users className="h-5 w-5 mr-3 flex-shrink-0" />
                   <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                    <span className="font-medium text-sm truncate w-full">Select from Phone</span>
+                    <span className="font-medium text-sm md:text-base truncate w-full">Select from Phone</span>
                     <span className="text-xs text-gray-500 truncate w-full">Choose contacts directly from your phone</span>
                   </div>
                 </Button>
-              </div>
-            )}
+              )}
 
-            {/* Web Share API - Mobile Only */}
-            {isShareSupported && (
-              <div className="space-y-2">
+              {/* Web Share API - Mobile Only */}
+              {isShareSupported && (
                 <Button
                   variant={importMethod === 'share' ? 'default' : 'outline'}
                   onClick={() => setImportMethod('share')}
-                  className="w-full justify-start h-12 text-left px-3"
+                  className="w-full justify-start h-16 md:h-20 text-left px-3"
                 >
-                  <Share2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <Share2 className="h-5 w-5 mr-3 flex-shrink-0" />
                   <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                    <span className="font-medium text-sm truncate w-full">Share from Contacts App</span>
+                    <span className="font-medium text-sm md:text-base truncate w-full">Share from Contacts App</span>
                     <span className="text-xs text-gray-500 truncate w-full">Use your phone's share feature</span>
                   </div>
                 </Button>
-              </div>
-            )}
+              )}
 
-            {/* Manual Entry */}
-            <Button
-              variant="outline"
-              onClick={() => setImportMethod('manual')}
-              className={`w-full justify-start h-12 text-left px-3 ${
-                importMethod === 'manual' 
-                  ? 'bg-black hover:bg-gray-800 text-white border-0' 
-                  : 'bg-black hover:bg-gray-800 text-white border-0'
-              }`}
-            >
-              <User className="h-4 w-4 mr-2 flex-shrink-0" />
-              <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                <span className="font-medium text-sm truncate w-full">Add Manually</span>
-                <span className="text-xs text-gray-500 truncate w-full">Enter contact details one by one</span>
-              </div>
-            </Button>
+              {/* Manual Entry */}
+              <Button
+                variant="outline"
+                onClick={() => setImportMethod('manual')}
+                className={`w-full justify-start h-16 md:h-20 text-left px-3 ${
+                  importMethod === 'manual' 
+                    ? 'bg-black hover:bg-gray-800 text-white border-0' 
+                    : 'bg-black hover:bg-gray-800 text-white border-0'
+                }`}
+              >
+                <User className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                  <span className="font-medium text-sm md:text-base truncate w-full">Add Manually</span>
+                  <span className="text-xs text-gray-500 truncate w-full">Enter contact details one by one</span>
+                </div>
+              </Button>
+            </div>
 
 
 
@@ -849,11 +848,11 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           {/* Native Contact Import */}
           {importMethod === 'native' && isNativeSupported && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+                <p className="text-sm md:text-base text-blue-800">
                   This will open your phone's contact picker to select contacts directly.
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs md:text-sm text-blue-600 mt-1">
                   <strong>Note:</strong> Only contacts with email addresses can be imported.
                 </p>
                 <Button
@@ -861,7 +860,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   variant="outline"
                   size="sm"
                   onClick={testContactsAPI}
-                  className="mt-2 text-xs"
+                  className="mt-2 text-xs md:text-sm"
                 >
                   Test Contacts API
                 </Button>
@@ -869,36 +868,43 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700">🏷️ Category (Optional)</label>
-                <Select value={selectedCategory || "__no_category__"} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Choose a category for organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__no_category__">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gray-200 rounded-full" />
-                        <span>No category</span>
-                      </div>
-                    </SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span>{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="md:flex md:items-center md:space-x-4">
+                  <div className="flex-1">
+                    <Select value={selectedCategory || "__no_category__"} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="h-11 md:h-12">
+                        <SelectValue placeholder="Choose a category for organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__no_category__">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-gray-200 rounded-full" />
+                            <span>No category</span>
+                          </div>
+                        </SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              <span>{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="hidden md:block text-xs text-gray-500 mt-2 md:mt-0">
+                    Organize your contacts for better management
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-12 text-sm sm:text-base"
+                  className="flex-1 h-12 md:h-14 text-sm sm:text-base md:text-lg"
                   onClick={() => {
                     setIsDialogOpen(false)
                     resetForm()
@@ -907,18 +913,18 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
+                  className="flex-1 h-12 md:h-14 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base md:text-lg"
                   onClick={handleNativeContactImport}
                   disabled={isUploading}
                 >
                   {isUploading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white mr-2" />
                       Importing...
                     </>
                   ) : (
                     <>
-                      <Users className="h-4 w-4 mr-2" />
+                      <Users className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                       Select Contacts
                     </>
                   )}
@@ -961,36 +967,38 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
           {/* Google Contacts Import */}
           {importMethod === 'google' && (
             <div className="space-y-3">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-center mb-3">
-                  <div className="bg-blue-100 p-2 rounded-full w-10 h-10 mx-auto mb-2 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-blue-600" />
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 md:p-6">
+                <div className="md:flex md:items-start md:space-x-6">
+                  <div className="text-center md:text-left md:flex-1">
+                    <div className="bg-blue-100 p-2 rounded-full w-10 h-10 mx-auto md:mx-0 mb-2 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <h3 className="font-semibold text-blue-800 text-base md:text-lg mb-2">Google Contacts Export</h3>
+                    <p className="text-xs md:text-sm text-blue-700 mb-3">
+                      Export your contacts from Google Contacts and upload the CSV file here.
+                    </p>
+                    
+                    <Button onClick={handleGoogleImport} className="w-full md:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-sm">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open Google Contacts
+                    </Button>
                   </div>
-                  <h3 className="font-semibold text-blue-800 text-base mb-2">Google Contacts Export</h3>
-                  <p className="text-xs text-blue-700 mb-3">
-                    Export your contacts from Google Contacts and upload the CSV file here.
-                  </p>
                   
-                  <Button onClick={handleGoogleImport} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Google Contacts
-                  </Button>
-                </div>
-                
-                <div className="bg-white border border-blue-200 rounded-lg p-3">
-                  <div className="text-center mb-3">
-                    <span className="text-blue-600 font-medium text-sm">📋 Quick Steps:</span>
+                  <div className="bg-white border border-blue-200 rounded-lg p-3 md:p-4 mt-3 md:mt-0 md:flex-1">
+                    <div className="text-center md:text-left mb-3">
+                      <span className="text-blue-600 font-medium text-sm">📋 Quick Steps:</span>
+                    </div>
+                    <ol className="text-xs md:text-sm text-blue-700 space-y-2 list-decimal list-inside text-left">
+                      <li>Click "Open Google Contacts" above</li>
+                      <li>Sign in to your Google account</li>
+                      <li>Look for "Export" in the left sidebar</li>
+                      <li>Click "Export" to open export options</li>
+                      <li>Select "Google CSV" format</li>
+                      <li>Choose "All contacts" (recommended)</li>
+                      <li>Click "Export" to download</li>
+                      <li>Upload the CSV file below</li>
+                    </ol>
                   </div>
-                  <ol className="text-xs text-blue-700 space-y-2 list-decimal list-inside text-left">
-                    <li>Click "Open Google Contacts" above</li>
-                    <li>Sign in to your Google account</li>
-                    <li>Look for "Export" in the left sidebar</li>
-                    <li>Click "Export" to open export options</li>
-                    <li>Select "Google CSV" format</li>
-                    <li>Choose "All contacts" (recommended)</li>
-                    <li>Click "Export" to download</li>
-                    <li>Upload the CSV file below</li>
-                  </ol>
                 </div>
               </div>
               
@@ -1049,7 +1057,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
             <div className="space-y-4">
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700">📁 Select Contact File</label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center bg-gray-50">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 text-center bg-gray-50">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1057,22 +1065,25 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  <div className="space-y-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-12 text-sm sm:text-base"
-                    >
-                      <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                      Choose Contact File
-                    </Button>
-                    <div className="text-center space-y-1">
-                      <p className="text-xs sm:text-sm text-gray-600 font-medium">
-                        Supported formats: .vcf, .csv
-                      </p>
-                      <p className="text-xs text-orange-600">
-                        ⚠️ Only contacts with email addresses can be imported
-                      </p>
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="md:flex md:items-center md:justify-center md:space-x-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full md:w-auto h-12 text-sm sm:text-base md:px-8"
+                      >
+                        <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                        Choose Contact File
+                      </Button>
+                      <div className="hidden md:block text-gray-400">|</div>
+                      <div className="text-center md:text-left space-y-1">
+                        <p className="text-xs sm:text-sm text-gray-600 font-medium">
+                          Supported formats: .vcf, .csv
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          ⚠️ Only contacts with email addresses can be imported
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1116,26 +1127,26 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
               {previewData.length > 0 && (
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-gray-700">👥 Contact Preview</label>
-                  <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto border">
-                    <div className="space-y-2">
+                  <div className="bg-gray-50 rounded-lg p-4 md:p-6 max-h-40 md:max-h-60 overflow-y-auto border">
+                    <div className="space-y-2 md:space-y-3">
                       {previewData.map((contact, index) => (
-                        <div key={index} className="flex items-center space-x-3 p-2 bg-white rounded border">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-medium text-blue-600">
+                        <div key={index} className="flex items-center space-x-3 p-2 md:p-3 bg-white rounded border">
+                          <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs md:text-sm font-medium text-blue-600">
                               {contact.first_name?.[0] || '?'}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm md:text-base font-medium text-gray-900 truncate">
                               {contact.first_name} {contact.last_name || ''}
                             </div>
                             {contact.email && (
-                              <div className="text-xs text-gray-600 truncate">
+                              <div className="text-xs md:text-sm text-gray-600 truncate">
                                 📧 {contact.email}
                               </div>
                             )}
                             {contact.phone && (
-                              <div className="text-xs text-gray-600 truncate">
+                              <div className="text-xs md:text-sm text-gray-600 truncate">
                                 📞 {contact.phone}
                               </div>
                             )}
@@ -1144,7 +1155,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                       ))}
                       {previewData.length === 5 && (
                         <div className="text-center py-2">
-                          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                          <span className="text-xs md:text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                             ... and more contacts
                           </span>
                         </div>
@@ -1217,31 +1228,32 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email *
-                  </label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={manualFormData.email}
-                    onChange={(e) => setManualFormData({...manualFormData, email: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium">
-                    Phone
-                  </label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={manualFormData.phone}
-                    onChange={(e) => setManualFormData({...manualFormData, phone: e.target.value})}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">
+                      Email *
+                    </label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={manualFormData.email}
+                      onChange={(e) => setManualFormData({...manualFormData, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="phone" className="text-sm font-medium">
+                      Phone
+                    </label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={manualFormData.phone}
+                      onChange={(e) => setManualFormData({...manualFormData, phone: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
