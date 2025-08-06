@@ -8,9 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 // User IDs to exclude from all calculations (admin/test accounts)
-// Temporarily commented out to debug why dashboard shows 0
 const EXCLUDED_USER_IDS = [
-  // 'dd353545-03e8-43ad-a7a7-0715ebe7d765', // Original excluded user - investigating
   '48227699-4260-448f-b418-e4b48afa9aca'  // Admin user found in logs
 ]
 
@@ -69,7 +67,7 @@ async function getSubscriptionAnalytics(supabase: any) {
         total_tokens_purchased
       `)
       .eq('status', 'active')
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
       .order('created_at', { ascending: false })
 
     // Get user details for each subscription
@@ -181,7 +179,7 @@ async function getSubscriptionGrowth(supabase: any) {
       .select('created_at, tier')
       .gte('created_at', ninetyDaysAgo.toISOString())
       .eq('status', 'active')
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
       .order('created_at', { ascending: true })
 
     // Group by date and tier

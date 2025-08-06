@@ -8,9 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 // User IDs to exclude from all calculations (admin/test accounts)
-// Temporarily commented out to debug why dashboard shows 0
 const EXCLUDED_USER_IDS = [
-  // 'dd353545-03e8-43ad-a7a7-0715ebe7d765', // Original excluded user - investigating
   '48227699-4260-448f-b418-e4b48afa9aca'  // Admin user found in logs
 ]
 
@@ -39,7 +37,7 @@ export async function GET() {
     const { count: totalUsers } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .not('id', 'in', EXCLUDED_USER_IDS)
+      .not('id', 'eq', EXCLUDED_USER_IDS[0])
 
     // Get active users (users who signed up in the last 30 days, excluding the specified users)
     const thirtyDaysAgo = new Date()
@@ -49,7 +47,7 @@ export async function GET() {
       .from('users')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .not('id', 'in', EXCLUDED_USER_IDS)
+      .not('id', 'eq', EXCLUDED_USER_IDS[0])
 
     // Get comprehensive revenue data from user_subscriptions and Stripe
     const revenueStats = await calculateRevenueFromSubscriptions(supabase)
@@ -70,20 +68,20 @@ export async function GET() {
     const { count: totalEvents } = await supabase
       .from('events')
       .select('*', { count: 'exact', head: true })
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
 
     // Get total contacts (excluding the specified users)
     const { count: totalContacts } = await supabase
       .from('contacts')
       .select('*', { count: 'exact', head: true })
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
 
     // Get total tokens purchased (excluding the specified users)
     const { data: tokenTransactions } = await supabase
       .from('transactions')
       .select('tokens')
       .eq('type', 'purchase')
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
@@ -154,7 +152,7 @@ async function generateUserGrowthData(supabase: any) {
       .from('users')
       .select('created_at')
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .not('id', 'in', EXCLUDED_USER_IDS)
+      .not('id', 'eq', EXCLUDED_USER_IDS[0])
       .order('created_at', { ascending: true })
     
     // Group users by date
@@ -195,7 +193,7 @@ async function generateRevenueData(supabase: any) {
       .select('amount, created_at')
       .eq('type', 'purchase')
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .not('user_id', 'eq', EXCLUDED_USER_IDS[0])
       .order('created_at', { ascending: true })
     
     // Group transactions by date
@@ -227,25 +225,24 @@ async function generateRevenueData(supabase: any) {
 
 async function generateSubscriptionData(supabase: any) {
   try {
-    // Get subscription distribution by tier from user_subscriptions table (excluding the specified users)
-    const { data: subscriptions } = await supabase
-      .from('user_subscriptions')
+    // Get subscription distribution by tier from users table (excluding the specified users)
+    const { data: users } = await supabase
+      .from('users')
       .select(`
-        tier,
-        user_id
+        subscription_plan,
+        id
       `)
-      .eq('status', 'active')
-      .neq('tier', 'free')
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .neq('subscription_plan', 'free')
+      .not('id', 'eq', EXCLUDED_USER_IDS[0])
     
-    console.log(`Found ${subscriptions?.length || 0} active subscriptions (excluding admin user)`)
+    console.log(`Found ${users?.length || 0} users with subscriptions (excluding admin user)`)
     
     const tierCounts: { [key: string]: number } = {}
     
-    subscriptions?.forEach((sub: any) => {
-      const tier = sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Unknown'
+    users?.forEach((user: any) => {
+      const tier = user.subscription_plan ? user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1) : 'Unknown'
       tierCounts[tier] = (tierCounts[tier] || 0) + 1
-      console.log(`Subscription: User ${sub.user_id}, Tier: ${sub.tier} -> ${tier}`)
+      console.log(`User: ${user.id}, Subscription Plan: ${user.subscription_plan} -> ${tier}`)
     })
     
     console.log('Tier breakdown:', tierCounts)
@@ -340,34 +337,30 @@ async function calculateRevenueFromSubscriptions(supabase: any) {
     // Calculate token revenue
     const tokenRevenue = transactions?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
 
-    // Get all active subscriptions from user_subscriptions table (excluding the specified users)
-    const { data: activeSubscriptions } = await supabase
-      .from('user_subscriptions')
+    // Get all users with subscriptions from users table (excluding the specified users)
+    const { data: usersWithSubscriptions } = await supabase
+      .from('users')
       .select(`
-        tier,
-        user_id,
-        status,
-        created_at,
-        current_period_start,
-        current_period_end
+        subscription_plan,
+        id,
+        created_at
       `)
-      .eq('status', 'active')
-      .neq('tier', 'free')
-      .not('user_id', 'in', EXCLUDED_USER_IDS)
+      .neq('subscription_plan', 'free')
+      .not('id', 'eq', EXCLUDED_USER_IDS[0])
 
     // Calculate subscription revenue from database
     let subscriptionRevenue = 0
     let monthlyRecurringRevenue = 0
-    const totalSubscriptions = activeSubscriptions?.length || 0
+    const totalSubscriptions = usersWithSubscriptions?.length || 0
 
-    console.log(`Calculating revenue for ${totalSubscriptions} active subscriptions`)
+    console.log(`Calculating revenue for ${totalSubscriptions} users with subscriptions`)
 
-    activeSubscriptions?.forEach((sub: any) => {
-      const monthlyPrice = sub.tier === 'basic' ? 9.90 : 
-                          sub.tier === 'pro' ? 29.90 : 
-                          sub.tier === 'enterprise' ? 79.90 : 0
+    usersWithSubscriptions?.forEach((user: any) => {
+      const monthlyPrice = user.subscription_plan === 'basic' ? 9.90 : 
+                          user.subscription_plan === 'pro' ? 29.90 : 
+                          user.subscription_plan === 'enterprise' ? 79.90 : 0
       
-      console.log(`User ${sub.user_id}: Tier ${sub.tier} = $${monthlyPrice}/month`)
+      console.log(`User ${user.id}: Subscription Plan ${user.subscription_plan} = $${monthlyPrice}/month`)
       
       // Add to monthly recurring revenue
       monthlyRecurringRevenue += monthlyPrice

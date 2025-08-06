@@ -3,9 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 // User IDs to exclude from all calculations (admin/test accounts)
-// Temporarily commented out to debug why dashboard shows 0
 const EXCLUDED_USER_IDS = [
-  // 'dd353545-03e8-43ad-a7a7-0715ebe7d765', // Original excluded user - investigating
   '48227699-4260-448f-b418-e4b48afa9aca'  // Admin user found in logs
 ]
 
