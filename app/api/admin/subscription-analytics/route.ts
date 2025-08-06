@@ -7,8 +7,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 })
 
-// User ID to exclude from all calculations
-const EXCLUDED_USER_ID = 'dd353545-03e8-43ad-a7a7-0715ebe7d765'
+// User IDs to exclude from all calculations (admin/test accounts)
+const EXCLUDED_USER_IDS = [
+  'dd353545-03e8-43ad-a7a7-0715ebe7d765', // Original excluded user
+  '48227699-4260-448f-b418-e4b48afa9aca'  // Admin user found in logs
+]
 
 export async function GET() {
   try {
@@ -65,7 +68,7 @@ async function getSubscriptionAnalytics(supabase: any) {
         total_tokens_purchased
       `)
       .eq('status', 'active')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
       .order('created_at', { ascending: false })
 
     // Get user details for each subscription
@@ -177,7 +180,7 @@ async function getSubscriptionGrowth(supabase: any) {
       .select('created_at, tier')
       .gte('created_at', ninetyDaysAgo.toISOString())
       .eq('status', 'active')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
       .order('created_at', { ascending: true })
 
     // Group by date and tier
@@ -235,12 +238,31 @@ async function getStripeSubscriptionData() {
         const latestInvoice = invoices.data[0]
         const amountPaid = latestInvoice.amount_paid / 100 // Convert from cents to dollars
         
+        // Safely convert timestamps with error handling
+        let currentPeriodStartISO, currentPeriodEndISO
+        try {
+          const currentPeriodStart = (subscription as any).current_period_start
+          const currentPeriodEnd = (subscription as any).current_period_end
+          
+          if (currentPeriodStart && currentPeriodEnd) {
+            currentPeriodStartISO = new Date(currentPeriodStart * 1000).toISOString()
+            currentPeriodEndISO = new Date(currentPeriodEnd * 1000).toISOString()
+          } else {
+            currentPeriodStartISO = null
+            currentPeriodEndISO = null
+          }
+        } catch (error) {
+          console.error('Error converting subscription timestamps:', error)
+          currentPeriodStartISO = null
+          currentPeriodEndISO = null
+        }
+        
         stripeSubscriptions.push({
           id: subscription.id,
           customerId: subscription.customer as string,
           status: subscription.status,
-          currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
-          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          currentPeriodStart: currentPeriodStartISO,
+          currentPeriodEnd: currentPeriodEndISO,
           amountPaid,
           currency: latestInvoice.currency
         })

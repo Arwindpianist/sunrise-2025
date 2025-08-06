@@ -7,8 +7,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 })
 
-// User ID to exclude from all calculations
-const EXCLUDED_USER_ID = 'dd353545-03e8-43ad-a7a7-0715ebe7d765'
+// User IDs to exclude from all calculations (admin/test accounts)
+const EXCLUDED_USER_IDS = [
+  'dd353545-03e8-43ad-a7a7-0715ebe7d765', // Original excluded user
+  '48227699-4260-448f-b418-e4b48afa9aca'  // Admin user found in logs
+]
 
 export async function GET() {
   try {
@@ -31,13 +34,13 @@ export async function GET() {
       return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
     }
 
-    // Get total users count (excluding the specified user)
+    // Get total users count (excluding the specified users)
     const { count: totalUsers } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .neq('id', EXCLUDED_USER_ID)
+      .not('id', 'in', EXCLUDED_USER_IDS)
 
-    // Get active users (users who signed up in the last 30 days, excluding the specified user)
+    // Get active users (users who signed up in the last 30 days, excluding the specified users)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
@@ -45,7 +48,7 @@ export async function GET() {
       .from('users')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .neq('id', EXCLUDED_USER_ID)
+      .not('id', 'in', EXCLUDED_USER_IDS)
 
     // Get comprehensive revenue data from user_subscriptions and Stripe
     const revenueStats = await calculateRevenueFromSubscriptions(supabase)
@@ -62,24 +65,24 @@ export async function GET() {
 
     const totalMessages = (emailMessages || 0) + (telegramMessages || 0)
 
-    // Get total events created (excluding the specified user)
+    // Get total events created (excluding the specified users)
     const { count: totalEvents } = await supabase
       .from('events')
       .select('*', { count: 'exact', head: true })
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
 
-    // Get total contacts (excluding the specified user)
+    // Get total contacts (excluding the specified users)
     const { count: totalContacts } = await supabase
       .from('contacts')
       .select('*', { count: 'exact', head: true })
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
 
-    // Get total tokens purchased (excluding the specified user)
+    // Get total tokens purchased (excluding the specified users)
     const { data: tokenTransactions } = await supabase
       .from('transactions')
       .select('tokens')
       .eq('type', 'purchase')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
 
     const totalTokensPurchased = tokenTransactions?.reduce((sum, tx) => sum + (tx.tokens || 0), 0) || 0
 
@@ -150,7 +153,7 @@ async function generateUserGrowthData(supabase: any) {
       .from('users')
       .select('created_at')
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .neq('id', EXCLUDED_USER_ID)
+      .not('id', 'in', EXCLUDED_USER_IDS)
       .order('created_at', { ascending: true })
     
     // Group users by date
@@ -191,7 +194,7 @@ async function generateRevenueData(supabase: any) {
       .select('amount, created_at')
       .eq('type', 'purchase')
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
       .order('created_at', { ascending: true })
     
     // Group transactions by date
@@ -223,7 +226,7 @@ async function generateRevenueData(supabase: any) {
 
 async function generateSubscriptionData(supabase: any) {
   try {
-    // Get subscription distribution by tier from user_subscriptions table (excluding the specified user)
+    // Get subscription distribution by tier from user_subscriptions table (excluding the specified users)
     const { data: subscriptions } = await supabase
       .from('user_subscriptions')
       .select(`
@@ -232,7 +235,7 @@ async function generateSubscriptionData(supabase: any) {
       `)
       .eq('status', 'active')
       .neq('tier', 'free')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
     
     console.log(`Found ${subscriptions?.length || 0} active subscriptions (excluding admin user)`)
     
@@ -326,17 +329,17 @@ async function generateMessageData(supabase: any) {
 // Comprehensive revenue calculation function using user_subscriptions and Stripe
 async function calculateRevenueFromSubscriptions(supabase: any) {
   try {
-    // Get all token purchase transactions (excluding the specified user)
+    // Get all token purchase transactions (excluding the specified users)
     const { data: transactions } = await supabase
       .from('transactions')
       .select('amount, type, created_at')
       .eq('type', 'purchase')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
 
     // Calculate token revenue
     const tokenRevenue = transactions?.reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0) || 0
 
-    // Get all active subscriptions from user_subscriptions table (excluding the specified user)
+    // Get all active subscriptions from user_subscriptions table (excluding the specified users)
     const { data: activeSubscriptions } = await supabase
       .from('user_subscriptions')
       .select(`
@@ -349,7 +352,7 @@ async function calculateRevenueFromSubscriptions(supabase: any) {
       `)
       .eq('status', 'active')
       .neq('tier', 'free')
-      .neq('user_id', EXCLUDED_USER_ID)
+      .not('user_id', 'in', EXCLUDED_USER_IDS)
 
     // Calculate subscription revenue from database
     let subscriptionRevenue = 0
