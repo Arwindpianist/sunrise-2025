@@ -395,6 +395,9 @@ export default function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">
                   {stats.totalSubscriptions} active subscriptions
                 </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Excludes admin test account
+                </p>
           </CardContent>
         </Card>
 
@@ -1109,6 +1112,22 @@ export default function AdminDashboard() {
                                   <span className="font-semibold text-green-600">
                                     {formatCurrency(subscriptionAnalytics.stripeData.totalRevenue)}
                                   </span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-sm">Data Source</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                <div className="text-xs text-gray-600">
+                                  <p><strong>Primary:</strong> Database calculations (excludes admin user)</p>
+                                  <p><strong>Reference:</strong> Stripe data (includes all subscriptions)</p>
+                                  <p className="text-orange-600 mt-2">
+                                    ⚠️ Stripe data may include test/admin accounts
+                                  </p>
                                 </div>
                               </div>
                             </CardContent>

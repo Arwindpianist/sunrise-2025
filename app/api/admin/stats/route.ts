@@ -234,12 +234,17 @@ async function generateSubscriptionData(supabase: any) {
       .neq('tier', 'free')
       .neq('user_id', EXCLUDED_USER_ID)
     
+    console.log(`Found ${subscriptions?.length || 0} active subscriptions (excluding admin user)`)
+    
     const tierCounts: { [key: string]: number } = {}
     
     subscriptions?.forEach((sub: any) => {
       const tier = sub.tier ? sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1) : 'Unknown'
       tierCounts[tier] = (tierCounts[tier] || 0) + 1
+      console.log(`Subscription: User ${sub.user_id}, Tier: ${sub.tier} -> ${tier}`)
     })
+    
+    console.log('Tier breakdown:', tierCounts)
     
     // Convert to array format for chart
     const data = Object.entries(tierCounts).map(([tier, count]) => ({
@@ -351,10 +356,14 @@ async function calculateRevenueFromSubscriptions(supabase: any) {
     let monthlyRecurringRevenue = 0
     const totalSubscriptions = activeSubscriptions?.length || 0
 
+    console.log(`Calculating revenue for ${totalSubscriptions} active subscriptions`)
+
     activeSubscriptions?.forEach((sub: any) => {
       const monthlyPrice = sub.tier === 'basic' ? 9.90 : 
                           sub.tier === 'pro' ? 29.90 : 
                           sub.tier === 'enterprise' ? 79.90 : 0
+      
+      console.log(`User ${sub.user_id}: Tier ${sub.tier} = $${monthlyPrice}/month`)
       
       // Add to monthly recurring revenue
       monthlyRecurringRevenue += monthlyPrice
@@ -363,15 +372,24 @@ async function calculateRevenueFromSubscriptions(supabase: any) {
       subscriptionRevenue += monthlyPrice
     })
 
-    // Try to get actual revenue data from Stripe for more accuracy
+    console.log(`Revenue calculation results:`)
+    console.log(`- Total subscriptions: ${totalSubscriptions}`)
+    console.log(`- Monthly recurring revenue: $${monthlyRecurringRevenue}`)
+    console.log(`- Subscription revenue: $${subscriptionRevenue}`)
+
+    // Try to get actual revenue data from Stripe for reference (but prioritize database calculations)
     try {
       const stripeRevenue = await getStripeRevenue()
       
-      // Use Stripe data if available, otherwise fall back to database calculations
-      if (stripeRevenue.totalRevenue > 0) {
-        subscriptionRevenue = stripeRevenue.subscriptionRevenue
-        monthlyRecurringRevenue = stripeRevenue.monthlyRecurringRevenue
-      }
+      // Log Stripe data for comparison but use database calculations for accuracy
+      console.log(`Revenue Comparison:`)
+      console.log(`- Database Subscription Revenue: $${subscriptionRevenue}`)
+      console.log(`- Stripe Subscription Revenue: $${stripeRevenue.subscriptionRevenue}`)
+      console.log(`- Database MRR: $${monthlyRecurringRevenue}`)
+      console.log(`- Stripe MRR: $${stripeRevenue.monthlyRecurringRevenue}`)
+      
+      // Note: We prioritize database calculations because they properly exclude the admin user
+      // Stripe data includes all subscriptions and can't be filtered by our user IDs
     } catch (stripeError) {
       console.error('Error fetching Stripe revenue data:', stripeError)
       // Continue with database calculations
@@ -411,6 +429,9 @@ async function getStripeRevenue() {
 
     let subscriptionRevenue = 0
     let monthlyRecurringRevenue = 0
+    let excludedUserRevenue = 0
+
+    console.log(`Processing ${subscriptions.data.length} Stripe subscriptions`)
 
     for (const subscription of subscriptions.data) {
       // Get the latest invoice for this subscription
@@ -424,12 +445,22 @@ async function getStripeRevenue() {
         const latestInvoice = invoices.data[0]
         const amountPaid = latestInvoice.amount_paid / 100 // Convert from cents to dollars
         
-        subscriptionRevenue += amountPaid
-        monthlyRecurringRevenue += amountPaid
+        // Check if this subscription belongs to the excluded user
+        // We can't directly filter by user_id in Stripe, so we'll use our database
+        // to cross-reference and exclude the admin user's subscriptions
+        const subscriptionAmount = amountPaid
+        
+        // For now, we'll include all Stripe revenue but log for debugging
+        // In a production system, you'd want to store Stripe customer IDs in your database
+        // to properly link Stripe subscriptions to your users
+        subscriptionRevenue += subscriptionAmount
+        monthlyRecurringRevenue += subscriptionAmount
+        
+        console.log(`Subscription ${subscription.id}: $${subscriptionAmount}`)
       }
     }
 
-    // Get all successful payments from Stripe
+    // Get all successful payments from Stripe (last 30 days)
     const payments = await stripe.paymentIntents.list({
       limit: 100,
       created: {
@@ -443,6 +474,12 @@ async function getStripeRevenue() {
         totalRevenue += payment.amount / 100 // Convert from cents to dollars
       }
     }
+
+    console.log(`Stripe Revenue Summary:`)
+    console.log(`- Total Revenue (30 days): $${totalRevenue}`)
+    console.log(`- Subscription Revenue: $${subscriptionRevenue}`)
+    console.log(`- Monthly Recurring Revenue: $${monthlyRecurringRevenue}`)
+    console.log(`- Note: Stripe data may include excluded user. Using database calculations for accuracy.`)
 
     return {
       totalRevenue,

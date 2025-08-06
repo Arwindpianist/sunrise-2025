@@ -89,8 +89,12 @@ async function getSubscriptionAnalytics(supabase: any) {
       enterprise: 79.90
     }
 
+    console.log(`Processing ${subscriptions?.length || 0} subscriptions for analytics`)
+
     subscriptions?.forEach((sub: any) => {
       const tier = sub.tier
+      console.log(`Processing subscription: User ${sub.user_id}, Tier: ${tier}`)
+      
       if (!tierBreakdown[tier]) {
         tierBreakdown[tier] = {
           count: 0,
@@ -116,10 +120,20 @@ async function getSubscriptionAnalytics(supabase: any) {
       }
     })
 
+    console.log('Tier breakdown:', Object.keys(tierBreakdown).map(tier => ({
+      tier,
+      count: tierBreakdown[tier].count,
+      revenue: tierBreakdown[tier].revenue
+    })))
+
     // Get Stripe data for additional insights
     let stripeData = null
     try {
       stripeData = await getStripeSubscriptionData()
+      console.log('Stripe data fetched:', {
+        totalSubscriptions: stripeData?.totalSubscriptions,
+        totalRevenue: stripeData?.totalRevenue
+      })
     } catch (error) {
       console.error('Error fetching Stripe data:', error)
     }
