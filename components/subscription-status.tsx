@@ -11,13 +11,15 @@ import {
   Coins, 
   User, 
   CheckCircle, 
-  XCircle, 
   AlertTriangle,
   Calendar,
   Users,
   MessageSquare,
   Settings,
-  ExternalLink
+  ExternalLink,
+  Mail,
+  Send,
+  TrendingUp
 } from "lucide-react"
 import { useSubscription } from "@/lib/use-subscription"
 import { SubscriptionTier, SUBSCRIPTION_FEATURES } from "@/lib/subscription"
@@ -165,13 +167,31 @@ export default function SubscriptionStatus() {
 
           {/* Feature Status */}
           <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">Features</h4>
+            <h4 className="font-medium text-gray-900">Available Features</h4>
             <div className="grid grid-cols-1 gap-2">
               <FeatureItem 
-                icon={MessageSquare}
+                icon={Mail}
+                title="Email Messaging"
+                enabled={true}
+                unlimited={true}
+              />
+              <FeatureItem 
+                icon={Send}
                 title="Telegram Messaging"
                 enabled={canUseTelegram}
                 onUpgrade={() => handleUpgradeClick('basic', 'Unlock Telegram messaging functionality')}
+              />
+              <FeatureItem 
+                icon={MessageSquare}
+                title="Discord Integration"
+                enabled={subscription.tier === 'pro' || subscription.tier === 'enterprise'}
+                onUpgrade={() => handleUpgradeClick('pro', 'Unlock Discord integration')}
+              />
+              <FeatureItem 
+                icon={MessageSquare}
+                title="Slack Integration"
+                enabled={subscription.tier === 'pro' || subscription.tier === 'enterprise'}
+                onUpgrade={() => handleUpgradeClick('pro', 'Unlock Slack integration')}
               />
               <FeatureItem 
                 icon={Settings}
@@ -196,6 +216,29 @@ export default function SubscriptionStatus() {
                 title={features.maxEvents === -1 ? "Unlimited Events" : `${features.maxEvents} Events`}
                 enabled={true}
                 unlimited={features.maxEvents === -1}
+              />
+            </div>
+          </div>
+
+          {/* Coming Soon Features */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-gray-900">Coming Soon</h4>
+            <div className="space-y-3">
+              <ComingSoonFeature 
+                icon={MessageSquare}
+                title="WhatsApp Integration"
+              />
+              <ComingSoonFeature 
+                icon={TrendingUp}
+                title="SMS Messaging"
+              />
+              <ComingSoonFeature 
+                icon={MessageSquare}
+                title="Signal Integration"
+              />
+              <ComingSoonFeature 
+                icon={MessageSquare}
+                title="Viber Integration"
               />
             </div>
           </div>
@@ -291,38 +334,61 @@ interface FeatureItemProps {
   title: string
   enabled: boolean
   unlimited?: boolean
+  comingSoon?: boolean
   onUpgrade?: () => void
 }
 
-function FeatureItem({ icon: Icon, title, enabled, unlimited, onUpgrade }: FeatureItemProps) {
+function FeatureItem({ icon: Icon, title, enabled, unlimited, comingSoon, onUpgrade }: FeatureItemProps) {
   return (
     <div className="flex items-center justify-between p-2 rounded-lg bg-white/50">
       <div className="flex items-center gap-2">
-        <Icon className={`h-4 w-4 ${enabled ? 'text-green-600' : 'text-gray-400'}`} />
-        <span className="text-sm font-medium">{title}</span>
+        <Icon className={`h-3 w-3 ${enabled ? 'text-green-600' : comingSoon ? 'text-blue-500' : 'text-gray-400'}`} />
+        <span className="text-xs font-medium">{title}</span>
         {unlimited && (
           <Badge variant="outline" className="text-xs">Unlimited</Badge>
         )}
       </div>
       <div className="flex items-center gap-2">
         {enabled ? (
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <CheckCircle className="h-3 w-3 text-green-600" />
+        ) : comingSoon ? (
+          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+            Coming Soon
+          </Badge>
         ) : (
-          <>
-            <XCircle className="h-4 w-4 text-gray-400" />
-            {onUpgrade && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onUpgrade}
-                className="text-xs h-6 px-2"
-              >
-                Upgrade
-              </Button>
-            )}
-          </>
+          onUpgrade && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onUpgrade}
+              className="text-xs h-5 px-2"
+            >
+              Upgrade
+            </Button>
+          )
         )}
       </div>
+    </div>
+  )
+}
+
+interface ComingSoonFeatureProps {
+  icon: React.ComponentType<any>
+  title: string
+}
+
+function ComingSoonFeature({ icon: Icon, title }: ComingSoonFeatureProps) {
+  return (
+    <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+          <Icon className="h-3 w-3 text-blue-600" />
+        </div>
+        <p className="font-medium text-xs text-gray-900">{title}</p>
+      </div>
+      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+        Coming Soon
+      </Badge>
     </div>
   )
 } 

@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye, UserPlus } from "lucide-react"
+import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye, UserPlus, Crown, Settings } from "lucide-react"
 import SubscriptionStatus from "@/components/subscription-status"
+import FeatureAvailability from "@/components/feature-availability"
 import Link from "next/link"
 
 export default function DashboardPage() {
@@ -141,7 +142,54 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Clickable Stats Cards */}
+        {/* Quick Actions - Most Important */}
+        <div className="mb-6 sm:mb-8">
+          <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <Button
+                  className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 h-12 sm:h-14 text-sm sm:text-base font-semibold"
+                  onClick={() => router.push('/dashboard/events/create')}
+                >
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Create Event
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-12 sm:h-14 text-sm sm:text-base font-semibold"
+                  onClick={() => router.push('/dashboard/contacts')}
+                >
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Manage Contacts
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-12 sm:h-14 text-sm sm:text-base font-semibold"
+                  onClick={() => router.push('/dashboard/balance')}
+                >
+                  <Coins className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  View Balance
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-12 sm:h-14 text-sm sm:text-base font-semibold"
+                  onClick={() => router.push('/dashboard/events')}
+                >
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  All Events
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Overview - Second Priority */}
         <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
           <Card 
             className="bg-white/50 backdrop-blur-sm hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
@@ -149,13 +197,13 @@ export default function DashboardPage() {
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Calendar className="h-5 w-5 text-orange-500" />
-                <Eye className="h-4 w-4 text-gray-400" />
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                 {stats.totalEvents}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Total Events</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Total Events</p>
             </CardContent>
           </Card>
 
@@ -165,13 +213,13 @@ export default function DashboardPage() {
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Users className="h-5 w-5 text-orange-500" />
-                <Eye className="h-4 w-4 text-gray-400" />
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                 {stats.totalContacts}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Total Contacts</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Total Contacts</p>
             </CardContent>
           </Card>
 
@@ -181,13 +229,13 @@ export default function DashboardPage() {
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Mail className="h-5 w-5 text-orange-500" />
-                <Eye className="h-4 w-4 text-gray-400" />
+                <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                 {stats.totalEmails}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Messages Sent</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Messages Sent</p>
             </CardContent>
           </Card>
 
@@ -197,38 +245,33 @@ export default function DashboardPage() {
           >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-2">
-                <Coins className="h-5 w-5 text-orange-500" />
-                <Eye className="h-4 w-4 text-gray-400" />
+                <Coins className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
                 {stats.balance}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Token Balance</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Token Balance</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Subscription Status */}
-        <div className="mb-6 sm:mb-8">
-          <SubscriptionStatus />
-        </div>
-
         {/* Main Content Grid */}
-        <div className="grid gap-6 sm:gap-8 grid-cols-1 lg:grid-cols-3">
+        <div className="grid gap-6 sm:gap-8 grid-cols-1 lg:grid-cols-3 mb-6 sm:mb-8">
           {/* Recent Events */}
           <Card className="bg-white/50 backdrop-blur-sm shadow-lg lg:col-span-2">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-orange-500" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
                   Recent Events
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                  className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-sm sm:text-base"
                   onClick={() => router.push('/dashboard/events/create')}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
                   New Event
                 </Button>
               </div>
@@ -241,15 +284,15 @@ export default function DashboardPage() {
                     className="flex justify-between items-center p-3 sm:p-4 bg-white/50 rounded-lg backdrop-blur-sm hover:bg-white/70 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-800 truncate">{event.title}</p>
-                      <p className="text-sm text-muted-foreground capitalize">
+                      <p className="font-medium text-gray-800 truncate text-sm sm:text-base">{event.title}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground capitalize">
                         {event.status}
                       </p>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 ml-2"
+                      className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 ml-2 text-xs sm:text-sm"
                       onClick={() => router.push(`/dashboard/events/${event.id}`)}
                     >
                       View
@@ -258,13 +301,13 @@ export default function DashboardPage() {
                 ))}
                 {recentEvents.length === 0 && (
                   <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-muted-foreground mb-4">No events yet</p>
+                    <Calendar className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-4 text-sm sm:text-base">No events yet</p>
                     <Button
-                      className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600"
+                      className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-sm sm:text-base"
                       onClick={() => router.push('/dashboard/events/create')}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       Create Your First Event
                     </Button>
                   </div>
@@ -273,49 +316,31 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
+          {/* Subscription Status - Information */}
           <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-orange-500" />
-                Quick Actions
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                Subscription
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <Button
-                  className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 h-11"
-                  onClick={() => router.push('/dashboard/events/create')}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Event
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-11"
-                  onClick={() => router.push('/dashboard/contacts')}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Contacts
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-11"
-                  onClick={() => router.push('/dashboard/balance')}
-                >
-                  <Coins className="h-4 w-4 mr-2" />
-                  View Balance
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-500 hover:bg-orange-50 h-11"
-                  onClick={() => router.push('/dashboard/events')}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  All Events
-                </Button>
+              <SubscriptionStatus />
+            </CardContent>
+          </Card>
+        </div>
 
-              </div>
+        {/* Feature Availability - Information */}
+        <div className="mb-6 sm:mb-8">
+          <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                Feature Availability
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeatureAvailability />
             </CardContent>
           </Card>
         </div>

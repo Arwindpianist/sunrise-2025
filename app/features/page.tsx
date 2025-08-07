@@ -44,8 +44,8 @@ export default function FeaturesPage() {
     {
       icon: MessageSquare,
       title: "Multi-Channel Messaging",
-      description: "Reach your guests wherever they are. Send invitations via email, Telegram, and SMS with optimal token usage.",
-      benefits: ["Email campaigns (1 token)", "Telegram messaging (2 tokens)", "SMS notifications (3 tokens)", "Advanced templates"],
+      description: "Reach your guests wherever they are. Send invitations via email, Telegram, Discord, Slack, and SMS with optimal token usage.",
+      benefits: ["Email campaigns (1 token)", "Telegram messaging (2 tokens)", "Discord webhooks (1 token)", "Slack integration (1 token)", "Advanced templates"],
     },
     {
       icon: Clock,
@@ -110,17 +110,17 @@ export default function FeaturesPage() {
       name: "Pro", 
       contacts: "Unlimited contacts", 
       tokenRate: "Great Value", 
-      channels: "Email + Telegram + More", 
+      channels: "Email + Telegram + Discord + Slack", 
       savings: "Save 20%",
-      features: ["Unlimited tokens", "Telegram messaging", "More channels", "Custom branding", "Up to 100 events"]
+      features: ["Unlimited tokens", "Telegram messaging", "Discord integration", "Slack integration", "Custom branding", "Up to 100 events"]
     },
     { 
       name: "Enterprise", 
       contacts: "Unlimited contacts", 
       tokenRate: "Best Value", 
-      channels: "All channels + SMS", 
+      channels: "All channels + Coming Soon features", 
       savings: "Save 30%",
-      features: ["Unlimited everything", "API access", "White-label options", "Dedicated support"]
+      features: ["Unlimited everything", "Discord & Slack", "API access", "White-label options", "Dedicated support"]
     },
   ]
 
@@ -130,56 +130,64 @@ export default function FeaturesPage() {
       name: "Email",
       description: "Professional email campaigns",
       tokenCost: "1 token per email",
-      features: ["Rich HTML templates", "Open tracking", "Click analytics"]
+      features: ["Rich HTML templates", "Open tracking", "Click analytics"],
+      available: "All plans"
     },
     {
       icon: Send,
       name: "Telegram",
-      description: "Telegram bot integration (Basic+)",
+      description: "Telegram bot integration",
       tokenCost: "2 tokens per message",
-      features: ["Channel broadcasting", "Group messaging", "File sharing"]
-    },
-    {
-      icon: MessageCircle,
-      name: "WhatsApp",
-      description: "Direct WhatsApp messaging (Coming Soon)",
-      tokenCost: "2 tokens per message",
-      features: ["Media support", "Delivery receipts", "Quick replies"]
-    },
-    {
-      icon: TrendingUp,
-      name: "SMS",
-      description: "Reliable SMS delivery (Coming Soon)",
-      tokenCost: "3 tokens per SMS",
-      features: ["Global delivery", "Delivery reports", "Bulk sending"]
+      features: ["Channel broadcasting", "Group messaging", "File sharing"],
+      available: "Basic, Pro, Enterprise"
     },
     {
       icon: MessageCircle,
       name: "Discord",
-      description: "Discord bot integration (Coming Soon)",
-      tokenCost: "2 tokens per message",
-      features: ["Server notifications", "Channel messaging", "Role-based sending"]
+      description: "Discord webhook integration",
+      tokenCost: "1 token per event",
+      features: ["Server notifications", "Rich embeds", "One message to all"],
+      available: "Pro, Enterprise"
     },
     {
       icon: MessageCircle,
       name: "Slack",
-      description: "Slack workspace integration (Coming Soon)",
+      description: "Slack workspace integration",
+      tokenCost: "1 token per event",
+      features: ["Channel notifications", "Block Kit formatting", "One message to all"],
+      available: "Pro, Enterprise"
+    },
+    {
+      icon: MessageCircle,
+      name: "WhatsApp",
+      description: "Direct WhatsApp messaging",
       tokenCost: "2 tokens per message",
-      features: ["Channel notifications", "Direct messaging", "Thread replies"]
+      features: ["Media support", "Delivery receipts", "Quick replies"],
+      available: "Coming Soon"
+    },
+    {
+      icon: TrendingUp,
+      name: "SMS",
+      description: "Reliable SMS delivery",
+      tokenCost: "3 tokens per SMS",
+      features: ["Global delivery", "Delivery reports", "Bulk sending"],
+      available: "Coming Soon"
     },
     {
       icon: MessageCircle,
       name: "Signal",
-      description: "Signal messaging (Coming Soon)",
+      description: "Signal messaging",
       tokenCost: "2 tokens per message",
-      features: ["End-to-end encryption", "Group messaging", "Media sharing"]
+      features: ["End-to-end encryption", "Group messaging", "Media sharing"],
+      available: "Coming Soon (Pro, Enterprise)"
     },
     {
       icon: MessageCircle,
       name: "Viber",
-      description: "Viber messaging (Coming Soon)",
+      description: "Viber messaging",
       tokenCost: "2 tokens per message",
-      features: ["Public chat integration", "Sticker support", "Voice messages"]
+      features: ["Public chat integration", "Sticker support", "Voice messages"],
+      available: "Coming Soon (Pro, Enterprise)"
     }
   ]
 
@@ -260,16 +268,36 @@ export default function FeaturesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {messagingChannels.map((channel, index) => {
               const IconComponent = channel.icon
+              const isComingSoon = channel.available.includes("Coming Soon")
+              const isAvailable = !isComingSoon
+              
               return (
-                <Card key={index} className="text-center border-gray-200 hover:shadow-xl transition-shadow duration-300 shadow-lg">
+                <Card key={index} className={`text-center border-gray-200 hover:shadow-xl transition-shadow duration-300 shadow-lg ${
+                  isComingSoon ? 'opacity-75' : ''
+                }`}>
                   <CardContent className="p-8">
                     <div className="bg-gradient-to-r from-orange-100 to-rose-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
                       <IconComponent className="h-10 w-10 text-orange-500" />
                     </div>
                     <h3 className="text-xl font-semibold mb-3">{channel.name}</h3>
                     <p className="text-gray-600 mb-4">{channel.description}</p>
+                    
+                    {/* Availability Badge */}
+                    <div className="mb-4">
+                      {isComingSoon ? (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          Coming Soon
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-700 border-green-200">
+                          Available
+                        </Badge>
+                      )}
+                    </div>
+                    
                     <div className="bg-orange-50 rounded-lg p-3 mb-4">
                       <p className="text-sm font-medium text-orange-800">{channel.tokenCost}</p>
+                      <p className="text-xs text-orange-600 mt-1">{channel.available}</p>
                     </div>
                     <ul className="space-y-2 text-sm text-gray-600">
                       {channel.features.map((feature, idx) => (
