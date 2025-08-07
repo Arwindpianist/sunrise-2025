@@ -25,8 +25,10 @@ interface Event {
   email_subject: string
   email_template: string
   telegram_template: string | null
+  discord_template: string | null
   send_email: boolean
   send_telegram: boolean
+  send_discord: boolean
   scheduled_send_time: string
   created_at: string
   category?: string
@@ -225,9 +227,26 @@ export default function EventsPage() {
         }
       }
 
+      // Send Discord message if enabled
+      if (event.send_discord) {
+        const discordResponse = await fetch("/api/discord/send-event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId }),
+        })
+
+        if (!discordResponse.ok) {
+          const errorData = await discordResponse.json()
+          throw new Error(errorData.error || "Failed to send Discord message")
+        }
+      }
+
       const messageTypes = []
       if (event.send_email) messageTypes.push("emails")
       if (event.send_telegram) messageTypes.push("Telegram messages")
+      if (event.send_discord) messageTypes.push("Discord message")
 
       toast({
         title: "Success!",
@@ -315,6 +334,10 @@ export default function EventsPage() {
         const { count: telegramCount } = await telegramContactsQuery
         totalCost += telegramCount || 0
       }
+      if (originalEvent.send_discord) {
+        // Discord costs only 1 token regardless of contact count
+        totalCost += 1
+      }
 
       // Check if user has enough balance
       if (currentBalance < totalCost) {
@@ -339,8 +362,10 @@ export default function EventsPage() {
           email_subject: originalEvent.email_subject,
           email_template: originalEvent.email_template,
           telegram_template: originalEvent.telegram_template,
+          discord_template: originalEvent.discord_template,
           send_email: originalEvent.send_email,
           send_telegram: originalEvent.send_telegram,
+          send_discord: originalEvent.send_discord,
           status: "draft",
           scheduled_send_time: null,
         })
@@ -605,10 +630,34 @@ export default function EventsPage() {
                         <span className="capitalize">{event.category ? event.category : "All Contacts"}</span>
                       </div>
                       
+                      {/* Communication Methods */}
+                      <div className="flex gap-1">
+                        {event.send_email && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            📧
+                          </span>
+                        )}
+                        {event.send_telegram && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            📱
+                          </span>
+                        )}
+                        {event.send_discord && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            🎮
+                          </span>
+                        )}
+                      </div>
+                      
                       {event.status === "draft" && (
                         <div className="flex items-center text-sm text-blue-600">
                           <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <span>Ready to send to {event.contact_count || 0} contacts</span>
+                          <span>
+                            {event.send_discord 
+                              ? "Ready to send 1 Discord message" 
+                              : `Ready to send to ${event.contact_count || 0} contacts`
+                            }
+                          </span>
                         </div>
                       )}
                     </div>

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send, Crown, Zap, User, Database } from "lucide-react"
+import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send, Crown, Zap, User, Database, MessageSquare } from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
 import { useSubscription } from "@/lib/use-subscription"
@@ -124,6 +124,20 @@ export function DashboardNav() {
           Telegram Logs
         </Button>
       </Link>
+      {(subscription?.tier === 'pro' || subscription?.tier === 'enterprise') && (
+        <Link href="/dashboard/discord-logs">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              pathname.startsWith("/dashboard/discord-logs") && "bg-accent"
+            )}
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Discord Logs
+          </Button>
+        </Link>
+      )}
       <Link href="/dashboard/data-management">
         <Button
           variant="ghost"
