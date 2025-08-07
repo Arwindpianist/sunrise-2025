@@ -20,8 +20,10 @@ interface Event {
   email_subject: string
   email_template: string
   telegram_template: string | null
+  discord_template: string | null
   send_email: boolean
   send_telegram: boolean
+  send_discord: boolean
   scheduled_send_time: string | null
   created_at: string
   category?: string
@@ -179,9 +181,26 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         }
       }
 
+      // Send Discord message if enabled
+      if (event?.send_discord) {
+        const discordResponse = await fetch("/api/discord/send-event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: id }),
+        })
+
+        if (!discordResponse.ok) {
+          const errorData = await discordResponse.json()
+          throw new Error(errorData.error || "Failed to send Discord message")
+        }
+      }
+
       const messageTypes = []
       if (event?.send_email) messageTypes.push("emails")
       if (event?.send_telegram) messageTypes.push("Telegram messages")
+      if (event?.send_discord) messageTypes.push("Discord message")
 
       toast({
         title: "Success!",
@@ -261,6 +280,10 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         const { count: telegramCount } = await telegramContactsQuery
         totalCost += telegramCount || 0
       }
+      if (event?.send_discord) {
+        // Discord costs only 1 token regardless of contact count
+        totalCost += 1
+      }
 
       // Check if user has enough balance
       if (currentBalance < totalCost) {
@@ -285,8 +308,10 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
           email_subject: event.email_subject,
           email_template: event.email_template,
           telegram_template: event.telegram_template,
+          discord_template: event.discord_template,
           send_email: event.send_email,
           send_telegram: event.send_telegram,
+          send_discord: event.send_discord,
           status: "draft",
           scheduled_send_time: null,
         })
@@ -501,6 +526,11 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                     📱 Telegram
                   </span>
                 )}
+                {event.send_discord && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    🎮 Discord
+                  </span>
+                )}
               </div>
             </div>
 
@@ -528,6 +558,16 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                 <h3 className="font-medium mb-2">Telegram Template</h3>
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{event.telegram_template || "No template set"}</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Discord Section - Only show if Discord is enabled */}
+            {event.send_discord && (
+              <div>
+                <h3 className="font-medium mb-2">Discord Template</h3>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">{event.discord_template || "No template set"}</pre>
                 </div>
               </div>
             )}

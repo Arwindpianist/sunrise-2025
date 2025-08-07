@@ -16,6 +16,7 @@ export interface Database {
           full_name: string | null
           subscription_plan: string
           token_balance: number
+          discord_webhook_url: string | null
           created_at: string
           updated_at: string
         }
@@ -25,6 +26,7 @@ export interface Database {
           full_name?: string | null
           subscription_plan?: string
           token_balance?: number
+          discord_webhook_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -34,6 +36,7 @@ export interface Database {
           full_name?: string | null
           subscription_plan?: string
           token_balance?: number
+          discord_webhook_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -91,8 +94,10 @@ export interface Database {
           email_template: string | null
           email_subject: string | null
           telegram_template: string | null
+          discord_template: string | null
           send_email: boolean
           send_telegram: boolean
+          send_discord: boolean
           scheduled_send_time: string | null
         }
         Insert: {
@@ -109,8 +114,10 @@ export interface Database {
           email_template?: string | null
           email_subject?: string | null
           telegram_template?: string | null
+          discord_template?: string | null
           send_email?: boolean
           send_telegram?: boolean
+          send_discord?: boolean
           scheduled_send_time?: string | null
         }
         Update: {
@@ -127,8 +134,10 @@ export interface Database {
           email_template?: string | null
           email_subject?: string | null
           telegram_template?: string | null
+          discord_template?: string | null
           send_email?: boolean
           send_telegram?: boolean
+          send_discord?: boolean
           scheduled_send_time?: string | null
         }
       }
@@ -365,6 +374,38 @@ export interface Database {
           tokens_awarded?: number
           created_at?: string
           completed_at?: string | null
+        }
+      }
+      discord_logs: {
+        Row: {
+          id: string
+          user_id: string
+          webhook_url: string
+          message_content: string
+          status: string
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          webhook_url: string
+          message_content: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          webhook_url?: string
+          message_content?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }

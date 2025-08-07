@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { emailTemplates, type EmailTemplateVars } from "@/components/email-templates"
 import { telegramTemplates, type TelegramTemplateVars } from "@/components/telegram-templates"
+import { discordTemplates, type DiscordTemplateVars } from "@/components/discord-templates"
 import { format } from "date-fns"
 import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight, AlertTriangle } from "lucide-react"
 import { canCreateEventClient as canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits-client"
@@ -85,9 +86,9 @@ const getCommunicationMethods = (userTier: string): CommunicationMethod[] => [
     id: "discord",
     name: "Discord",
     icon: <MessageCircle className="h-6 w-6" />,
-    description: "Discord bot integration",
-    available: false,
-    comingSoon: userTier === "pro" || userTier === "enterprise",
+    description: "Send one message to reach all contacts (1 token total)",
+    available: userTier === "pro" || userTier === "enterprise",
+    comingSoon: false,
   },
   {
     id: "slack",
@@ -155,13 +156,16 @@ export default function CreateEventPage() {
     emailSubject: "",
     emailTemplate: "",
     telegramTemplate: "",
+    discordTemplate: "",
     sendEmail: true,
     sendTelegram: false,
+    sendDiscord: false,
     sendOption: "now" as SendOption,
     scheduledSendTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
   })
   const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<string>("")
   const [selectedTelegramTemplate, setSelectedTelegramTemplate] = useState<string>("")
+  const [selectedDiscordTemplate, setSelectedDiscordTemplate] = useState<string>("")
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   useEffect(() => {
@@ -227,12 +231,42 @@ export default function CreateEventPage() {
     }
   }, [selectedTelegramTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
 
+  // Update discord template when form data changes
+  useEffect(() => {
+    if (selectedDiscordTemplate) {
+      const template = discordTemplates.find(t => t.key === selectedDiscordTemplate)
+      if (template) {
+        const templateVars: DiscordTemplateVars = {
+          firstName: "", // Will be replaced with actual contact name when sending
+          eventTitle: formData.title || "Sample Event",
+          eventDescription: formData.description || "",
+          eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+          eventLocation: formData.location || "Sample Location",
+          hostName: user?.user_metadata?.full_name || "Your Name",
+          customMessage: formData.description || "",
+        }
+        const generatedTemplate = template.template(templateVars)
+        setFormData(prev => ({ ...prev, discordTemplate: JSON.stringify(generatedTemplate) }))
+      }
+    }
+  }, [selectedDiscordTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
+
   const handleMethodSelection = (methodId: string) => {
     // Check if user is trying to select Telegram but doesn't have access
     if (methodId === "telegram" && userTier === "free") {
       toast({
         title: "Telegram Not Available",
         description: "Telegram messaging is available for Basic and higher plans. Upgrade to unlock this feature!",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if user is trying to select Discord but doesn't have access
+    if (methodId === "discord" && (userTier === "free" || userTier === "basic")) {
+      toast({
+        title: "Discord Not Available",
+        description: "Discord integration is available for Pro and Enterprise plans. Upgrade to unlock this feature!",
         variant: "destructive",
       })
       return
@@ -261,6 +295,7 @@ export default function CreateEventPage() {
     const newFormData = { ...formData }
     newFormData.sendEmail = selectedMethods.includes('email')
     newFormData.sendTelegram = selectedMethods.includes('telegram')
+    newFormData.sendDiscord = selectedMethods.includes('discord')
     
     setFormData(newFormData)
     setShowOnboardingModal(false)
@@ -304,6 +339,10 @@ export default function CreateEventPage() {
 
         const { count: telegramCount } = await telegramContactsQuery
         totalCost += telegramCount || 0
+      }
+      if (selectedMethods.includes('discord')) {
+        // Discord costs only 1 token regardless of contact count
+        totalCost += 1
       }
       
       setContactCount(totalCost)
@@ -433,7 +472,7 @@ export default function CreateEventPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error("No active session")
 
-      const eventData = {
+      const eventData: any = {
         user_id: session.user.id,
         title: formData.title,
         description: formData.description,
@@ -447,6 +486,12 @@ export default function CreateEventPage() {
         send_telegram: formData.sendTelegram,
         status: formData.sendOption === "now" ? "draft" : "draft",
         scheduled_send_time: formData.sendOption === "schedule" ? formData.scheduledSendTime.toISOString() : null,
+      }
+
+      // Only add Discord fields if they exist (after migration)
+      if (formData.sendDiscord && formData.discordTemplate) {
+        eventData.discord_template = formData.discordTemplate
+        eventData.send_discord = formData.sendDiscord
       }
 
       const { data: event, error: eventError } = await supabase
@@ -605,6 +650,24 @@ export default function CreateEventPage() {
     }
   }, [formData.title, formData.description, formData.eventDate, formData.location, user])
 
+  const handleDiscordTemplateSelect = useCallback((templateKey: string) => {
+    setSelectedDiscordTemplate(templateKey)
+    const template = discordTemplates.find(t => t.key === templateKey)
+    if (template) {
+      const templateVars: DiscordTemplateVars = {
+        firstName: "", // Will be replaced with actual contact name when sending
+        eventTitle: formData.title || "Sample Event",
+        eventDescription: formData.description || "",
+        eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+        eventLocation: formData.location || "Sample Location",
+        hostName: user?.user_metadata?.full_name || "Your Name",
+        customMessage: formData.description || "",
+      }
+      const generatedTemplate = template.template(templateVars)
+      setFormData(prev => ({ ...prev, discordTemplate: JSON.stringify(generatedTemplate) }))
+    }
+  }, [formData.title, formData.description, formData.eventDate, formData.location, user])
+
   const getEmailTemplatePreview = () => {
     const template = emailTemplates.find(t => t.key === selectedEmailTemplate)
     if (!template) return ""
@@ -626,6 +689,22 @@ export default function CreateEventPage() {
     if (!template) return ""
     
     const templateVars: TelegramTemplateVars = {
+      firstName: "", // Will be replaced with actual contact name when sending
+      eventTitle: formData.title || "Sample Event",
+      eventDescription: formData.description || "",
+      eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+      eventLocation: formData.location || "Sample Location",
+      hostName: user?.user_metadata?.full_name || "Your Name",
+      customMessage: formData.description || "",
+    }
+    return template.template(templateVars)
+  }
+
+  const getDiscordTemplatePreview = () => {
+    const template = discordTemplates.find(t => t.key === selectedDiscordTemplate)
+    if (!template) return null
+    
+    const templateVars: DiscordTemplateVars = {
       firstName: "", // Will be replaced with actual contact name when sending
       eventTitle: formData.title || "Sample Event",
       eventDescription: formData.description || "",
@@ -762,7 +841,9 @@ export default function CreateEventPage() {
                     <p className="text-xs sm:text-sm text-orange-700 mt-1">
                       {userTier === "free" 
                         ? "Upgrade to Basic to unlock Telegram messaging and more features."
-                        : "Upgrade to Pro to unlock Discord, Slack, Signal, Viber and unlimited events."
+                        : userTier === "basic"
+                        ? "Upgrade to Pro to unlock Discord integration and unlimited events."
+                        : "You have access to all features!"
                       }
                     </p>
                     <Button
@@ -799,12 +880,20 @@ export default function CreateEventPage() {
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">Create New Event</h1>
                 <p className="text-gray-600 text-xs sm:text-sm md:text-base">
-                  {selectedMethods.includes('email') && selectedMethods.includes('telegram') 
+                  {selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('discord')
+                    ? "Sending via Email, Telegram & Discord"
+                    : selectedMethods.includes('email') && selectedMethods.includes('telegram')
                     ? "Sending via Email & Telegram"
+                    : selectedMethods.includes('email') && selectedMethods.includes('discord')
+                    ? "Sending via Email & Discord"
+                    : selectedMethods.includes('telegram') && selectedMethods.includes('discord')
+                    ? "Sending via Telegram & Discord"
                     : selectedMethods.includes('email')
                     ? "Sending via Email"
                     : selectedMethods.includes('telegram')
                     ? "Sending via Telegram"
+                    : selectedMethods.includes('discord')
+                    ? "Sending via Discord"
                     : "Choose your communication method"
                   }
                 </p>
@@ -1092,6 +1181,106 @@ export default function CreateEventPage() {
                   </div>
                 )}
 
+                {/* Discord Section */}
+                {selectedMethods.includes('discord') && (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center">
+                      <MessageCircle className="mr-2 h-5 w-5" />
+                      Discord Settings
+                    </h2>
+                    
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-blue-800 font-medium text-sm">Discord Integration Required</p>
+                          <p className="text-blue-600 text-xs">
+                            You need to configure your Discord webhook in settings before sending Discord messages. 
+                            <Button
+                              type="button"
+                              variant="link"
+                              size="sm"
+                              className="p-0 h-auto text-blue-600 hover:text-blue-800 text-xs"
+                              onClick={() => router.push('/dashboard/discord-settings')}
+                            >
+                              Configure Discord Settings
+                            </Button>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <Label>Discord Template</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                        {discordTemplates.map((template) => (
+                          <button
+                            key={template.key}
+                            type="button"
+                            onClick={() => handleDiscordTemplateSelect(template.key)}
+                            className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-all min-h-[80px] sm:min-h-[100px] ${
+                              selectedDiscordTemplate === template.key
+                                ? "border-purple-500 bg-purple-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-medium text-xs sm:text-sm truncate">{template.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {template.key === "birthday" && "🎉"}
+                              {template.key === "openHouse" && "🏡"}
+                              {template.key === "wedding" && "💍"}
+                              {template.key === "meeting" && "📅"}
+                              {template.key === "babyShower" && "👶"}
+                              {template.key === "generic" && "📧"}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {selectedDiscordTemplate && (
+                        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowTemplatePreview(true)}
+                            className="w-full sm:w-auto"
+                          >
+                            Preview Template
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDiscordTemplate("")
+                              setFormData(prev => ({ ...prev, discordTemplate: "" }))
+                            }}
+                            className="w-full sm:w-auto"
+                          >
+                            Clear Template
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="discordTemplate">Discord Template (JSON)</Label>
+                      <Textarea
+                        id="discordTemplate"
+                        value={formData.discordTemplate}
+                        onChange={(e) => handleInputChange("discordTemplate", e.target.value)}
+                        placeholder="Select a template above or enter custom Discord embed JSON"
+                        rows={8}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Discord uses rich embeds with JSON format. Select a template above for the best experience, or customize the JSON manually.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Send Options */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Send Options</h2>
@@ -1186,9 +1375,13 @@ export default function CreateEventPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm sm:text-base">Event Cost</p>
                         <p className="text-xs sm:text-sm text-muted-foreground">
-                          {selectedMethods.includes('email') && selectedMethods.includes('telegram') ? `${contactCount} messages (email + telegram)` : 
+                          {selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('discord') ? `${contactCount} messages (email + telegram + discord)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('telegram') ? `${contactCount} messages (email + telegram)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('discord') ? `${contactCount} messages (email + discord)` : 
+                           selectedMethods.includes('telegram') && selectedMethods.includes('discord') ? `${contactCount} messages (telegram + discord)` : 
                            selectedMethods.includes('email') ? `${contactCount} emails` : 
-                           selectedMethods.includes('telegram') ? `${contactCount} telegram messages` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
+                           selectedMethods.includes('telegram') ? `${contactCount} telegram messages` : 
+                           selectedMethods.includes('discord') ? `1 Discord message` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
                         </p>
                       </div>
                       <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-500 flex-shrink-0 ml-2">
@@ -1310,10 +1503,18 @@ export default function CreateEventPage() {
               </div>
             )}
             {selectedMethods.includes('telegram') && selectedTelegramTemplate && (
-              <div>
+              <div className="mb-4 sm:mb-6">
                 <h3 className="font-semibold mb-2 text-sm sm:text-base">Telegram Template</h3>
                 <div className="border rounded-lg p-3 sm:p-4 max-h-64 sm:max-h-96 overflow-y-auto bg-gray-50">
                   <pre className="whitespace-pre-wrap text-xs sm:text-sm">{getTelegramTemplatePreview()}</pre>
+                </div>
+              </div>
+            )}
+            {selectedMethods.includes('discord') && selectedDiscordTemplate && (
+              <div>
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">Discord Template</h3>
+                <div className="border rounded-lg p-3 sm:p-4 max-h-64 sm:max-h-96 overflow-y-auto bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-xs sm:text-sm">{JSON.stringify(getDiscordTemplatePreview(), null, 2)}</pre>
                 </div>
               </div>
             )}

@@ -29,19 +29,52 @@ export async function GET(request: Request) {
       )
     }
 
-    // Send emails for each event
+    // Send messages for each event
     for (const event of events) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ eventId: event.id }),
-        })
+        // Send emails if enabled
+        if (event.send_email) {
+          const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ eventId: event.id }),
+          })
 
-        if (!response.ok) {
-          throw new Error(`Failed to send emails for event ${event.id}`)
+          if (!emailResponse.ok) {
+            console.error(`Failed to send emails for event ${event.id}`)
+          }
+        }
+
+        // Send Telegram messages if enabled
+        if (event.send_telegram) {
+          const telegramResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/telegram/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ eventId: event.id }),
+          })
+
+          if (!telegramResponse.ok) {
+            console.error(`Failed to send Telegram messages for event ${event.id}`)
+          }
+        }
+
+        // Send Discord message if enabled
+        if (event.send_discord) {
+          const discordResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/discord/send-event`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ eventId: event.id }),
+          })
+
+          if (!discordResponse.ok) {
+            console.error(`Failed to send Discord message for event ${event.id}`)
+          }
         }
       } catch (error) {
         console.error(`Error processing event ${event.id}:`, error)
@@ -49,7 +82,7 @@ export async function GET(request: Request) {
     }
 
     return new NextResponse(
-      JSON.stringify({ message: "Scheduled emails processed" }),
+      JSON.stringify({ message: "Scheduled messages processed" }),
       { 
         status: 200,
         headers: {
