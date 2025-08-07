@@ -44,10 +44,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if Discord is enabled for this event
-    if (!event.send_discord) {
+    // Check if Slack is enabled for this event
+    if (!event.send_slack) {
       return new NextResponse(
-        JSON.stringify({ error: 'Discord is not enabled for this event' }),
+        JSON.stringify({ error: 'Slack is not enabled for this event' }),
         { 
           status: 400,
           headers: {
@@ -57,17 +57,17 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get user's Discord webhook URL
+    // Get user's Slack webhook URL
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('discord_webhook_url')
+      .select('slack_webhook_url, slack_channel')
       .eq('id', session.user.id)
       .single()
 
     if (userError) {
-      console.error('Error fetching user Discord webhook:', userError)
+      console.error('Error fetching user Slack webhook:', userError)
       return new NextResponse(
-        JSON.stringify({ error: 'Failed to fetch user Discord settings' }),
+        JSON.stringify({ error: 'Failed to fetch user Slack settings' }),
         { 
           status: 500,
           headers: {
@@ -77,9 +77,9 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!user?.discord_webhook_url) {
+    if (!user?.slack_webhook_url) {
       return new NextResponse(
-        JSON.stringify({ error: 'No Discord webhook URL configured. Please set up Discord integration in settings.' }),
+        JSON.stringify({ error: 'No Slack webhook URL configured. Please set up Slack integration in settings.' }),
         { 
           status: 400,
           headers: {
@@ -89,21 +89,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Parse Discord template
-    let discordPayload
+    // Parse Slack template
+    let slackPayload
     try {
-      if (event.discord_template) {
-        discordPayload = JSON.parse(event.discord_template)
+      if (event.slack_template) {
+        slackPayload = JSON.parse(event.slack_template)
       } else {
         // Fallback to a simple message if no template
-        discordPayload = {
-          content: `🎉 **${event.title}**\n\n${event.description || 'You\'re invited to an event!'}\n\n📅 **Date:** ${new Date(event.event_date).toLocaleDateString()}\n📍 **Location:** ${event.location || 'TBA'}\n\nBest regards,\nSunrise Events`
+        slackPayload = {
+          text: `🎉 *${event.title}*\n\n${event.description || 'You\'re invited to an event!'}\n\n📅 **Date:** ${new Date(event.event_date).toLocaleDateString()}\n📍 **Location:** ${event.location || 'TBA'}\n\nBest regards,\nSunrise Events`
         }
       }
     } catch (error) {
-      console.error('Error parsing Discord template:', error)
+      console.error('Error parsing Slack template:', error)
       return new NextResponse(
-        JSON.stringify({ error: 'Invalid Discord template format' }),
+        JSON.stringify({ error: 'Invalid Slack template format' }),
         { 
           status: 400,
           headers: {
@@ -113,26 +113,32 @@ export async function POST(request: Request) {
       )
     }
 
-    // Send message to Discord webhook
-    const discordResponse = await fetch(user.discord_webhook_url, {
+    // Add channel to payload if specified
+    if (user.slack_channel) {
+      slackPayload.channel = user.slack_channel
+    }
+
+    // Send message to Slack webhook
+    const slackResponse = await fetch(user.slack_webhook_url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(discordPayload)
+      body: JSON.stringify(slackPayload)
     })
 
-    if (!discordResponse.ok) {
-      const errorText = await discordResponse.text()
-      console.error('Discord webhook error:', discordResponse.status, errorText)
+    if (!slackResponse.ok) {
+      const errorText = await slackResponse.text()
+      console.error('Slack webhook error:', slackResponse.status, errorText)
       
-      // Log the failed Discord message
+      // Log the failed Slack message
       await supabase
-        .from('discord_logs')
+        .from('slack_logs')
         .insert({
           user_id: session.user.id,
-          webhook_url: user.discord_webhook_url,
-          message_content: JSON.stringify(discordPayload),
+          webhook_url: user.slack_webhook_url,
+          channel: user.slack_channel,
+          message_content: JSON.stringify(slackPayload),
           status: 'failed',
           error_message: errorText,
           created_at: new Date().toISOString()
@@ -140,11 +146,11 @@ export async function POST(request: Request) {
 
       return new NextResponse(
         JSON.stringify({ 
-          error: 'Failed to send Discord message',
+          error: 'Failed to send Slack message',
           details: errorText
         }),
         { 
-          status: discordResponse.status,
+          status: slackResponse.status,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -152,18 +158,19 @@ export async function POST(request: Request) {
       )
     }
 
-    // Log the successful Discord message
+    // Log the successful Slack message
     await supabase
-      .from('discord_logs')
+      .from('slack_logs')
       .insert({
         user_id: session.user.id,
-        webhook_url: user.discord_webhook_url,
-        message_content: JSON.stringify(discordPayload),
+        webhook_url: user.slack_webhook_url,
+        channel: user.slack_channel,
+        message_content: JSON.stringify(slackPayload),
         status: 'sent',
         created_at: new Date().toISOString()
       })
 
-    // Update event contacts status for Discord (mark all as sent since it's one message)
+    // Update event contacts status for Slack (mark all as sent since it's one message)
     const { data: eventContacts, error: eventContactsError } = await supabase
       .from('event_contacts')
       .select('*')
@@ -185,23 +192,23 @@ export async function POST(request: Request) {
       await Promise.all(updatePromises)
     }
 
-    // Create transaction record for Discord message (1 token cost)
+    // Create transaction record for Slack message (1 token cost)
     const { error: transactionError } = await supabase
       .from('transactions')
       .insert({
         user_id: session.user.id,
         type: 'usage',
-        amount: -1, // Discord costs 1 token
-        description: `Discord message for event: ${event.title}`,
+        amount: -1, // Slack costs 1 token
+        description: `Slack message for event: ${event.title}`,
         status: 'completed',
         created_at: new Date().toISOString()
       })
 
     if (transactionError) {
-      console.error('Error creating Discord transaction:', transactionError)
+      console.error('Error creating Slack transaction:', transactionError)
     }
 
-    // Update user balance (deduct 1 token for Discord)
+    // Update user balance (deduct 1 token for Slack)
     const { data: currentBalance, error: balanceFetchError } = await supabase
       .from('user_balances')
       .select('balance')
@@ -218,7 +225,7 @@ export async function POST(request: Request) {
         .eq('user_id', session.user.id)
 
       if (balanceError) {
-        console.error('Error updating user balance for Discord:', balanceError)
+        console.error('Error updating user balance for Slack:', balanceError)
       }
     }
 
@@ -232,13 +239,13 @@ export async function POST(request: Request) {
       .eq('id', eventId)
 
     if (eventUpdateError) {
-      console.error('Error updating event status for Discord:', eventUpdateError)
+      console.error('Error updating event status for Slack:', eventUpdateError)
     }
 
     return new NextResponse(
       JSON.stringify({ 
         success: true, 
-        message: 'Discord message sent successfully',
+        message: 'Slack message sent successfully',
         contactsReached: eventContacts?.length || 0
       }),
       { 
@@ -250,7 +257,7 @@ export async function POST(request: Request) {
     )
 
   } catch (error: any) {
-    console.error('Error sending Discord event message:', error)
+    console.error('Error sending Slack event message:', error)
     return new NextResponse(
       JSON.stringify({ 
         error: 'Internal server error',

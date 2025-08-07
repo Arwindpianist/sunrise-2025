@@ -21,6 +21,7 @@ import {
 import { emailTemplates, type EmailTemplateVars } from "@/components/email-templates"
 import { telegramTemplates, type TelegramTemplateVars } from "@/components/telegram-templates"
 import { discordTemplates, type DiscordTemplateVars } from "@/components/discord-templates"
+import { slackTemplates, type SlackTemplateVars } from "@/components/slack-templates"
 import { format } from "date-fns"
 import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight, AlertTriangle } from "lucide-react"
 import { canCreateEventClient as canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits-client"
@@ -50,71 +51,82 @@ interface CommunicationMethod {
 
 const PRICE_PER_EMAIL = 0.05 // RM 0.05 per email (1 token)
 
-const getCommunicationMethods = (userTier: string): CommunicationMethod[] => [
-  {
-    id: "email",
-    name: "Email",
-    icon: <Mail className="h-6 w-6" />,
-    description: "Professional email invitations with rich formatting",
-    available: true,
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    icon: <Send className="h-6 w-6" />,
-    description: "Instant messaging for quick delivery",
-    available: userTier === "basic" || userTier === "pro" || userTier === "enterprise",
-    comingSoon: userTier === "free",
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: <MessageCircle className="h-6 w-6" />,
-    description: "Direct WhatsApp Business messages",
-    available: false,
-    comingSoon: true,
-  },
-  {
-    id: "sms",
-    name: "SMS",
-    icon: <Smartphone className="h-6 w-6" />,
-    description: "Traditional text messages",
-    available: false,
-    comingSoon: true,
-  },
-  {
-    id: "discord",
-    name: "Discord",
-    icon: <MessageCircle className="h-6 w-6" />,
-    description: "Send one message to reach all contacts (1 token total)",
-    available: userTier === "pro" || userTier === "enterprise",
-    comingSoon: false,
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    icon: <MessageCircle className="h-6 w-6" />,
-    description: "Slack workspace integration",
-    available: false,
-    comingSoon: userTier === "pro" || userTier === "enterprise",
-  },
-  {
-    id: "signal",
-    name: "Signal",
-    icon: <MessageCircle className="h-6 w-6" />,
-    description: "Signal messaging",
-    available: false,
-    comingSoon: userTier === "pro" || userTier === "enterprise",
-  },
-  {
-    id: "viber",
-    name: "Viber",
-    icon: <MessageCircle className="h-6 w-6" />,
-    description: "Viber messaging",
-    available: false,
-    comingSoon: userTier === "pro" || userTier === "enterprise",
-  },
-]
+const getCommunicationMethods = (userTier: string): CommunicationMethod[] => {
+  const methods = [
+    {
+      id: "email",
+      name: "Email",
+      icon: <Mail className="h-6 w-6" />,
+      description: "Professional email invitations with rich formatting",
+      available: true,
+    },
+    {
+      id: "telegram",
+      name: "Telegram",
+      icon: <Send className="h-6 w-6" />,
+      description: "Instant messaging for quick delivery",
+      available: userTier === "basic" || userTier === "pro" || userTier === "enterprise",
+      comingSoon: userTier === "free",
+    },
+    {
+      id: "discord",
+      name: "Discord",
+      icon: <MessageCircle className="h-6 w-6" />,
+      description: "Send one message to reach all contacts (1 token total)",
+      available: userTier === "pro" || userTier === "enterprise",
+      comingSoon: false,
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      icon: <MessageCircle className="h-6 w-6" />,
+      description: "Send one message to reach all team members (1 token total)",
+      available: userTier === "pro" || userTier === "enterprise",
+      comingSoon: false,
+    },
+    {
+      id: "whatsapp",
+      name: "WhatsApp",
+      icon: <MessageCircle className="h-6 w-6" />,
+      description: "Direct WhatsApp Business messages",
+      available: false,
+      comingSoon: true,
+    },
+    {
+      id: "sms",
+      name: "SMS",
+      icon: <Smartphone className="h-6 w-6" />,
+      description: "Traditional text messages",
+      available: false,
+      comingSoon: true,
+    },
+    {
+      id: "signal",
+      name: "Signal",
+      icon: <MessageCircle className="h-6 w-6" />,
+      description: "Signal messaging",
+      available: false,
+      comingSoon: userTier === "pro" || userTier === "enterprise",
+    },
+    {
+      id: "viber",
+      name: "Viber",
+      icon: <MessageCircle className="h-6 w-6" />,
+      description: "Viber messaging",
+      available: false,
+      comingSoon: userTier === "pro" || userTier === "enterprise",
+    },
+  ]
+
+  // Sort methods: available first, then coming soon, then unavailable
+  return methods.sort((a, b) => {
+    if (a.available && !b.available) return -1
+    if (!a.available && b.available) return 1
+    if (a.comingSoon && !b.comingSoon) return -1
+    if (!a.comingSoon && b.comingSoon) return 1
+    return 0
+  })
+}
 
 const validateDates = (eventDate: Date, scheduledSendTime: Date) => {
   const now = new Date()
@@ -157,15 +169,18 @@ export default function CreateEventPage() {
     emailTemplate: "",
     telegramTemplate: "",
     discordTemplate: "",
+    slackTemplate: "",
     sendEmail: true,
     sendTelegram: false,
     sendDiscord: false,
+    sendSlack: false,
     sendOption: "now" as SendOption,
     scheduledSendTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
   })
   const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<string>("")
   const [selectedTelegramTemplate, setSelectedTelegramTemplate] = useState<string>("")
   const [selectedDiscordTemplate, setSelectedDiscordTemplate] = useState<string>("")
+  const [selectedSlackTemplate, setSelectedSlackTemplate] = useState<string>("")
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   useEffect(() => {
@@ -251,6 +266,26 @@ export default function CreateEventPage() {
     }
   }, [selectedDiscordTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
 
+  // Update slack template when form data changes
+  useEffect(() => {
+    if (selectedSlackTemplate) {
+      const template = slackTemplates.find(t => t.key === selectedSlackTemplate)
+      if (template) {
+        const templateVars: SlackTemplateVars = {
+          firstName: "", // Will be replaced with actual contact name when sending
+          eventTitle: formData.title || "Sample Event",
+          eventDescription: formData.description || "",
+          eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+          eventLocation: formData.location || "Sample Location",
+          hostName: user?.user_metadata?.full_name || "Your Name",
+          customMessage: formData.description || "",
+        }
+        const generatedTemplate = template.template(templateVars)
+        setFormData(prev => ({ ...prev, slackTemplate: JSON.stringify(generatedTemplate) }))
+      }
+    }
+  }, [selectedSlackTemplate, formData.title, formData.description, formData.eventDate, formData.location, user])
+
   const handleMethodSelection = (methodId: string) => {
     // Check if user is trying to select Telegram but doesn't have access
     if (methodId === "telegram" && userTier === "free") {
@@ -267,6 +302,16 @@ export default function CreateEventPage() {
       toast({
         title: "Discord Not Available",
         description: "Discord integration is available for Pro and Enterprise plans. Upgrade to unlock this feature!",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if user is trying to select Slack but doesn't have access
+    if (methodId === "slack" && (userTier === "free" || userTier === "basic")) {
+      toast({
+        title: "Slack Not Available",
+        description: "Slack integration is available for Pro and Enterprise plans. Upgrade to unlock this feature!",
         variant: "destructive",
       })
       return
@@ -296,6 +341,7 @@ export default function CreateEventPage() {
     newFormData.sendEmail = selectedMethods.includes('email')
     newFormData.sendTelegram = selectedMethods.includes('telegram')
     newFormData.sendDiscord = selectedMethods.includes('discord')
+    newFormData.sendSlack = selectedMethods.includes('slack')
     
     setFormData(newFormData)
     setShowOnboardingModal(false)
@@ -342,6 +388,10 @@ export default function CreateEventPage() {
       }
       if (selectedMethods.includes('discord')) {
         // Discord costs only 1 token regardless of contact count
+        totalCost += 1
+      }
+      if (selectedMethods.includes('slack')) {
+        // Slack costs only 1 token regardless of contact count
         totalCost += 1
       }
       
@@ -492,6 +542,12 @@ export default function CreateEventPage() {
       if (formData.sendDiscord && formData.discordTemplate) {
         eventData.discord_template = formData.discordTemplate
         eventData.send_discord = formData.sendDiscord
+      }
+
+      // Only add Slack fields if they exist (after migration)
+      if (formData.sendSlack && formData.slackTemplate) {
+        eventData.slack_template = formData.slackTemplate
+        eventData.send_slack = formData.sendSlack
       }
 
       const { data: event, error: eventError } = await supabase
@@ -668,6 +724,24 @@ export default function CreateEventPage() {
     }
   }, [formData.title, formData.description, formData.eventDate, formData.location, user])
 
+  const handleSlackTemplateSelect = useCallback((templateKey: string) => {
+    setSelectedSlackTemplate(templateKey)
+    const template = slackTemplates.find(t => t.key === templateKey)
+    if (template) {
+      const templateVars: SlackTemplateVars = {
+        firstName: "", // Will be replaced with actual contact name when sending
+        eventTitle: formData.title || "Sample Event",
+        eventDescription: formData.description || "",
+        eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+        eventLocation: formData.location || "Sample Location",
+        hostName: user?.user_metadata?.full_name || "Your Name",
+        customMessage: formData.description || "",
+      }
+      const generatedTemplate = template.template(templateVars)
+      setFormData(prev => ({ ...prev, slackTemplate: JSON.stringify(generatedTemplate) }))
+    }
+  }, [formData.title, formData.description, formData.eventDate, formData.location, user])
+
   const getEmailTemplatePreview = () => {
     const template = emailTemplates.find(t => t.key === selectedEmailTemplate)
     if (!template) return ""
@@ -705,6 +779,22 @@ export default function CreateEventPage() {
     if (!template) return null
     
     const templateVars: DiscordTemplateVars = {
+      firstName: "", // Will be replaced with actual contact name when sending
+      eventTitle: formData.title || "Sample Event",
+      eventDescription: formData.description || "",
+      eventDate: format(formData.eventDate, "EEEE, MMMM do, yyyy 'at' h:mm a"),
+      eventLocation: formData.location || "Sample Location",
+      hostName: user?.user_metadata?.full_name || "Your Name",
+      customMessage: formData.description || "",
+    }
+    return template.template(templateVars)
+  }
+
+  const getSlackTemplatePreview = () => {
+    const template = slackTemplates.find(t => t.key === selectedSlackTemplate)
+    if (!template) return null
+    
+    const templateVars: SlackTemplateVars = {
       firstName: "", // Will be replaced with actual contact name when sending
       eventTitle: formData.title || "Sample Event",
       eventDescription: formData.description || "",
@@ -842,7 +932,7 @@ export default function CreateEventPage() {
                       {userTier === "free" 
                         ? "Upgrade to Basic to unlock Telegram messaging and more features."
                         : userTier === "basic"
-                        ? "Upgrade to Pro to unlock Discord integration and unlimited events."
+                        ? "Upgrade to Pro to unlock Discord and Slack integrations and unlimited events."
                         : "You have access to all features!"
                       }
                     </p>
@@ -1281,6 +1371,106 @@ export default function CreateEventPage() {
                   </div>
                 )}
 
+                {/* Slack Section */}
+                {selectedMethods.includes('slack') && (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center">
+                      <MessageCircle className="mr-2 h-5 w-5" />
+                      Slack Settings
+                    </h2>
+                    
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-blue-800 font-medium text-sm">Slack Integration Required</p>
+                          <p className="text-blue-600 text-xs">
+                            You need to configure your Slack webhook in settings before sending Slack messages. 
+                            <Button
+                              type="button"
+                              variant="link"
+                              size="sm"
+                              className="p-0 h-auto text-blue-600 hover:text-blue-800 text-xs"
+                              onClick={() => router.push('/dashboard/slack-settings')}
+                            >
+                              Configure Slack Settings
+                            </Button>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <Label>Slack Template</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                        {slackTemplates.map((template) => (
+                          <button
+                            key={template.key}
+                            type="button"
+                            onClick={() => handleSlackTemplateSelect(template.key)}
+                            className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-all min-h-[80px] sm:min-h-[100px] ${
+                              selectedSlackTemplate === template.key
+                                ? "border-purple-500 bg-purple-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-medium text-xs sm:text-sm truncate">{template.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {template.key === "birthday" && "🎉"}
+                              {template.key === "openHouse" && "🏡"}
+                              {template.key === "wedding" && "💍"}
+                              {template.key === "meeting" && "📅"}
+                              {template.key === "babyShower" && "👶"}
+                              {template.key === "generic" && "📧"}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {selectedSlackTemplate && (
+                        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowTemplatePreview(true)}
+                            className="w-full sm:w-auto"
+                          >
+                            Preview Template
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSlackTemplate("")
+                              setFormData(prev => ({ ...prev, slackTemplate: "" }))
+                            }}
+                            className="w-full sm:w-auto"
+                          >
+                            Clear Template
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="slackTemplate">Slack Template (JSON)</Label>
+                      <Textarea
+                        id="slackTemplate"
+                        value={formData.slackTemplate}
+                        onChange={(e) => handleInputChange("slackTemplate", e.target.value)}
+                        placeholder="Select a template above or enter custom Slack Block Kit JSON"
+                        rows={8}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Slack uses Block Kit format with JSON. Select a template above for the best experience, or customize the JSON manually.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Send Options */}
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Send Options</h2>
@@ -1375,13 +1565,21 @@ export default function CreateEventPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm sm:text-base">Event Cost</p>
                         <p className="text-xs sm:text-sm text-muted-foreground">
-                          {selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('discord') ? `${contactCount} messages (email + telegram + discord)` : 
+                          {selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('discord') && selectedMethods.includes('slack') ? `${contactCount} messages (email + telegram + discord + slack)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('discord') ? `${contactCount} messages (email + telegram + discord)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('telegram') && selectedMethods.includes('slack') ? `${contactCount} messages (email + telegram + slack)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('discord') && selectedMethods.includes('slack') ? `${contactCount} messages (email + discord + slack)` : 
+                           selectedMethods.includes('telegram') && selectedMethods.includes('discord') && selectedMethods.includes('slack') ? `${contactCount} messages (telegram + discord + slack)` : 
                            selectedMethods.includes('email') && selectedMethods.includes('telegram') ? `${contactCount} messages (email + telegram)` : 
                            selectedMethods.includes('email') && selectedMethods.includes('discord') ? `${contactCount} messages (email + discord)` : 
+                           selectedMethods.includes('email') && selectedMethods.includes('slack') ? `${contactCount} messages (email + slack)` : 
                            selectedMethods.includes('telegram') && selectedMethods.includes('discord') ? `${contactCount} messages (telegram + discord)` : 
+                           selectedMethods.includes('telegram') && selectedMethods.includes('slack') ? `${contactCount} messages (telegram + slack)` : 
+                           selectedMethods.includes('discord') && selectedMethods.includes('slack') ? `2 messages (discord + slack)` : 
                            selectedMethods.includes('email') ? `${contactCount} emails` : 
                            selectedMethods.includes('telegram') ? `${contactCount} telegram messages` : 
-                           selectedMethods.includes('discord') ? `1 Discord message` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
+                           selectedMethods.includes('discord') ? `1 Discord message` : 
+                           selectedMethods.includes('slack') ? `1 Slack message` : '0 messages'} × RM{PRICE_PER_EMAIL.toFixed(2)}
                         </p>
                       </div>
                       <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-500 flex-shrink-0 ml-2">

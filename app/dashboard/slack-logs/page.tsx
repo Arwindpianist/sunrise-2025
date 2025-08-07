@@ -9,20 +9,21 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, MessageSquare, CheckCircle, XCircle, Clock, Lock } from 'lucide-react'
 
-interface DiscordLog {
+interface SlackLog {
   id: string
   webhook_url: string
+  channel: string | null
   message_content: string
   status: string
   error_message: string | null
   created_at: string
 }
 
-export default function DiscordLogsPage() {
+export default function SlackLogsPage() {
   const router = useRouter()
   const { supabase, user } = useSupabase()
   const { subscription, loading: subscriptionLoading } = useSubscription()
-  const [logs, setLogs] = useState<DiscordLog[]>([])
+  const [logs, setLogs] = useState<SlackLog[]>([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
@@ -33,21 +34,21 @@ export default function DiscordLogsPage() {
       return
     }
     
-    // Check if user has access to Discord features
+    // Check if user has access to Slack features
     if (!subscriptionLoading && subscription && subscription.tier !== 'pro' && subscription.tier !== 'enterprise') {
       router.push('/pricing')
       return
     }
     
     if (user) {
-      fetchDiscordLogs()
+      fetchSlackLogs()
     }
   }, [user, router, subscription, subscriptionLoading])
 
-  const fetchDiscordLogs = async () => {
+  const fetchSlackLogs = async () => {
     try {
       const { data, error } = await supabase
-        .from('discord_logs')
+        .from('slack_logs')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
@@ -56,7 +57,7 @@ export default function DiscordLogsPage() {
       if (error) throw error
       setLogs(data || [])
     } catch (error) {
-      console.error('Error fetching Discord logs:', error)
+      console.error('Error fetching Slack logs:', error)
     } finally {
       setLoading(false)
     }
@@ -90,15 +91,15 @@ export default function DiscordLogsPage() {
     )
   }
 
-  // Check if user has access to Discord features
+  // Check if user has access to Slack features
   if (!subscription || (subscription.tier !== 'pro' && subscription.tier !== 'enterprise')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-pink-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Discord Logs</h1>
+          <h1 className="text-xl font-semibold text-gray-800 mb-2">Slack Logs</h1>
           <p className="text-gray-600 mb-4">
-            Discord logs are available for Pro and Enterprise users only.
+            Slack logs are available for Pro and Enterprise users only.
           </p>
           <Button onClick={() => router.push('/pricing')} className="bg-orange-500 hover:bg-orange-600">
             View Plans
@@ -124,9 +125,9 @@ export default function DiscordLogsPage() {
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">
-              Discord Logs
+              Slack Logs
             </h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">View your Discord message history</p>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">View your Slack message history</p>
           </div>
         </div>
 
@@ -135,7 +136,7 @@ export default function DiscordLogsPage() {
             <CardContent className="p-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading Discord logs...</p>
+                <p className="mt-4 text-gray-600">Loading Slack logs...</p>
               </div>
             </CardContent>
           </Card>
@@ -144,9 +145,9 @@ export default function DiscordLogsPage() {
             <CardContent className="p-8">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Discord messages yet</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Slack messages yet</h3>
                 <p className="text-gray-600 mb-4">
-                  You haven't sent any Discord messages yet. Start by creating an event and selecting Discord as a communication method.
+                  You haven't sent any Slack messages yet. Start by creating an event and selecting Slack as a communication method.
                 </p>
                 <Button onClick={() => router.push('/dashboard/events/create')}>
                   Create Your First Event
@@ -169,6 +170,9 @@ export default function DiscordLogsPage() {
                     </div>
                     <div className="text-xs text-gray-500 font-mono self-start sm:self-auto">
                       {truncateWebhook(log.webhook_url)}
+                      {log.channel && (
+                        <span className="ml-2 text-blue-600">#{log.channel}</span>
+                      )}
                     </div>
                   </div>
                   
@@ -194,7 +198,7 @@ export default function DiscordLogsPage() {
         {logs.length > 0 && (
           <div className="mt-6 sm:mt-8 text-center">
             <p className="text-xs sm:text-sm text-gray-600">
-              Showing the last 50 Discord messages. Older messages are automatically archived.
+              Showing the last 50 Slack messages. Older messages are automatically archived.
             </p>
           </div>
         )}

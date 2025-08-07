@@ -17,6 +17,8 @@ export interface Database {
           subscription_plan: string
           token_balance: number
           discord_webhook_url: string | null
+          slack_webhook_url: string | null
+          slack_channel: string | null
           created_at: string
           updated_at: string
         }
@@ -27,6 +29,8 @@ export interface Database {
           subscription_plan?: string
           token_balance?: number
           discord_webhook_url?: string | null
+          slack_webhook_url?: string | null
+          slack_channel?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +41,8 @@ export interface Database {
           subscription_plan?: string
           token_balance?: number
           discord_webhook_url?: string | null
+          slack_webhook_url?: string | null
+          slack_channel?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -95,9 +101,11 @@ export interface Database {
           email_subject: string | null
           telegram_template: string | null
           discord_template: string | null
+          slack_template: string | null
           send_email: boolean
           send_telegram: boolean
           send_discord: boolean
+          send_slack: boolean
           scheduled_send_time: string | null
         }
         Insert: {
@@ -115,9 +123,11 @@ export interface Database {
           email_subject?: string | null
           telegram_template?: string | null
           discord_template?: string | null
+          slack_template?: string | null
           send_email?: boolean
           send_telegram?: boolean
           send_discord?: boolean
+          send_slack?: boolean
           scheduled_send_time?: string | null
         }
         Update: {
@@ -401,6 +411,41 @@ export interface Database {
           id?: string
           user_id?: string
           webhook_url?: string
+          message_content?: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      slack_logs: {
+        Row: {
+          id: string
+          user_id: string
+          webhook_url: string
+          channel: string | null
+          message_content: string
+          status: string
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          webhook_url: string
+          channel?: string | null
+          message_content: string
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          webhook_url?: string
+          channel?: string | null
           message_content?: string
           status?: string
           error_message?: string | null

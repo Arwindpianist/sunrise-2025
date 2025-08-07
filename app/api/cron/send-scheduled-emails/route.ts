@@ -76,6 +76,21 @@ export async function GET(request: Request) {
             console.error(`Failed to send Discord message for event ${event.id}`)
           }
         }
+
+        // Send Slack message if enabled
+        if (event.send_slack) {
+          const slackResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/slack/send-event`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ eventId: event.id }),
+          })
+
+          if (!slackResponse.ok) {
+            console.error(`Failed to send Slack message for event ${event.id}`)
+          }
+        }
       } catch (error) {
         console.error(`Error processing event ${event.id}:`, error)
       }

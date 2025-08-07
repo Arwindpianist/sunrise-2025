@@ -21,9 +21,11 @@ interface Event {
   email_template: string
   telegram_template: string | null
   discord_template: string | null
+  slack_template: string | null
   send_email: boolean
   send_telegram: boolean
   send_discord: boolean
+  send_slack: boolean
   scheduled_send_time: string | null
   created_at: string
   category?: string
@@ -67,14 +69,70 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         throw error
       }
 
+      // Check for transactions and logs to determine actual status
+      let actualStatus = data.status
+
+      // Check if there are any transactions for this event
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .ilike("description", `%${data.title}%`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+
+      // Check for Discord logs if Discord is enabled
+      if (data.send_discord) {
+        const { data: discordLogs } = await supabase
+          .from("discord_logs")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+
+        if (discordLogs && discordLogs.length > 0) {
+          const latestDiscordLog = discordLogs[0]
+          // Check if the log message contains the event title
+          if (latestDiscordLog.message_content.includes(data.title)) {
+            actualStatus = "sent"
+          }
+        }
+      }
+
+      // Check for Slack logs if Slack is enabled
+      if (data.send_slack) {
+        const { data: slackLogs } = await supabase
+          .from("slack_logs")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+
+        if (slackLogs && slackLogs.length > 0) {
+          const latestSlackLog = slackLogs[0]
+          // Check if the log message contains the event title
+          if (latestSlackLog.message_content.includes(data.title)) {
+            actualStatus = "sent"
+          }
+        }
+      }
+
+      // If there are transactions, the event was sent
+      if (transactions && transactions.length > 0) {
+        actualStatus = "sent"
+      }
+
+      // Update the event data with the actual status
+      const eventData = { ...data, status: actualStatus }
+
       // Debug log to see raw date values
       console.log("Raw event dates:", {
-        event_date: data.event_date,
-        scheduled_send_time: data.scheduled_send_time,
-        created_at: data.created_at
+        event_date: eventData.event_date,
+        scheduled_send_time: eventData.scheduled_send_time,
+        created_at: eventData.created_at
       })
 
-      setEvent(data)
+      setEvent(eventData)
     } catch (error: any) {
       console.error("Error fetching event:", error)
       toast({
@@ -197,10 +255,27 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         }
       }
 
+      // Send Slack message if enabled
+      if (event?.send_slack) {
+        const slackResponse = await fetch("/api/slack/send-event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId: id }),
+        })
+
+        if (!slackResponse.ok) {
+          const errorData = await slackResponse.json()
+          throw new Error(errorData.error || "Failed to send Slack message")
+        }
+      }
+
       const messageTypes = []
       if (event?.send_email) messageTypes.push("emails")
       if (event?.send_telegram) messageTypes.push("Telegram messages")
       if (event?.send_discord) messageTypes.push("Discord message")
+      if (event?.send_slack) messageTypes.push("Slack message")
 
       toast({
         title: "Success!",
@@ -284,6 +359,10 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
         // Discord costs only 1 token regardless of contact count
         totalCost += 1
       }
+      if (event?.send_slack) {
+        // Slack costs only 1 token regardless of contact count
+        totalCost += 1
+      }
 
       // Check if user has enough balance
       if (currentBalance < totalCost) {
@@ -309,9 +388,11 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
           email_template: event.email_template,
           telegram_template: event.telegram_template,
           discord_template: event.discord_template,
+          slack_template: event.slack_template,
           send_email: event.send_email,
           send_telegram: event.send_telegram,
           send_discord: event.send_discord,
+          send_slack: event.send_slack,
           status: "draft",
           scheduled_send_time: null,
         })
@@ -531,6 +612,11 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                     🎮 Discord
                   </span>
                 )}
+                {event.send_slack && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    💬 Slack
+                  </span>
+                )}
               </div>
             </div>
 
@@ -568,6 +654,16 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                 <h3 className="font-medium mb-2">Discord Template</h3>
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <pre className="whitespace-pre-wrap text-sm font-mono">{event.discord_template || "No template set"}</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Slack Section - Only show if Slack is enabled */}
+            {event.send_slack && (
+              <div>
+                <h3 className="font-medium mb-2">Slack Template</h3>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">{event.slack_template || "No template set"}</pre>
                 </div>
               </div>
             )}

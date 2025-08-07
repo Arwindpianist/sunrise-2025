@@ -26,9 +26,11 @@ interface Event {
   email_template: string
   telegram_template: string | null
   discord_template: string | null
+  slack_template: string | null
   send_email: boolean
   send_telegram: boolean
   send_discord: boolean
+  send_slack: boolean
   scheduled_send_time: string
   created_at: string
   category?: string
@@ -85,7 +87,7 @@ export default function EventsPage() {
         throw error
       }
 
-      // Add contact count for each event
+      // Add contact count and check status for each event
       const eventsWithContactCount = await Promise.all(
         (data || []).map(async (event) => {
           try {
@@ -102,9 +104,63 @@ export default function EventsPage() {
             // If category is "general" or null, don't filter by category (get all contacts)
 
             const { count } = await contactsQuery
-            return { ...event, contact_count: count || 0 }
+
+            // Check for transactions and logs to determine actual status
+            let actualStatus = event.status
+
+            // Check if there are any transactions for this event
+            const { data: transactions } = await supabase
+              .from("transactions")
+              .select("*")
+              .eq("user_id", session.user.id)
+              .ilike("description", `%${event.title}%`)
+              .order("created_at", { ascending: false })
+              .limit(1)
+
+            // Check for Discord logs if Discord is enabled
+            if (event.send_discord) {
+              const { data: discordLogs } = await supabase
+                .from("discord_logs")
+                .select("*")
+                .eq("user_id", session.user.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+
+              if (discordLogs && discordLogs.length > 0) {
+                const latestDiscordLog = discordLogs[0]
+                // Check if the log message contains the event title
+                if (latestDiscordLog.message_content.includes(event.title)) {
+                  actualStatus = "sent"
+                }
+              }
+            }
+
+            // Check for Slack logs if Slack is enabled
+            if (event.send_slack) {
+              const { data: slackLogs } = await supabase
+                .from("slack_logs")
+                .select("*")
+                .eq("user_id", session.user.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+
+              if (slackLogs && slackLogs.length > 0) {
+                const latestSlackLog = slackLogs[0]
+                // Check if the log message contains the event title
+                if (latestSlackLog.message_content.includes(event.title)) {
+                  actualStatus = "sent"
+                }
+              }
+            }
+
+            // If there are transactions, the event was sent
+            if (transactions && transactions.length > 0) {
+              actualStatus = "sent"
+            }
+
+            return { ...event, contact_count: count || 0, status: actualStatus }
           } catch (error) {
-            console.error(`Error counting contacts for event ${event.id}:`, error)
+            console.error(`Error processing event ${event.id}:`, error)
             return { ...event, contact_count: 0 }
           }
         })
@@ -243,10 +299,27 @@ export default function EventsPage() {
         }
       }
 
+      // Send Slack message if enabled
+      if (event.send_slack) {
+        const slackResponse = await fetch("/api/slack/send-event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId }),
+        })
+
+        if (!slackResponse.ok) {
+          const errorData = await slackResponse.json()
+          throw new Error(errorData.error || "Failed to send Slack message")
+        }
+      }
+
       const messageTypes = []
       if (event.send_email) messageTypes.push("emails")
       if (event.send_telegram) messageTypes.push("Telegram messages")
       if (event.send_discord) messageTypes.push("Discord message")
+      if (event.send_slack) messageTypes.push("Slack message")
 
       toast({
         title: "Success!",
@@ -338,6 +411,10 @@ export default function EventsPage() {
         // Discord costs only 1 token regardless of contact count
         totalCost += 1
       }
+      if (originalEvent.send_slack) {
+        // Slack costs only 1 token regardless of contact count
+        totalCost += 1
+      }
 
       // Check if user has enough balance
       if (currentBalance < totalCost) {
@@ -363,9 +440,11 @@ export default function EventsPage() {
           email_template: originalEvent.email_template,
           telegram_template: originalEvent.telegram_template,
           discord_template: originalEvent.discord_template,
+          slack_template: originalEvent.slack_template,
           send_email: originalEvent.send_email,
           send_telegram: originalEvent.send_telegram,
           send_discord: originalEvent.send_discord,
+          send_slack: originalEvent.send_slack,
           status: "draft",
           scheduled_send_time: null,
         })
@@ -647,14 +726,23 @@ export default function EventsPage() {
                             🎮
                           </span>
                         )}
+                        {event.send_slack && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                            💬
+                          </span>
+                        )}
                       </div>
                       
                       {event.status === "draft" && (
                         <div className="flex items-center text-sm text-blue-600">
                           <Users className="h-4 w-4 mr-2 flex-shrink-0" />
                           <span>
-                            {event.send_discord 
+                            {event.send_discord && !event.send_slack
                               ? "Ready to send 1 Discord message" 
+                              : event.send_slack && !event.send_discord
+                              ? "Ready to send 1 Slack message"
+                              : event.send_discord && event.send_slack
+                              ? "Ready to send 1 Discord message and 1 Slack message"
                               : `Ready to send to ${event.contact_count || 0} contacts`
                             }
                           </span>
