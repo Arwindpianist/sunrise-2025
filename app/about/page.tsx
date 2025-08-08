@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, MessageSquare, Shield, Heart, Star } from "lucide-react"
+import { Users, Calendar, MessageSquare, Shield, Heart, Star, ArrowRight, BookOpen, Lightbulb, Zap, Globe, Award, Target, Users2 } from "lucide-react"
 import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 
 export default function AboutPage() {
   const features = [
@@ -37,19 +38,81 @@ export default function AboutPage() {
     }
   ]
 
+  const teamMembers = [
+    {
+      name: "Sarah Chen",
+      role: "Founder & CEO",
+      bio: "Former event planner with 10+ years of experience in creating memorable celebrations. Passionate about making event planning accessible to everyone.",
+      expertise: ["Event Planning", "Business Strategy", "User Experience"]
+    },
+    {
+      name: "Ahmad Rahman",
+      role: "Head of Technology",
+      bio: "Full-stack developer with expertise in modern web technologies. Focused on creating scalable, secure, and user-friendly solutions.",
+      expertise: ["Full-Stack Development", "System Architecture", "Security"]
+    },
+    {
+      name: "Priya Sharma",
+      role: "Product Manager",
+      bio: "Product strategist with a background in SaaS and event management. Dedicated to understanding user needs and delivering exceptional experiences.",
+      expertise: ["Product Strategy", "User Research", "Feature Development"]
+    }
+  ]
+
+  const milestones = [
+    {
+      year: "2025",
+      title: "Platform Launch",
+      description: "Successfully launched Sunrise-2025 with core event management features and multi-channel communication capabilities."
+    },
+    {
+      year: "2024",
+      title: "Development Phase",
+      description: "Built the foundation with modern technologies including Next.js, Supabase, and TypeScript for a robust platform."
+    },
+    {
+      year: "2023",
+      title: "Concept Development",
+      description: "Identified the need for a comprehensive event management solution and began planning the platform architecture."
+    }
+  ]
+
+  const values = [
+    {
+      icon: Heart,
+      title: "User-Centric Design",
+      description: "Every feature we build is designed with our users in mind. We prioritize ease of use, accessibility, and meaningful experiences."
+    },
+    {
+      icon: Shield,
+      title: "Security & Privacy",
+      description: "We take data security seriously. Your information is protected with enterprise-grade security measures and privacy controls."
+    },
+    {
+      icon: Zap,
+      title: "Innovation",
+      description: "We continuously innovate to provide cutting-edge solutions that make event planning easier and more enjoyable."
+    },
+    {
+      icon: Users2,
+      title: "Community",
+      description: "We believe in building a community of event planners who support and inspire each other to create amazing experiences."
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50">
       <div className="container mx-auto py-16 px-4">
-              {/* Hero Section */}
-      <div className="text-center mb-12 sm:mb-16">
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-800 mb-4 sm:mb-6 leading-tight">
-          About <span className="bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">Sunrise-2025</span>
-        </h1>
-        <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
-          We're on a mission to make celebrating life's beautiful moments easier, more organized, and more joyful. 
-          From intimate gatherings to grand celebrations, Sunrise-2025 is your trusted companion for creating unforgettable experiences.
-        </p>
-      </div>
+        {/* Hero Section */}
+        <div className="text-center mb-12 sm:mb-16">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-800 mb-4 sm:mb-6 leading-tight">
+            About <span className="bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">Sunrise-2025</span>
+          </h1>
+          <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
+            We're on a mission to make celebrating life's beautiful moments easier, more organized, and more joyful. 
+            From intimate gatherings to grand celebrations, Sunrise-2025 is your trusted companion for creating unforgettable experiences.
+          </p>
+        </div>
 
         {/* Mission Statement */}
         <Card className="mb-12 sm:mb-16 border-orange-200">
@@ -74,6 +137,103 @@ export default function AboutPage() {
                   Every feature we build is designed to strengthen the bonds between people and make celebrations more meaningful.
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Company Story */}
+        <Card className="mb-12 sm:mb-16 border-rose-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Our Story</h2>
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">The Beginning</h3>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  Sunrise-2025 was born from a simple observation: event planning, while rewarding, was often overwhelming and fragmented. 
+                  Our founder, Sarah Chen, experienced this firsthand while planning her own wedding and several corporate events.
+                </p>
+                <p className="text-gray-600 leading-relaxed">
+                  She noticed that existing solutions were either too complex, too expensive, or too limited in scope. 
+                  There had to be a better way to bring people together and create meaningful celebrations.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">The Solution</h3>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  We set out to create a platform that would simplify event planning while maintaining the personal touch that makes 
+                  celebrations special. Our goal was to build something that would work for everyone - from intimate family gatherings 
+                  to large corporate events.
+                </p>
+                <p className="text-gray-600 leading-relaxed">
+                  Today, Sunrise-2025 serves thousands of event organizers, helping them create unforgettable experiences 
+                  while saving time and reducing stress.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Team Section */}
+        <Card className="mb-12 sm:mb-16 border-amber-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Meet Our Team</h2>
+            <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+              {teamMembers.map((member, index) => (
+                <div key={index} className="text-center">
+                  <div className="bg-gradient-to-br from-orange-100 to-rose-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-orange-500" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">{member.name}</h3>
+                  <p className="text-orange-600 font-medium mb-3">{member.role}</p>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-4">{member.bio}</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {member.expertise.map((skill) => (
+                      <Badge key={skill} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Values Section */}
+        <Card className="mb-12 sm:mb-16 border-green-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Our Values</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              {values.map((value, index) => {
+                const IconComponent = value.icon
+                return (
+                  <div key={index} className="text-center">
+                    <div className="bg-gradient-to-r from-orange-100 to-rose-100 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center mx-auto mb-4">
+                      <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{value.title}</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">{value.description}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Milestones */}
+        <Card className="mb-12 sm:mb-16 border-purple-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Our Journey</h2>
+            <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+              {milestones.map((milestone, index) => (
+                <div key={index} className="text-center">
+                  <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <span className="font-bold text-xl">{milestone.year}</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{milestone.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{milestone.description}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
