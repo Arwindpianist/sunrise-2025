@@ -26,7 +26,7 @@ interface Message {
   id: string
   event_id: string
   event_title: string
-  channel: 'email' | 'telegram' | 'sms'
+  channel: 'email' | 'telegram' | 'sms' | 'discord' | 'slack'
   status: 'sent' | 'delivered' | 'failed' | 'pending'
   recipient_count: number
   sent_at: string
@@ -40,6 +40,8 @@ interface EventMessage {
   sent_at: string
   email_recipients: number
   telegram_recipients: number
+  discord_recipients: number
+  slack_recipients: number
   email_status: {
     sent: number
     delivered: number
@@ -47,6 +49,18 @@ interface EventMessage {
     pending: number
   }
   telegram_status: {
+    sent: number
+    delivered: number
+    failed: number
+    pending: number
+  }
+  discord_status: {
+    sent: number
+    delivered: number
+    failed: number
+    pending: number
+  }
+  slack_status: {
     sent: number
     delivered: number
     failed: number
@@ -66,6 +80,8 @@ interface MessageStats {
     email: { count: number; recipients: number; tokens: number }
     telegram: { count: number; recipients: number; tokens: number }
     sms: { count: number; recipients: number; tokens: number }
+    discord: { count: number; recipients: number; tokens: number }
+    slack: { count: number; recipients: number; tokens: number }
   }
   byStatus: {
     sent: number
@@ -89,7 +105,9 @@ export default function MessagesPage() {
     byChannel: {
       email: { count: 0, recipients: 0, tokens: 0 },
       telegram: { count: 0, recipients: 0, tokens: 0 },
-      sms: { count: 0, recipients: 0, tokens: 0 }
+      sms: { count: 0, recipients: 0, tokens: 0 },
+      discord: { count: 0, recipients: 0, tokens: 0 },
+      slack: { count: 0, recipients: 0, tokens: 0 }
     },
     byStatus: {
       sent: 0,
@@ -135,12 +153,13 @@ export default function MessagesPage() {
       const eventIds = userEvents.map(e => e.id)
       const eventMap = new Map(userEvents.map(e => [e.id, e.title]))
 
-      // Fetch email logs
+      // Fetch email logs with contact details
       const { data: emailLogs, error: emailError } = await supabase
         .from('email_logs')
         .select(`
           id,
           event_id,
+          contact_id,
           status,
           sent_at,
           error_message
@@ -150,12 +169,13 @@ export default function MessagesPage() {
 
       if (emailError) throw emailError
 
-      // Fetch telegram logs
+      // Fetch telegram logs with contact details
       const { data: telegramLogs, error: telegramError } = await supabase
         .from('telegram_logs')
         .select(`
           id,
           event_id,
+          contact_id,
           status,
           sent_at,
           error_message
@@ -165,65 +185,109 @@ export default function MessagesPage() {
 
       if (telegramError) throw telegramError
 
-      // Process email logs into messages
+      // Fetch discord logs (webhook messages)
+      const { data: discordLogs, error: discordError } = await supabase
+        .from('discord_logs')
+        .select(`
+          id,
+          user_id,
+          status,
+          created_at,
+          error_message
+        `)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+
+      if (discordError) throw discordError
+
+      // Fetch slack logs (webhook messages)
+      const { data: slackLogs, error: slackError } = await supabase
+        .from('slack_logs')
+        .select(`
+          id,
+          user_id,
+          status,
+          created_at,
+          error_message
+        `)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+
+      if (slackError) throw slackError
+
+      // Process email logs into messages - each log entry represents one recipient
       const emailMessages: Message[] = (emailLogs || []).map(log => ({
         id: log.id,
         event_id: log.event_id,
         event_title: eventMap.get(log.event_id) || 'Unknown Event',
         channel: 'email' as const,
         status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
-        recipient_count: 1,
+        recipient_count: 1, // Each log entry = 1 recipient
         sent_at: log.sent_at,
-        tokens_used: 1,
+        tokens_used: 1, // 1 token per email
         cost: 0.05
       }))
 
-      // Process telegram logs into messages
+      // Process telegram logs into messages - each log entry represents one recipient
       const telegramMessages: Message[] = (telegramLogs || []).map(log => ({
         id: log.id,
         event_id: log.event_id,
         event_title: eventMap.get(log.event_id) || 'Unknown Event',
         channel: 'telegram' as const,
         status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
-        recipient_count: 1,
+        recipient_count: 1, // Each log entry = 1 recipient
         sent_at: log.sent_at,
-        tokens_used: 1,
+        tokens_used: 1, // 1 token per telegram message
         cost: 0.05
       }))
 
-      // Combine and sort by sent_at
-      const allMessages = [...emailMessages, ...telegramMessages]
+      // Process discord logs - webhook messages (not per contact)
+      const discordMessages: Message[] = (discordLogs || []).map(log => ({
+        id: log.id,
+        event_id: 'webhook', // Discord doesn't have event_id
+        event_title: 'Discord Webhook',
+        channel: 'discord' as const,
+        status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
+        recipient_count: 1, // Webhook message to one channel
+        sent_at: log.created_at,
+        tokens_used: 1, // 1 token per webhook message
+        cost: 0.05
+      }))
+
+      // Process slack logs - webhook messages (not per contact)
+      const slackMessages: Message[] = (slackLogs || []).map(log => ({
+        id: log.id,
+        event_id: 'webhook', // Slack doesn't have event_id
+        event_title: 'Slack Webhook',
+        channel: 'slack' as const,
+        status: log.status as 'sent' | 'delivered' | 'failed' | 'pending',
+        recipient_count: 1, // Webhook message to one channel
+        sent_at: log.created_at,
+        tokens_used: 1, // 1 token per webhook message
+        cost: 0.05
+      }))
+
+      // Combine all messages and sort by sent_at
+      const allMessages = [...emailMessages, ...telegramMessages, ...discordMessages, ...slackMessages]
         .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
 
       setMessages(allMessages)
       
-      // Group messages by event
+      // Group messages by event (for event-based messages) and by channel (for webhook messages)
       const eventMessageMap = new Map<string, EventMessage>()
+      const webhookMessages: EventMessage[] = []
       
       allMessages.forEach(message => {
-        const eventId = message.event_id
-        const existing = eventMessageMap.get(eventId)
-        
-        if (existing) {
-          // Update existing event message
-          if (message.channel === 'email') {
-            existing.email_recipients += message.recipient_count
-            existing.email_status[message.status]++
-          } else if (message.channel === 'telegram') {
-            existing.telegram_recipients += message.recipient_count
-            existing.telegram_status[message.status]++
-          }
-          existing.total_recipients += message.recipient_count
-          existing.total_tokens += message.tokens_used
-          existing.total_cost += message.cost
-        } else {
-          // Create new event message
-          const newEventMessage: EventMessage = {
-            event_id: eventId,
+        if (message.event_id === 'webhook') {
+          // Handle webhook messages separately
+          const webhookMessage: EventMessage = {
+            event_id: message.id,
             event_title: message.event_title,
             sent_at: message.sent_at,
             email_recipients: message.channel === 'email' ? message.recipient_count : 0,
             telegram_recipients: message.channel === 'telegram' ? message.recipient_count : 0,
+            discord_recipients: message.channel === 'discord' ? message.recipient_count : 0,
+            slack_recipients: message.channel === 'slack' ? message.recipient_count : 0,
             email_status: {
               sent: message.channel === 'email' && message.status === 'sent' ? 1 : 0,
               delivered: message.channel === 'email' && message.status === 'delivered' ? 1 : 0,
@@ -236,16 +300,91 @@ export default function MessagesPage() {
               failed: message.channel === 'telegram' && message.status === 'failed' ? 1 : 0,
               pending: message.channel === 'telegram' && message.status === 'pending' ? 1 : 0
             },
+            discord_status: {
+              sent: message.channel === 'discord' && message.status === 'sent' ? 1 : 0,
+              delivered: message.channel === 'discord' && message.status === 'delivered' ? 1 : 0,
+              failed: message.channel === 'discord' && message.status === 'failed' ? 1 : 0,
+              pending: message.channel === 'discord' && message.status === 'pending' ? 1 : 0
+            },
+            slack_status: {
+              sent: message.channel === 'slack' && message.status === 'sent' ? 1 : 0,
+              delivered: message.channel === 'slack' && message.status === 'delivered' ? 1 : 0,
+              failed: message.channel === 'slack' && message.status === 'failed' ? 1 : 0,
+              pending: message.channel === 'slack' && message.status === 'pending' ? 1 : 0
+            },
             total_recipients: message.recipient_count,
             total_tokens: message.tokens_used,
             total_cost: message.cost
           }
-          eventMessageMap.set(eventId, newEventMessage)
+          webhookMessages.push(webhookMessage)
+        } else {
+          // Handle event-based messages
+          const eventId = message.event_id
+          const existing = eventMessageMap.get(eventId)
+          
+          if (existing) {
+            // Update existing event message
+            if (message.channel === 'email') {
+              existing.email_recipients += message.recipient_count
+              existing.email_status[message.status]++
+            } else if (message.channel === 'telegram') {
+              existing.telegram_recipients += message.recipient_count
+              existing.telegram_status[message.status]++
+            } else if (message.channel === 'discord') {
+              existing.discord_recipients += message.recipient_count
+              existing.discord_status[message.status]++
+            } else if (message.channel === 'slack') {
+              existing.slack_recipients += message.recipient_count
+              existing.slack_status[message.status]++
+            }
+            existing.total_recipients += message.recipient_count
+            existing.total_tokens += message.tokens_used
+            existing.total_cost += message.cost
+          } else {
+            // Create new event message
+            const newEventMessage: EventMessage = {
+              event_id: eventId,
+              event_title: message.event_title,
+              sent_at: message.sent_at,
+              email_recipients: message.channel === 'email' ? message.recipient_count : 0,
+              telegram_recipients: message.channel === 'telegram' ? message.recipient_count : 0,
+              discord_recipients: message.channel === 'discord' ? message.recipient_count : 0,
+              slack_recipients: message.channel === 'slack' ? message.recipient_count : 0,
+              email_status: {
+                sent: message.channel === 'email' && message.status === 'sent' ? 1 : 0,
+                delivered: message.channel === 'email' && message.status === 'delivered' ? 1 : 0,
+                failed: message.channel === 'email' && message.status === 'failed' ? 1 : 0,
+                pending: message.channel === 'email' && message.status === 'pending' ? 1 : 0
+              },
+              telegram_status: {
+                sent: message.channel === 'telegram' && message.status === 'sent' ? 1 : 0,
+                delivered: message.channel === 'telegram' && message.status === 'delivered' ? 1 : 0,
+                failed: message.channel === 'telegram' && message.status === 'failed' ? 1 : 0,
+                pending: message.channel === 'telegram' && message.status === 'pending' ? 1 : 0
+              },
+              discord_status: {
+                sent: message.channel === 'discord' && message.status === 'sent' ? 1 : 0,
+                delivered: message.channel === 'discord' && message.status === 'delivered' ? 1 : 0,
+                failed: message.channel === 'discord' && message.status === 'failed' ? 1 : 0,
+                pending: message.channel === 'discord' && message.status === 'pending' ? 1 : 0
+              },
+              slack_status: {
+                sent: message.channel === 'slack' && message.status === 'sent' ? 1 : 0,
+                delivered: message.channel === 'slack' && message.status === 'delivered' ? 1 : 0,
+                failed: message.channel === 'slack' && message.status === 'failed' ? 1 : 0,
+                pending: message.channel === 'slack' && message.status === 'pending' ? 1 : 0
+              },
+              total_recipients: message.recipient_count,
+              total_tokens: message.tokens_used,
+              total_cost: message.cost
+            }
+            eventMessageMap.set(eventId, newEventMessage)
+          }
         }
       })
       
-      // Convert map to array and sort by sent_at
-      const eventMessagesArray = Array.from(eventMessageMap.values())
+      // Convert map to array and combine with webhook messages, then sort by sent_at
+      const eventMessagesArray = [...Array.from(eventMessageMap.values()), ...webhookMessages]
         .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
       
       setEventMessages(eventMessagesArray)
@@ -275,7 +414,9 @@ export default function MessagesPage() {
       byChannel: {
         email: { count: 0, recipients: 0, tokens: 0 },
         telegram: { count: 0, recipients: 0, tokens: 0 },
-        sms: { count: 0, recipients: 0, tokens: 0 }
+        sms: { count: 0, recipients: 0, tokens: 0 },
+        discord: { count: 0, recipients: 0, tokens: 0 },
+        slack: { count: 0, recipients: 0, tokens: 0 }
       },
       byStatus: {
         sent: 0,
@@ -329,6 +470,8 @@ export default function MessagesPage() {
       case 'email': return <Mail className="h-4 w-4" />
       case 'telegram': return <Send className="h-4 w-4" />
       case 'sms': return <TrendingUp className="h-4 w-4" />
+      case 'discord': return <MessageSquare className="h-4 w-4" />
+      case 'slack': return <MessageSquare className="h-4 w-4" />
       default: return <Mail className="h-4 w-4" />
     }
   }
@@ -353,6 +496,8 @@ export default function MessagesPage() {
       case 'email': return 'text-blue-600'
       case 'telegram': return 'text-blue-500'
       case 'sms': return 'text-green-600'
+      case 'discord': return 'text-indigo-600'
+      case 'slack': return 'text-purple-600'
       default: return 'text-gray-600'
     }
   }
@@ -525,6 +670,59 @@ export default function MessagesPage() {
           </Card>
         </div>
 
+        {/* Additional Channel Breakdown */}
+        <div className="grid gap-6 sm:gap-8 grid-cols-1 lg:grid-cols-2 mb-6 sm:mb-8">
+          <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-indigo-600" />
+                Discord Messages
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Messages:</span>
+                  <span className="font-semibold">{stats.byChannel.discord.count}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Recipients:</span>
+                  <span className="font-semibold">{stats.byChannel.discord.recipients}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Tokens:</span>
+                  <span className="font-semibold">{stats.byChannel.discord.tokens}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-purple-600" />
+                Slack Messages
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Messages:</span>
+                  <span className="font-semibold">{stats.byChannel.slack.count}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Recipients:</span>
+                  <span className="font-semibold">{stats.byChannel.slack.recipients}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Tokens:</span>
+                  <span className="font-semibold">{stats.byChannel.slack.tokens}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Messages List */}
         <Card className="bg-white/50 backdrop-blur-sm shadow-lg">
           <CardHeader>
@@ -570,6 +768,16 @@ export default function MessagesPage() {
                               <MessageSquare className="h-4 w-4" />
                             </div>
                           )}
+                          {eventMessage.discord_recipients > 0 && (
+                            <div className="text-indigo-600">
+                              <MessageSquare className="h-4 w-4" />
+                            </div>
+                          )}
+                          {eventMessage.slack_recipients > 0 && (
+                            <div className="text-purple-600">
+                              <MessageSquare className="h-4 w-4" />
+                            </div>
+                          )}
                         </div>
                         <h3 className="font-medium text-gray-800 truncate">
                           {eventMessage.event_title}
@@ -583,6 +791,16 @@ export default function MessagesPage() {
                           {eventMessage.telegram_recipients > 0 && (
                             <Badge variant="outline" className="text-xs">
                               Telegram: {eventMessage.telegram_recipients}
+                            </Badge>
+                          )}
+                          {eventMessage.discord_recipients > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              Discord: {eventMessage.discord_recipients}
+                            </Badge>
+                          )}
+                          {eventMessage.slack_recipients > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              Slack: {eventMessage.slack_recipients}
                             </Badge>
                           )}
                         </div>
@@ -617,28 +835,52 @@ export default function MessagesPage() {
                             Telegram: {eventMessage.telegram_status.sent + eventMessage.telegram_status.delivered} sent, {eventMessage.telegram_status.failed} failed
                           </div>
                         )}
+                        {eventMessage.discord_recipients > 0 && (
+                          <div className="text-xs text-gray-500">
+                            Discord: {eventMessage.discord_status.sent + eventMessage.discord_status.delivered} sent, {eventMessage.discord_status.failed} failed
+                          </div>
+                        )}
+                        {eventMessage.slack_recipients > 0 && (
+                          <div className="text-xs text-gray-500">
+                            Slack: {eventMessage.slack_status.sent + eventMessage.slack_status.delivered} sent, {eventMessage.slack_status.failed} failed
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-orange-500 text-orange-500 hover:bg-orange-50"
-                        onClick={() => router.push(`/dashboard/events/${eventMessage.event_id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Event
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-green-500 text-green-500 hover:bg-green-50"
-                        onClick={() => handleResendEvent(eventMessage.event_id)}
-                        disabled={resending === eventMessage.event_id}
-                      >
-                        <RefreshCw className={`h-4 w-4 mr-1 ${resending === eventMessage.event_id ? 'animate-spin' : ''}`} />
-                        {resending === eventMessage.event_id ? 'Preparing...' : 'Re-send'}
-                      </Button>
+                      {eventMessage.event_id !== 'webhook' ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-orange-500 text-orange-500 hover:bg-orange-50"
+                            onClick={() => router.push(`/dashboard/events/${eventMessage.event_id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Event
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-green-500 text-green-500 hover:bg-green-50"
+                            onClick={() => handleResendEvent(eventMessage.event_id)}
+                            disabled={resending === eventMessage.event_id}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-1 ${resending === eventMessage.event_id ? 'animate-spin' : ''}`} />
+                            {resending === eventMessage.event_id ? 'Preparing...' : 'Re-send'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-500 text-gray-500 hover:bg-gray-50"
+                          disabled
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Webhook Message
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
