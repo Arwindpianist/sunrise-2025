@@ -45,6 +45,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
     phone: "",
     telegram_chat_id: "",
     category: "__no_category__",
+    categories: [] as string[],
     notes: "",
   })
 
@@ -117,6 +118,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
           phone: formData.phone,
           telegram_chat_id: formData.telegram_chat_id,
           category: formData.category === "__no_category__" ? "" : formData.category,
+          categories: formData.categories,
           notes: formData.notes,
           user_id: userId,
         }),
@@ -141,6 +143,7 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
         phone: "",
         telegram_chat_id: "",
         category: "__no_category__",
+        categories: [],
         notes: "",
       })
     } catch (error: any) {
@@ -345,32 +348,44 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="category" className="text-sm font-medium flex items-center gap-2">
+                <label htmlFor="categories" className="text-sm font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4 flex-shrink-0" />
-                  How do you know {hostName}?
+                  How do you know {hostName}? (Select all that apply)
                 </label>
-                <Select
-                  value={formData.category || "__no_category__"}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger className="text-base">
-                    <SelectValue placeholder="Select your relationship" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__no_category__">I prefer not to specify</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span className="truncate">{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {categories.map((category) => (
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.categories.includes(category.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: [...prev.categories, category.id]
+                            }))
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: prev.categories.filter(id => id !== category.id)
+                            }))
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-sm text-gray-500">No categories available</p>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500">
                   This helps {hostName} organize their contacts and send relevant updates
                 </p>

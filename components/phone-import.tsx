@@ -61,6 +61,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("__no_category__")
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [previewData, setPreviewData] = useState<any[]>([])
   const [importMethod, setImportMethod] = useState<'native' | 'file' | 'share' | 'google' | 'manual'>('native')
@@ -596,7 +597,12 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
     try {
       const formData = new FormData()
       formData.append('file', selectedFile)
-      formData.append('category', selectedCategory === '__no_category__' ? '' : selectedCategory)
+      // Add categories if any are selected
+      if (selectedCategories.length > 0) {
+        selectedCategories.forEach(categoryId => {
+          formData.append('categories[]', categoryId)
+        })
+      }
 
       const response = await fetch('/api/contacts/import/phone', {
         method: 'POST',
@@ -657,7 +663,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
         },
         body: JSON.stringify({
           contacts: [contact],
-          category: selectedCategory === '__no_category__' ? '' : selectedCategory,
+          categories: selectedCategories,
         }),
       })
 
@@ -689,6 +695,7 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
   const resetForm = () => {
     setSelectedFile(null)
     setSelectedCategory("__no_category__")
+    setSelectedCategories([])
     setPreviewData([])
     setImportMethod('native')
     setManualFormData({
@@ -1287,32 +1294,36 @@ export default function PhoneImport({ categories, onImportComplete }: PhoneImpor
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">🏷️ Category (Optional)</label>
-                <Select value={selectedCategory || "__no_category__"} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Choose a category for organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__no_category__">
+                              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">🏷️ Categories (Optional)</label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {categories.map((category) => (
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(category.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories(prev => [...prev, category.id])
+                          } else {
+                            setSelectedCategories(prev => prev.filter(id => id !== category.id))
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gray-200 rounded-full" />
-                        <span>No category</span>
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-sm">{category.name}</span>
                       </div>
-                    </SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span>{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    </label>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-sm text-gray-500">No categories available</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">

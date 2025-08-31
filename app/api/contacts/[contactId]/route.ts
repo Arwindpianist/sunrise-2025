@@ -89,6 +89,51 @@ export async function PUT(
       )
     }
 
+    // Handle category assignments if categories are provided
+    if (contactData.categories && Array.isArray(contactData.categories)) {
+      try {
+        // Verify all categories belong to the user
+        const { data: userCategories, error: categoriesError } = await supabase
+          .from('contact_categories')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('id', contactData.categories)
+
+        if (categoriesError) {
+          console.error('Error verifying categories:', categoriesError)
+        } else if (userCategories.length === contactData.categories.length) {
+          // Remove existing assignments for this contact
+          const { error: deleteError } = await supabase
+            .from('contact_category_assignments')
+            .delete()
+            .eq('contact_id', params.contactId)
+
+          if (deleteError) {
+            console.error('Error removing existing assignments:', deleteError)
+          } else {
+            // Add new assignments
+            if (contactData.categories.length > 0) {
+              const assignments = contactData.categories.map(categoryId => ({
+                contact_id: params.contactId,
+                category_id: categoryId
+              }))
+
+              const { error: insertError } = await supabase
+                .from('contact_category_assignments')
+                .insert(assignments)
+
+              if (insertError) {
+                console.error('Error inserting new assignments:', insertError)
+              }
+            }
+          }
+        }
+      } catch (assignmentError) {
+        console.error('Error in category assignment update:', assignmentError)
+        // Don't fail the entire request, just log the error
+      }
+    }
+
     return NextResponse.json(updatedContact)
   } catch (error) {
     console.error('Error in PUT /api/contacts/[contactId]:', error)

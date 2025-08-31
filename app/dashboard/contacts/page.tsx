@@ -44,6 +44,11 @@ interface Contact {
   phone: string
   telegram_chat_id?: string
   category: string
+  categories?: Array<{
+    id: string
+    name: string
+    color: string
+  }>
   notes: string
   created_at: string
 }
@@ -85,6 +90,7 @@ export default function ContactsPage() {
     phone: "",
     telegram_chat_id: "",
     category: "__no_category__",
+    categories: [] as string[],
     notes: "",
   })
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
@@ -343,9 +349,19 @@ export default function ContactsPage() {
     }
 
     if (category === "__no_category__") {
-      filtered = filtered.filter(contact => !contact.category || contact.category === "")
+      // Show contacts with no categories
+      filtered = filtered.filter(contact => 
+        (!contact.categories || contact.categories.length === 0) && 
+        (!contact.category || contact.category === "")
+      )
     } else if (category !== "all") {
-      filtered = filtered.filter(contact => contact.category === category)
+      // Show contacts that have this category (either in new categories array or old category field)
+      const categoryObj = categories.find(c => c.name === category)
+      filtered = filtered.filter(contact => 
+        (contact.categories && contact.categories.some(c => c.name === category)) ||
+        contact.category === category ||
+        (categoryObj && contact.categories && contact.categories.some(c => c.id === categoryObj.id))
+      )
     }
 
     setFilteredContacts(filtered)
@@ -384,6 +400,7 @@ export default function ContactsPage() {
       const contactData = {
         ...formData,
         category: formData.category === "__no_category__" ? "" : formData.category,
+        categories: formData.categories,
       }
 
       const response = await fetch("/api/contacts", {
@@ -415,6 +432,7 @@ export default function ContactsPage() {
         phone: "",
         telegram_chat_id: "",
         category: "__no_category__",
+        categories: [],
         notes: "",
       })
       setIsAddDialogOpen(false)
@@ -447,6 +465,7 @@ export default function ContactsPage() {
       const contactData = {
         ...formData,
         category: formData.category === "__no_category__" ? "" : formData.category,
+        categories: formData.categories,
       }
 
       console.log("Updating contact with data:", contactData)
@@ -500,6 +519,7 @@ export default function ContactsPage() {
       phone: contact.phone || "",
       telegram_chat_id: contact.telegram_chat_id || "",
       category: contact.category || "__no_category__",
+      categories: contact.categories?.map(c => c.id) || [],
       notes: contact.notes || "",
     })
     setIsEditDialogOpen(true)
@@ -1191,15 +1211,20 @@ Your info will stay private and only be used if I need to contact you. Thank You
                         <h3 className="font-semibold text-gray-900 truncate">
                           {contact.first_name} {contact.last_name}
                         </h3>
-                        {contact.category && (
-                          <span 
-                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white mt-1"
-                            style={{ 
-                              backgroundColor: categories.find(c => c.name === contact.category)?.color || '#6B7280'
-                            }}
-                          >
-                            {contact.category}
-                          </span>
+                        {contact.categories && contact.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {contact.categories.map((category) => (
+                              <span 
+                                key={category.id}
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
+                                style={{ 
+                                  backgroundColor: category.color || '#6B7280'
+                                }}
+                              >
+                                {category.name}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1382,31 +1407,41 @@ Your info will stay private and only be used if I need to contact you. Thank You
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="edit_category" className="text-sm font-medium">
-                  Category
+                <label htmlFor="edit_categories" className="text-sm font-medium">
+                  Categories
                 </label>
-                <Select
-                  value={formData.category || "__no_category__"}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__no_category__">No category</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  {categories.map((category) => (
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.categories.includes(category.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: [...prev.categories, category.id]
+                            }))
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: prev.categories.filter(id => id !== category.id)
+                            }))
+                          }
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-sm text-gray-500">No categories available. Create some categories first.</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -1498,6 +1533,157 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Contact Dialog */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
+            <DialogHeader className="px-4 sm:px-0">
+              <DialogTitle className="text-lg sm:text-xl">Add New Contact</DialogTitle>
+              <DialogDescription className="text-sm">
+                Enter the contact details below.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddContact} className="space-y-4 px-4 sm:px-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="add_first_name" className="text-sm font-medium">
+                    First Name *
+                  </label>
+                  <Input
+                    id="add_first_name"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleFormChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="add_last_name" className="text-sm font-medium">
+                    Last Name
+                  </label>
+                  <Input
+                    id="add_last_name"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleFormChange}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="add_email" className="text-sm font-medium">
+                  Email *
+                </label>
+                <Input
+                  id="add_email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="add_phone" className="text-sm font-medium">
+                  Phone
+                </label>
+                <Input
+                  id="add_phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleFormChange}
+                  placeholder="+60 12-345 6789"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="add_telegram_chat_id" className="text-sm font-medium">
+                  Telegram Chat ID
+                </label>
+                <Input
+                  id="add_telegram_chat_id"
+                  name="telegram_chat_id"
+                  value={formData.telegram_chat_id}
+                  onChange={handleFormChange}
+                  placeholder="e.g., 123456789"
+                />
+                <p className="text-xs text-gray-500">
+                  Optional: Allows sending Telegram messages to this contact.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="add_categories" className="text-sm font-medium">
+                  Categories
+                </label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {categories.map((category) => (
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                      <Checkbox
+                        checked={formData.categories.includes(category.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: [...prev.categories, category.id]
+                            }))
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              categories: prev.categories.filter(id => id !== category.id)
+                            }))
+                          }
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-sm text-gray-500">No categories available. Create some categories first.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="add_notes" className="text-sm font-medium">
+                  Notes
+                </label>
+                <Textarea
+                  id="add_notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleFormChange}
+                  rows={4}
+                  placeholder="Add any additional notes about this contact..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 text-sm sm:text-base"
+                  onClick={() => {
+                    setIsAddDialogOpen(false)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1 h-12 text-sm sm:text-base" disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Contact"}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

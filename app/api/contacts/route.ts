@@ -38,10 +38,20 @@ export async function GET(request: Request) {
       )
     }
 
-    // Get contacts
+    // Get contacts with their category assignments
     const { data: contacts, error: contactsError } = await supabase
       .from('contacts')
-      .select('*')
+      .select(`
+        *,
+        contact_category_assignments (
+          category_id,
+          contact_categories (
+            id,
+            name,
+            color
+          )
+        )
+      `)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
 
@@ -58,8 +68,19 @@ export async function GET(request: Request) {
       )
     }
 
+    // Transform the data to include categories in a more accessible format
+    const transformedContacts = contacts?.map(contact => {
+      const categories = contact.contact_category_assignments?.map(assignment => assignment.contact_categories).filter(Boolean) || []
+      return {
+        ...contact,
+        categories,
+        // Keep the old category field for backward compatibility
+        category: contact.category || '__no_category__'
+      }
+    }) || []
+
     return new NextResponse(
-      JSON.stringify(contacts),
+      JSON.stringify(transformedContacts),
       { 
         status: 200,
         headers: {
@@ -95,7 +116,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('Request body:', body)
     
-    const { first_name, last_name, email, phone, telegram_chat_id, category, notes, user_id } = body
+    const { first_name, last_name, email, phone, telegram_chat_id, category, categories, notes, user_id } = body
 
     // Determine the user_id - either from session or from the form (for public contact forms)
     let targetUserId: string
@@ -195,6 +216,21 @@ export async function POST(request: Request) {
       console.log('Using existing client for public contact form - RLS policies should allow this')
     }
 
+    // Handle categories - support both old single category and new multiple categories
+    let primaryCategory = category || '__no_category__'
+    let categoryIds: string[] = []
+    
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      categoryIds = categories
+      // Use the first category as the primary category for backward compatibility
+      if (categories.length > 0) {
+        primaryCategory = categories[0]
+      }
+    } else if (category && category !== '__no_category__') {
+      // For backward compatibility, if only single category is provided
+      primaryCategory = category
+    }
+
     console.log('About to insert contact with data:', {
       user_id: targetUserId,
       first_name,
@@ -202,8 +238,9 @@ export async function POST(request: Request) {
       email,
       phone,
       telegram_chat_id,
-      category,
+      category: primaryCategory,
       notes,
+      categoryIds,
     })
 
     // Create contact
@@ -250,6 +287,29 @@ export async function POST(request: Request) {
           },
         }
       )
+    }
+
+    // Create category assignments if categories are provided
+    if (categoryIds.length > 0) {
+      try {
+        const assignments = categoryIds.map(categoryId => ({
+          contact_id: contact.id,
+          category_id: categoryId
+        }))
+
+        const { error: assignmentError } = await supabaseClient
+          .from('contact_category_assignments')
+          .insert(assignments)
+
+        if (assignmentError) {
+          console.error('Error creating category assignments:', assignmentError)
+          // Don't fail the entire request, just log the error
+          // The contact was created successfully, just without category assignments
+        }
+      } catch (assignmentError) {
+        console.error('Error in category assignment creation:', assignmentError)
+        // Don't fail the entire request, just log the error
+      }
     }
 
     console.log('Contact created successfully:', contact)

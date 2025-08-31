@@ -85,6 +85,26 @@ export interface Database {
           created_at?: string
         }
       }
+      contact_category_assignments: {
+        Row: {
+          id: string
+          contact_id: string
+          category_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contact_id: string
+          category_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contact_id?: string
+          category_id?: string
+          created_at?: string
+        }
+      }
       events: {
         Row: {
           id: string
