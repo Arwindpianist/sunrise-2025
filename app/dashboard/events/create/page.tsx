@@ -352,14 +352,37 @@ export default function CreateEventPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
+      // For counting purposes, we'll use a simpler approach that works with both old and new systems
       let contactsQuery = supabase
         .from('contacts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
 
+      let newCategoryContacts: any[] = []
+
       // Filter by selected category if not "all"
       if (formData.category && formData.category !== "all") {
-        contactsQuery = contactsQuery.eq('category', formData.category)
+        // First try to find contacts with the new multiple categories system
+        const { data: categoryContacts, error: newCategoryError } = await supabase
+          .from('contact_category_assignments')
+          .select(`
+            contact_id,
+            contact_categories!inner (
+              name
+            )
+          `)
+          .eq('contact_categories.name', formData.category)
+          .eq('contacts.user_id', session.user.id)
+
+        if (!newCategoryError && categoryContacts && categoryContacts.length > 0) {
+          // Use the new system count
+          newCategoryContacts = categoryContacts
+          const contactIds = categoryContacts.map((cca: any) => cca.contact_id)
+          contactsQuery = contactsQuery.in('id', contactIds)
+        } else {
+          // Fallback to old single category system
+          contactsQuery = contactsQuery.eq('category', formData.category)
+        }
       }
 
       const { count, error } = await contactsQuery
@@ -380,7 +403,13 @@ export default function CreateEventPage() {
           .not('telegram_chat_id', 'is', null)
 
         if (formData.category && formData.category !== "all") {
-          telegramContactsQuery = telegramContactsQuery.eq('category', formData.category)
+          // Apply same category filtering for Telegram
+          if (newCategoryContacts && newCategoryContacts.length > 0) {
+            const contactIds = newCategoryContacts.map((cca: any) => cca.contact_id)
+            telegramContactsQuery = telegramContactsQuery.in('id', contactIds)
+          } else {
+            telegramContactsQuery = telegramContactsQuery.eq('category', formData.category)
+          }
         }
 
         const { count: telegramCount } = await telegramContactsQuery
@@ -570,7 +599,26 @@ export default function CreateEventPage() {
       // Filter by category if event has a category (no category means "all")
       // Note: "general" category means "all contacts", so don't filter
       if (formData.category && formData.category !== "all" && formData.category !== "general") {
-        contactsQuery = contactsQuery.eq("category", formData.category)
+        // Try to use the new multiple categories system first
+        const { data: categoryContacts, error: categoryError } = await supabase
+          .from('contact_category_assignments')
+          .select(`
+            contact_id,
+            contact_categories!inner (
+              name
+            )
+          `)
+          .eq('contact_categories.name', formData.category)
+          .eq('contacts.user_id', session.user.id)
+
+        if (!categoryError && categoryContacts && categoryContacts.length > 0) {
+          // Use the new system - filter by contact IDs
+          const contactIds = categoryContacts.map((cca: any) => cca.contact_id)
+          contactsQuery = contactsQuery.in('id', contactIds)
+        } else {
+          // Fallback to old single category system
+          contactsQuery = contactsQuery.eq("category", formData.category)
+        }
       }
 
       const { data: contacts, error: contactsError } = await contactsQuery

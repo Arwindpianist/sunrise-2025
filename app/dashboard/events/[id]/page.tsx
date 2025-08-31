@@ -411,7 +411,26 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
 
       // Note: "general" category means "all contacts", so don't filter
       if (event.category && event.category !== "general") {
-        getContactsQuery = getContactsQuery.eq("category", event.category)
+        // Try to use the new multiple categories system first
+        const { data: categoryContacts, error: categoryError } = await supabase
+          .from('contact_category_assignments')
+          .select(`
+            contact_id,
+            contact_categories!inner (
+              name
+            )
+          `)
+          .eq('contact_categories.name', event.category)
+          .eq('contacts.user_id', session.user.id)
+
+        if (!categoryError && categoryContacts && categoryContacts.length > 0) {
+          // Use the new system - filter by contact IDs
+          const contactIds = categoryContacts.map((cca: any) => cca.contact_id)
+          getContactsQuery = getContactsQuery.in('id', contactIds)
+        } else {
+          // Fallback to old single category system
+          getContactsQuery = getContactsQuery.eq("category", event.category)
+        }
       }
 
       const { data: contacts, error: contactsError } = await getContactsQuery
