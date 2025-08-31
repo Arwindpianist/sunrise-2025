@@ -40,22 +40,18 @@ export default function AboutPage() {
 
   const teamMembers = [
     {
-      name: "Sarah Chen",
+      name: "Arwin Kumar",
       role: "Founder & CEO",
-      bio: "Former event planner with 10+ years of experience in creating memorable celebrations. Passionate about making event planning accessible to everyone.",
-      expertise: ["Event Planning", "Business Strategy", "User Experience"]
+      company: "Arwindpianist Multimedia & Consulting",
+      bio: "Founder and owner of Arwindpianist Multimedia & Consulting (arwindpianist.store). Personally developed, designed, and architected the entire Sunrise-2025 platform, bringing comprehensive business solutions to life.",
+      expertise: ["Full-Stack Development", "Product Design", "Business Strategy", "Multimedia Consulting"]
     },
     {
-      name: "Ahmad Rahman",
-      role: "Head of Technology",
-      bio: "Full-stack developer with expertise in modern web technologies. Focused on creating scalable, secure, and user-friendly solutions.",
-      expertise: ["Full-Stack Development", "System Architecture", "Security"]
-    },
-    {
-      name: "Priya Sharma",
-      role: "Product Manager",
-      bio: "Product strategist with a background in SaaS and event management. Dedicated to understanding user needs and delivering exceptional experiences.",
-      expertise: ["Product Strategy", "User Research", "Feature Development"]
+      name: "Sunrise Sunset Group",
+      role: "Financial Partners & Sales Support",
+      company: "Sunrise Sunset Group",
+      bio: "Strategic financial partners who provide investment support and actively help drive sales and market expansion for the Sunrise-2025 platform.",
+      expertise: ["Financial Investment", "Sales & Marketing", "Market Expansion", "Business Development"]
     }
   ]
 
@@ -63,17 +59,17 @@ export default function AboutPage() {
     {
       year: "2025",
       title: "Platform Launch",
-      description: "Successfully launched Sunrise-2025 with core event management features and multi-channel communication capabilities."
+      description: "Successfully launched Sunrise-2025 on September 1st with core event management features and multi-channel communication capabilities."
     },
     {
-      year: "2024",
+      year: "2025",
       title: "Development Phase",
       description: "Built the foundation with modern technologies including Next.js, Supabase, and TypeScript for a robust platform."
     },
     {
-      year: "2023",
+      year: "2025",
       title: "Concept Development",
-      description: "Identified the need for a comprehensive event management solution and began planning the platform architecture."
+      description: "Started the Sunrise idea at the beginning of 2025, identifying the need for a comprehensive event management solution."
     }
   ]
 
@@ -109,13 +105,93 @@ export default function AboutPage() {
             About <span className="bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent">Sunrise-2025</span>
           </h1>
           <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
-            We're on a mission to make celebrating life's beautiful moments easier, more organized, and more joyful. 
+            Created by Arwin Kumar, founder of Arwindpianist Multimedia & Consulting, we're on a mission to make celebrating life's beautiful moments easier, more organized, and more joyful. 
             From intimate gatherings to grand celebrations, Sunrise-2025 is your trusted companion for creating unforgettable experiences.
           </p>
         </div>
 
-        {/* Mission Statement */}
+        {/* Company Information */}
         <Card className="mb-12 sm:mb-16 border-orange-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">About Arwindpianist Multimedia & Consulting</h2>
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
+              <div>
+                <p className="text-base sm:text-lg text-gray-600 mb-3 sm:mb-4 leading-relaxed">
+                  Sunrise-2025 is a product of Arwindpianist Multimedia & Consulting, a company founded and owned by Arwin Kumar. 
+                  Our company specializes in multimedia consulting, technology innovation, and business strategy.
+                </p>
+                <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+                  With expertise in creating innovative digital solutions, we've developed Sunrise-2025 to address the real-world 
+                  challenges faced by event organizers and planners.
+                </p>
+                <div className="mt-4">
+                  <a href="https://arwindpianist.store" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-rose-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-rose-600 transition-colors">
+                    Visit Our Company
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-100 to-rose-100 rounded-lg p-4 sm:p-6 text-center">
+                <Globe className="h-12 w-12 sm:h-16 sm:w-16 text-orange-500 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Multimedia & Consulting</h3>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Specializing in innovative digital solutions and business consulting services.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Partnership Section */}
+        <Card className="mb-12 sm:mb-16 border-blue-200">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">Strategic Partnership</h2>
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Arwindpianist Multimedia & Consulting</h3>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  Founded and owned by Arwin Kumar, our company handles 100% of the development, design, and business solutions. 
+                  We provide complete technical expertise, product architecture, and comprehensive business strategy.
+                </p>
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <h4 className="font-semibold text-gray-800 mb-2">Our Complete Contribution:</h4>
+                  <ul className="text-gray-600 text-sm space-y-1">
+                    <li>• Full-Stack Development</li>
+                    <li>• Product Design & UX</li>
+                    <li>• Business Strategy & Vision</li>
+                    <li>• Technical Architecture</li>
+                    <li>• Multimedia Consulting</li>
+                  </ul>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Sunrise Sunset Group</h3>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  Strategic financial partners who provide investment support and actively help drive sales and market expansion. 
+                  They contribute to business growth and market reach.
+                </p>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-semibold text-gray-800 mb-2">Their Contribution:</h4>
+                  <ul className="text-gray-600 text-sm space-y-1">
+                    <li>• Financial Investment</li>
+                    <li>• Sales & Marketing Support</li>
+                    <li>• Market Expansion</li>
+                    <li>• Business Development</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="text-center mt-8">
+              <p className="text-gray-700 font-medium">
+                This strategic partnership combines complete technical development with financial support and sales expertise 
+                to create and grow the most comprehensive event planning platform available.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mission Statement */}
+        <Card className="mb-12 sm:mb-16 border-rose-200">
           <CardContent className="p-6 sm:p-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">Our Mission</h2>
             <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
@@ -142,20 +218,24 @@ export default function AboutPage() {
         </Card>
 
         {/* Company Story */}
-        <Card className="mb-12 sm:mb-16 border-rose-200">
+        <Card className="mb-12 sm:mb-16 border-amber-200">
           <CardContent className="p-6 sm:p-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Our Story</h2>
             <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
               <div>
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">The Beginning</h3>
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  Sunrise-2025 was born from a simple observation: event planning, while rewarding, was often overwhelming and fragmented. 
-                  Our founder, Sarah Chen, experienced this firsthand while planning her own wedding and several corporate events.
-                </p>
-                <p className="text-gray-600 leading-relaxed">
-                  She noticed that existing solutions were either too complex, too expensive, or too limited in scope. 
-                  There had to be a better way to bring people together and create meaningful celebrations.
-                </p>
+                                 <p className="text-gray-600 leading-relaxed mb-4">
+                   Sunrise-2025 was born from a simple observation: event planning, while rewarding, was often overwhelming and fragmented. 
+                   Our founder, Arwin Kumar, experienced this firsthand while working with clients through Arwindpianist Multimedia & Consulting.
+                 </p>
+                 <p className="text-gray-600 leading-relaxed">
+                   He noticed that existing solutions were either too complex, too expensive, or too limited in scope. 
+                   There had to be a better way to bring people together and create meaningful celebrations.
+                 </p>
+                 <p className="text-gray-600 leading-relaxed">
+                   This led to a strategic partnership with the Sunrise Sunset Group, where Arwin personally developed, designed, and architected 
+                   the entire platform, while the group provides financial support and helps drive sales and market expansion.
+                 </p>
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">The Solution</h3>
@@ -165,7 +245,7 @@ export default function AboutPage() {
                   to large corporate events.
                 </p>
                 <p className="text-gray-600 leading-relaxed">
-                  Today, Sunrise-2025 serves thousands of event organizers, helping them create unforgettable experiences 
+                  Today, Sunrise-2025 serves event organizers worldwide, helping them create unforgettable experiences 
                   while saving time and reducing stress.
                 </p>
               </div>
@@ -174,10 +254,14 @@ export default function AboutPage() {
         </Card>
 
         {/* Team Section */}
-        <Card className="mb-12 sm:mb-16 border-amber-200">
+        <Card className="mb-12 sm:mb-16 border-green-200">
           <CardContent className="p-6 sm:p-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Meet Our Team</h2>
-            <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+            <p className="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+              Our team combines complete technical development from Arwindpianist Multimedia & Consulting with financial support and sales expertise from the Sunrise Sunset Group, 
+              creating a powerful partnership that brings the ultimate event planning platform to market.
+            </p>
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
               {teamMembers.map((member, index) => (
                 <div key={index} className="text-center">
                   <div className="bg-gradient-to-br from-orange-100 to-rose-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
@@ -185,6 +269,7 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">{member.name}</h3>
                   <p className="text-orange-600 font-medium mb-3">{member.role}</p>
+                  <p className="text-blue-600 text-sm font-medium mb-2">{member.company}</p>
                   <p className="text-gray-600 text-sm leading-relaxed mb-4">{member.bio}</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {member.expertise.map((skill) => (

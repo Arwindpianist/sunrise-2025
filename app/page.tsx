@@ -96,7 +96,7 @@ export default function HomePage() {
       <section className="bg-white py-12 sm:py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl sm:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-800">Everything You Need for Perfect Events</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <div className="text-center">
               <div className="bg-orange-100 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mx-auto mb-2 sm:mb-3">
                 <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
@@ -127,6 +127,49 @@ export default function HomePage() {
               </div>
               <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Beautiful Templates</h3>
               <p className="text-xs sm:text-sm text-gray-600">Pre-designed for every occasion</p>
+            </div>
+          </div>
+          
+          {/* Detailed Feature Explanation */}
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-800">Why Choose Sunrise-2025 for Your Events?</h3>
+            <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed">
+              Sunrise-2025 is more than just an event management tool - it's your complete solution for creating memorable celebrations. 
+              Our platform combines cutting-edge technology with user-friendly design to make event planning effortless and enjoyable.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="font-semibold mb-3 text-gray-800">Advanced Contact Management</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Import contacts from multiple sources including Google Contacts, vCard files, and CSV formats. 
+                  Organize your guest lists with custom categories and smart tagging for efficient event management.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="font-semibold mb-3 text-gray-800">Professional Templates</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Choose from a wide variety of professionally designed templates for weddings, birthdays, corporate events, 
+                  and more. Customize colors, fonts, and layouts to match your event's theme perfectly.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="font-semibold mb-3 text-gray-800">Multi-Platform Messaging</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Reach your guests on their preferred platforms. Send invitations via email, WhatsApp, Telegram, 
+                  Discord, and SMS with automated scheduling and follow-up reminders.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="font-semibold mb-3 text-gray-800">Smart Automation</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Set up automated workflows for RSVP tracking, reminder sequences, and follow-up messages. 
+                  Save time while ensuring no guest is forgotten in your event planning process.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -180,6 +223,54 @@ export default function HomePage() {
               <div className="text-xs sm:text-sm text-gray-500">Happy Customer</div>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="bg-gray-50 py-12 sm:py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl sm:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-800">Frequently Asked Questions</h2>
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-800">How does the token system work?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Our token system is simple and fair. Each action (sending an email, creating an event, etc.) costs a certain number of tokens. 
+                Free users get 15 tokens to start, and you can purchase additional tokens as needed. This ensures you only pay for what you use.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-800">Can I import contacts from different sources?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Yes! Sunrise-2025 supports multiple contact import methods including Google Contacts, vCard files, CSV files, and manual entry. 
+                All import methods are free and help you organize your guest lists efficiently.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-800">What types of events can I create?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                You can create any type of event - weddings, birthdays, corporate meetings, festivals, baby showers, and more. 
+                Our platform provides specialized templates for different occasions, making your invitations look professional and engaging.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-800">Is my data secure?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Absolutely. We use enterprise-grade security measures including bank-level encryption, secure data centers, and strict privacy policies. 
+                Your contact information and event details are protected with the highest security standards.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-800">Can I schedule messages in advance?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Yes! Our smart scheduling feature allows you to set up automated message sequences. Send invitations, reminders, and follow-ups 
+                at the perfect time, even when you're busy with other event preparations.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

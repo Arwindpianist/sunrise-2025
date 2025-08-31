@@ -49,6 +49,11 @@ export default function Footer() {
                   Contact
               </Link>
               </li>
+              <li>
+                <Link href="/contact-info" className="text-gray-600 hover:text-orange-500">
+                  Contact Info
+              </Link>
+              </li>
             </ul>
           </div>
           <div>
@@ -57,6 +62,11 @@ export default function Footer() {
               <li>
                 <Link href="/privacy" className="text-gray-600 hover:text-orange-500">
                   Privacy Policy
+              </Link>
+              </li>
+              <li>
+                <Link href="/cookie-policy" className="text-gray-600 hover:text-orange-500">
+                  Cookie Policy
               </Link>
               </li>
               <li>
