@@ -16,14 +16,20 @@ export async function filterContactsByCategory(
 
   try {
     // First try to find contacts with the new multiple categories system
+    // Use a more direct approach by querying the junction table with proper user filtering
     const { data: categoryContacts, error: categoryError } = await supabase
       .from('contact_category_assignments')
       .select(`
         contact_id,
-        contact_categories (
+        contacts!inner (
+          id,
+          user_id
+        ),
+        contact_categories!inner (
           name
         )
       `)
+      .eq('contacts.user_id', userId)
       .eq('contact_categories.name', category)
 
     if (!categoryError && categoryContacts && categoryContacts.length > 0) {
