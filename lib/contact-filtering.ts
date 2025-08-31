@@ -20,12 +20,11 @@ export async function filterContactsByCategory(
       .from('contact_category_assignments')
       .select(`
         contact_id,
-        contact_categories!inner (
+        contact_categories (
           name
         )
       `)
       .eq('contact_categories.name', category)
-      .eq('contacts.user_id', userId)
 
     if (!categoryError && categoryContacts && categoryContacts.length > 0) {
       // Use the new system

@@ -25,6 +25,7 @@ import { slackTemplates, type SlackTemplateVars } from "@/components/slack-templ
 import { format } from "date-fns"
 import { Mail, Send, MessageCircle, Smartphone, Zap, ArrowRight, AlertTriangle } from "lucide-react"
 import { canCreateEventClient as canCreateEvent, getLimitInfo, getLimitUpgradeRecommendation } from "@/lib/subscription-limits-client"
+import { countContactsByCategory, buildContactsQuery } from "@/lib/contact-filtering"
 
 const stripePromise = typeof window !== 'undefined' && window.location.protocol === 'https:' 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -352,39 +353,8 @@ export default function CreateEventPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      // For counting purposes, we'll use a simpler approach that works with both old and new systems
-      let contactsQuery = supabase
-        .from('contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-
-      let newCategoryContacts: any[] = []
-
-      // Filter by selected category if not "all"
-      if (formData.category && formData.category !== "all") {
-        // First try to find contacts with the new multiple categories system
-        const { data: categoryContacts, error: newCategoryError } = await supabase
-          .from('contact_category_assignments')
-          .select(`
-            contact_id,
-            contact_categories!inner (
-              name
-            )
-          `)
-          .eq('contact_categories.name', formData.category)
-          .eq('contacts.user_id', session.user.id)
-
-        if (!newCategoryError && categoryContacts && categoryContacts.length > 0) {
-          // Use the new system count
-          newCategoryContacts = categoryContacts
-          const contactIds = categoryContacts.map((cca: any) => cca.contact_id)
-          contactsQuery = contactsQuery.in('id', contactIds)
-        } else {
-          // Fallback to old single category system
-          contactsQuery = contactsQuery.eq('category', formData.category)
-        }
-      }
-
+      // Use the utility function for accurate contact counting
+      const contactsQuery = await countContactsByCategory(supabase, session.user.id, formData.category)
       const { count, error } = await contactsQuery
 
       if (error) throw error
@@ -403,10 +373,11 @@ export default function CreateEventPage() {
           .not('telegram_chat_id', 'is', null)
 
         if (formData.category && formData.category !== "all") {
-          // Apply same category filtering for Telegram
-          if (newCategoryContacts && newCategoryContacts.length > 0) {
-            const contactIds = newCategoryContacts.map((cca: any) => cca.contact_id)
-            telegramContactsQuery = telegramContactsQuery.in('id', contactIds)
+          // Apply same category filtering for Telegram using the utility function
+          const filterResult = await import('@/lib/contact-filtering').then(m => m.filterContactsByCategory(supabase, session.user.id, formData.category))
+          
+          if (filterResult.useNewSystem && filterResult.contactIds) {
+            telegramContactsQuery = telegramContactsQuery.in('id', filterResult.contactIds)
           } else {
             telegramContactsQuery = telegramContactsQuery.eq('category', formData.category)
           }
@@ -591,35 +562,7 @@ export default function CreateEventPage() {
       }
 
       // Get contacts for the event based on the event's category
-      let contactsQuery = supabase
-        .from("contacts")
-        .select("*")
-        .eq("user_id", session.user.id)
-
-      // Filter by category if event has a category (no category means "all")
-      // Note: "general" category means "all contacts", so don't filter
-      if (formData.category && formData.category !== "all" && formData.category !== "general") {
-        // Try to use the new multiple categories system first
-        const { data: categoryContacts, error: categoryError } = await supabase
-          .from('contact_category_assignments')
-          .select(`
-            contact_id,
-            contact_categories!inner (
-              name
-            )
-          `)
-          .eq('contact_categories.name', formData.category)
-          .eq('contacts.user_id', session.user.id)
-
-        if (!categoryError && categoryContacts && categoryContacts.length > 0) {
-          // Use the new system - filter by contact IDs
-          const contactIds = categoryContacts.map((cca: any) => cca.contact_id)
-          contactsQuery = contactsQuery.in('id', contactIds)
-        } else {
-          // Fallback to old single category system
-          contactsQuery = contactsQuery.eq("category", formData.category)
-        }
-      }
+      const contactsQuery = await buildContactsQuery(supabase, session.user.id, formData.category)
 
       const { data: contacts, error: contactsError } = await contactsQuery
 
