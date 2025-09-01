@@ -12,7 +12,7 @@ const vapidKeys = {
 }
 
 webpush.setVapidDetails(
-  'mailto:your-email@example.com', // Replace with your email
+  'mailto:admin@sunrise-2025.com', // Replace with your email
   vapidKeys.publicKey,
   vapidKeys.privateKey
 )
