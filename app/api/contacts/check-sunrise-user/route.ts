@@ -51,28 +51,46 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if the email exists in the auth.users table
-    const { data: user, error: userError } = await supabase.auth.admin.getUserByEmail(email)
+    // First try to use the database function if it exists
+    let isSunriseUser = false
+    let userId = null
 
-    if (userError) {
-      console.error('Error checking user:', userError)
-      return new NextResponse(
-        JSON.stringify({ error: 'Failed to check user status' }),
-        { 
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+    try {
+      const { data: userCheck, error: userError } = await supabase
+        .rpc('check_user_exists', { user_email: email })
+
+      if (!userError && userCheck && userCheck.length > 0) {
+        isSunriseUser = userCheck[0].user_exists
+        userId = userCheck[0].user_id
+      }
+    } catch (error) {
+      console.log('Database function not available, trying alternative approach')
     }
 
-    const isSunriseUser = !!user.user
+    // Fallback: Check the users table for profile data
+    if (!isSunriseUser) {
+      try {
+        const { data: users, error: userError } = await supabase
+          .from('users')
+          .select('id, email')
+          .eq('email', email)
+          .limit(1)
+
+        if (!userError && users && users.length > 0) {
+          isSunriseUser = true
+          userId = users[0].id
+        }
+      } catch (error) {
+        console.error('Error checking users table:', error)
+      }
+    }
+
+    console.log(`Checking Sunrise user for ${email}: ${isSunriseUser ? 'Found' : 'Not found'}`)
 
     return new NextResponse(
       JSON.stringify({ 
         isSunriseUser,
-        userId: user.user?.id || null,
+        userId: userId,
         email: email
       }),
       { 

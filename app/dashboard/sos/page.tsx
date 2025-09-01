@@ -150,10 +150,14 @@ export default function SosPage() {
 
       if (error) throw error
       
+      console.log('Fetched emergency contacts:', data)
+      
       // Check which contacts are Sunrise users
       const contactsWithUserStatus = await Promise.all(
         (data || []).map(async (emergencyContact) => {
           try {
+            console.log(`Checking Sunrise user for: ${emergencyContact.contact.email}`)
+            
             const response = await fetch('/api/contacts/check-sunrise-user', {
               method: 'POST',
               headers: {
@@ -166,6 +170,8 @@ export default function SosPage() {
             
             if (response.ok) {
               const result = await response.json()
+              console.log(`Result for ${emergencyContact.contact.email}:`, result)
+              
               return {
                 ...emergencyContact,
                 contact: {
@@ -174,9 +180,11 @@ export default function SosPage() {
                   userId: result.userId
                 }
               }
+            } else {
+              console.error(`Failed to check user for ${emergencyContact.contact.email}:`, response.status, response.statusText)
             }
           } catch (error) {
-            console.error('Error checking user status:', error)
+            console.error('Error checking user status for', emergencyContact.contact.email, ':', error)
           }
           
           return {
@@ -190,6 +198,7 @@ export default function SosPage() {
         })
       )
       
+      console.log('Final emergency contacts with user status:', contactsWithUserStatus)
       setEmergencyContacts(contactsWithUserStatus)
     } catch (error) {
       console.error('Error fetching emergency contacts:', error)
