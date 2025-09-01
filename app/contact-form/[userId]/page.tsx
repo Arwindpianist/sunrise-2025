@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Users, Mail, Phone, Calendar, MessageSquare, Bot, ExternalLink } from "lucide-react"
+import { Users, Mail, Phone, Calendar, MessageSquare, Bot, ExternalLink, AlertTriangle } from "lucide-react"
 import { use } from "react"
 
 interface UserProfile {
@@ -407,6 +407,46 @@ export default function ContactFormPage({ params }: { params: Promise<{ userId: 
                 <p className="text-xs text-gray-500">
                   Optional - dietary preferences, accessibility needs, or other important details
                 </p>
+              </div>
+
+              {/* SOS Account Creation Prompt */}
+              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-red-800 mb-2 text-sm">
+                      🚨 Create a Sunrise Account for Emergency Contacts
+                    </h3>
+                    <p className="text-red-700 text-xs mb-3 leading-relaxed">
+                      {hostName} can add you as an emergency contact for SOS alerts. Create a free Sunrise account to enable this feature and receive instant notifications in case of emergencies.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('/register', '_blank')}
+                        className="text-xs h-8 border-red-300 text-red-700 hover:bg-red-50"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Create Free Account
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open('/features', '_blank')}
+                        className="text-xs h-8 text-red-600 hover:bg-red-50"
+                      >
+                        Learn More
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">

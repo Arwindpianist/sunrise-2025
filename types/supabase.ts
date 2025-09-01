@@ -472,6 +472,178 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+              }
+        emergency_contacts: {
+          Row: {
+            id: string
+            user_id: string
+            contact_id: string
+            is_active: boolean
+            priority: number
+            created_at: string
+            updated_at: string
+          }
+          Insert: {
+            id?: string
+            user_id: string
+            contact_id: string
+            is_active?: boolean
+            priority?: number
+            created_at?: string
+            updated_at?: string
+          }
+          Update: {
+            id?: string
+            user_id?: string
+            contact_id?: string
+            is_active?: boolean
+            priority?: number
+            created_at?: string
+            updated_at?: string
+          }
+        }
+        sos_alerts: {
+          Row: {
+            id: string
+            user_id: string
+            status: string
+            location_lat: number | null
+            location_lng: number | null
+            location_address: string | null
+            triggered_at: string
+            resolved_at: string | null
+            notes: string | null
+            created_at: string
+          }
+          Insert: {
+            id?: string
+            user_id: string
+            status?: string
+            location_lat?: number | null
+            location_lng?: number | null
+            location_address?: string | null
+            triggered_at?: string
+            resolved_at?: string | null
+            notes?: string | null
+            created_at?: string
+          }
+          Update: {
+            id?: string
+            user_id?: string
+            status?: string
+            location_lat?: number | null
+            location_lng?: number | null
+            location_address?: string | null
+            triggered_at?: string
+            resolved_at?: string | null
+            notes?: string | null
+            created_at?: string
+          }
+        }
+        sos_alert_notifications: {
+          Row: {
+            id: string
+            sos_alert_id: string
+            emergency_contact_id: string
+            notification_type: string
+            status: string
+            sent_at: string | null
+            delivered_at: string | null
+            error_message: string | null
+            created_at: string
+          }
+          Insert: {
+            id?: string
+            sos_alert_id: string
+            emergency_contact_id: string
+            notification_type: string
+            status?: string
+            sent_at?: string | null
+            delivered_at?: string | null
+            error_message?: string | null
+            created_at?: string
+          }
+          Update: {
+            id?: string
+            sos_alert_id?: string
+            emergency_contact_id?: string
+            notification_type?: string
+            status?: string
+            sent_at?: string | null
+            delivered_at?: string | null
+            error_message?: string | null
+            created_at?: string
+          }
+        }
+        notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          message: string
+          data: Json | null
+          is_read: boolean
+          priority: string
+          created_at: string
+          read_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          message: string
+          data?: Json | null
+          is_read?: boolean
+          priority?: string
+          created_at?: string
+          read_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          message?: string
+          data?: Json | null
+          is_read?: boolean
+          priority?: string
+          created_at?: string
+          read_at?: string | null
+        }
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh_key: string
+          auth_key: string
+          created_at: string
+          updated_at: string
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh_key: string
+          auth_key: string
+          created_at?: string
+          updated_at?: string
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          endpoint?: string
+          p256dh_key?: string
+          auth_key?: string
+          created_at?: string
+          updated_at?: string
+          is_active?: boolean
+        }
       }
     }
     Views: {

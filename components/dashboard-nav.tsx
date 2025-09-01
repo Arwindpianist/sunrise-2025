@@ -4,7 +4,24 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar, Users, Coins, Settings, LogOut, Shield, Mail, Send, Crown, Zap, User, Database, MessageSquare } from "lucide-react"
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar, 
+  MessageSquare, 
+  Settings as SettingsIcon,
+  AlertTriangle,
+  Bell,
+  Coins,
+  Mail,
+  Send,
+  Database,
+  Shield,
+  User,
+  Zap,
+  Crown,
+  LogOut
+} from "lucide-react"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
 import { useSubscription } from "@/lib/use-subscription"
@@ -224,6 +241,45 @@ export function DashboardNav() {
         <LogOut className="mr-2 h-4 w-4" />
         Sign Out
       </Button>
+
+              <Link href="/dashboard/sos">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              pathname.startsWith("/dashboard/sos") && "bg-accent"
+            )}
+          >
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            SOS
+          </Button>
+        </Link>
+
+        <Link href="/dashboard/notifications">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              pathname.startsWith("/dashboard/notifications") && "bg-accent"
+            )}
+          >
+            <Bell className="mr-2 h-4 w-4" />
+            Notifications
+          </Button>
+        </Link>
+
+        <Link href="/dashboard/settings">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start",
+            pathname.startsWith("/dashboard/settings") && "bg-accent"
+          )}
+        >
+          <SettingsIcon className="mr-2 h-4 w-4" />
+          Settings
+        </Button>
+      </Link>
     </nav>
   )
 } 
