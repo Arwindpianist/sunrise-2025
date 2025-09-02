@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye, UserPlus, Crown, Settings } from "lucide-react"
+import { Calendar, Users, Mail, Coins, Clock, CheckCircle, Plus, Eye, UserPlus, Crown, Settings, AlertTriangle } from "lucide-react"
 import SubscriptionStatus from "@/components/subscription-status"
 import FeatureAvailability from "@/components/feature-availability"
 import Link from "next/link"
@@ -152,7 +152,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 <Button
                   className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 h-12 sm:h-14 text-sm sm:text-base font-semibold"
                   onClick={() => router.push('/dashboard/events/create')}
@@ -183,6 +183,13 @@ export default function DashboardPage() {
                 >
                   <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   All Events
+                </Button>
+                <Button
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 h-12 sm:h-14 text-sm sm:text-base font-semibold shadow-lg"
+                  onClick={() => router.push('/dashboard/sos')}
+                >
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Emergency SOS
                 </Button>
               </div>
             </CardContent>

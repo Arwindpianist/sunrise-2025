@@ -12,11 +12,13 @@ import { useSupabase } from "@/components/providers/supabase-provider"
 interface NotificationPermissionProps {
   onPermissionGranted?: () => void
   showInstallPrompt?: boolean
+  forceShow?: boolean
 }
 
 export default function NotificationPermission({ 
   onPermissionGranted,
-  showInstallPrompt = true 
+  showInstallPrompt = true,
+  forceShow = false
 }: NotificationPermissionProps) {
   const { user, supabase } = useSupabase()
   const [isSupported, setIsSupported] = useState(false)
@@ -25,13 +27,26 @@ export default function NotificationPermission({
   const [isInstalled, setIsInstalled] = useState(false)
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
   useEffect(() => {
     checkSupport()
     checkPermission()
     checkInstallation()
     setupInstallListener()
-  }, [])
+    
+    // Auto-request permission after a short delay if not granted
+    if (forceShow && !hasShownPrompt) {
+      const timer = setTimeout(() => {
+        if (permission === 'default' && isSupported) {
+          handlePermissionRequest()
+          setHasShownPrompt(true)
+        }
+      }, 2000) // Wait 2 seconds before auto-requesting
+      
+      return () => clearTimeout(timer)
+    }
+  }, [forceShow, permission, isSupported, hasShownPrompt])
 
   const checkSupport = () => {
     const supported = pushNotificationManager.isSupported()

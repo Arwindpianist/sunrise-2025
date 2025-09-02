@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { LogOut, User, Menu, LifeBuoy } from "lucide-react"
+import { LogOut, User, Menu, LifeBuoy, AlertTriangle } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { useState, useEffect } from "react"
 import MobileMenu from "./mobile-menu"
@@ -108,6 +108,17 @@ export default function Header() {
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-orange-500">
                     <User className="h-4 w-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Dashboard</span>
+                  </Button>
+                </Link>
+
+                <Link href="/dashboard/sos">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">SOS</span>
                   </Button>
                 </Link>
 

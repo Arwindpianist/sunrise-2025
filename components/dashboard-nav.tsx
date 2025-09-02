@@ -81,6 +81,20 @@ export function DashboardNav() {
           Dashboard
         </Button>
       </Link>
+      
+      {/* Emergency SOS - Prominently placed */}
+      <Link href="/dashboard/sos">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50",
+            pathname.startsWith("/dashboard/sos") && "bg-red-50 text-red-700"
+          )}
+        >
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          Emergency SOS
+        </Button>
+      </Link>
       <Link href="/dashboard/contacts">
         <Button
           variant="ghost"
@@ -233,42 +247,20 @@ export function DashboardNav() {
         </div>
       )}
       
-      <Button
-        variant="ghost"
-        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
-        onClick={handleSignOut}
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Sign Out
-      </Button>
+      <Link href="/dashboard/notifications">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start",
+            pathname.startsWith("/dashboard/notifications") && "bg-accent"
+          )}
+        >
+          <Bell className="mr-2 h-4 w-4" />
+          Notifications
+        </Button>
+      </Link>
 
-              <Link href="/dashboard/sos">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start",
-              pathname.startsWith("/dashboard/sos") && "bg-accent"
-            )}
-          >
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            SOS
-          </Button>
-        </Link>
-
-        <Link href="/dashboard/notifications">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start",
-              pathname.startsWith("/dashboard/notifications") && "bg-accent"
-            )}
-          >
-            <Bell className="mr-2 h-4 w-4" />
-            Notifications
-          </Button>
-        </Link>
-
-        <Link href="/dashboard/settings">
+      <Link href="/dashboard/settings">
         <Button
           variant="ghost"
           className={cn(
@@ -280,6 +272,15 @@ export function DashboardNav() {
           Settings
         </Button>
       </Link>
+      
+      <Button
+        variant="ghost"
+        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+        onClick={handleSignOut}
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign Out
+      </Button>
     </nav>
   )
 } 

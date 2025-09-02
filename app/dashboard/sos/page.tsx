@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import NotificationPermission from "@/components/notification-permission"
 import { 
   AlertTriangle, 
   Plus, 
@@ -677,6 +678,132 @@ export default function SosPage() {
                 <p>• Your location will be shared with emergency contacts</p>
                 <p>• Only Sunrise users will receive in-app notifications</p>
                 <p>• Notifications sent directly to the Sunrise app</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notification Setup */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Setup
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationPermission 
+              forceShow={true}
+              onPermissionGranted={() => {
+                toast({
+                  title: "Notifications Enabled!",
+                  description: "You'll now receive SOS alerts and other important notifications.",
+                })
+              }}
+            />
+            
+            {/* Test Buttons */}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600 mb-3">Test the notification system:</p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/test-notification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ test_type: 'in_app' })
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        toast({
+                          title: "Test Success!",
+                          description: "In-app notification created. Check your notifications page.",
+                        })
+                      } else {
+                        toast({
+                          title: "Test Failed",
+                          description: result.error || "Failed to create test notification",
+                          variant: "destructive"
+                        })
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "Test Error",
+                        description: "Failed to send test notification",
+                        variant: "destructive"
+                      })
+                    }
+                  }}
+                >
+                  Test In-App
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/test-notification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ test_type: 'push' })
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        toast({
+                          title: "Test Success!",
+                          description: "Push notification sent. Check your device notifications.",
+                        })
+                      } else {
+                        toast({
+                          title: "Test Failed",
+                          description: result.error || "Failed to send push notification",
+                          variant: "destructive"
+                        })
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "Test Error",
+                        description: "Failed to send test notification",
+                        variant: "destructive"
+                      })
+                    }
+                  }}
+                >
+                  Test Push
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/check-vapid')
+                      const result = await response.json()
+                      if (response.ok) {
+                        toast({
+                          title: "VAPID Check",
+                          description: result.message,
+                        })
+                      } else {
+                        toast({
+                          title: "VAPID Check Failed",
+                          description: result.error || "Failed to check VAPID configuration",
+                          variant: "destructive"
+                        })
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "VAPID Check Error",
+                        description: "Failed to check VAPID configuration",
+                        variant: "destructive"
+                      })
+                    }
+                  }}
+                >
+                  Check VAPID
+                </Button>
               </div>
             </div>
           </CardContent>

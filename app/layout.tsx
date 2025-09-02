@@ -6,7 +6,9 @@ import Footer from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 import SupabaseProvider from "@/components/providers/supabase-provider"
 import FloatingHelpWrapper from "@/components/floating-help-wrapper"
+import FloatingSosButton from "@/components/floating-sos-button"
 import GDPRBanner from "@/components/gdpr-banner"
+import ServiceWorkerRegister from "@/components/service-worker-register"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -104,8 +106,10 @@ export default function RootLayout({
             <Footer />
           </div>
           <FloatingHelpWrapper />
+          <FloatingSosButton />
           <Toaster />
           <GDPRBanner />
+          <ServiceWorkerRegister />
         </SupabaseProvider>
       </body>
     </html>
