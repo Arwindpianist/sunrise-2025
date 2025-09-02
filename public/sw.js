@@ -7,9 +7,9 @@ self.addEventListener('push', function(event) {
     console.log('Push data:', data);
     
     const options = {
-      body: data.message || 'You have a new notification',
-      icon: '/icon-192x192.png',
-      badge: '/icon-72x72.png',
+      body: data.message || '',
+      icon: '/favicon.svg', // Use favicon instead of missing icon
+      badge: '/favicon.svg', // Use favicon instead of missing icon
       vibrate: [200, 100, 200],
       data: data.data || {},
       actions: data.actions || [],
@@ -27,13 +27,13 @@ self.addEventListener('push', function(event) {
       options.actions = [
         {
           action: 'view',
-          title: 'View Details',
-          icon: '/icon-72x72.png'
+          title: 'View Details'
+          // Removed icon reference
         },
         {
           action: 'dismiss',
-          title: 'Dismiss',
-          icon: '/icon-72x72.png'
+          title: 'Dismiss'
+          // Removed icon reference
         }
       ];
     }
@@ -80,14 +80,18 @@ self.addEventListener('install', function(event) {
   console.log('Service Worker installing...');
   event.waitUntil(
     caches.open('sunrise-v1').then(function(cache) {
+      // Only cache files that exist
       return cache.addAll([
         '/',
         '/dashboard',
         '/dashboard/sos',
-        '/dashboard/notifications',
-        '/icon-192x192.png',
-        '/icon-72x72.png'
-      ]);
+        '/dashboard/notifications'
+        // Removed icon files that don't exist
+      ]).catch(function(error) {
+        console.log('Cache addAll failed:', error);
+        // Continue installation even if caching fails
+        return Promise.resolve();
+      });
     })
   );
 });
