@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import SosOnboarding from "@/components/sos-onboarding"
 import { 
   AlertTriangle, 
   Plus, 
@@ -77,6 +78,7 @@ export default function SosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedContactId, setSelectedContactId] = useState("")
   const [priority, setPriority] = useState("1")
+  const [showOnboarding, setShowOnboarding] = useState(false)
   
   // SOS Button states
   const [isPressed, setIsPressed] = useState(false)
@@ -90,8 +92,46 @@ export default function SosPage() {
     if (user) {
       fetchContacts()
       fetchEmergencyContacts()
+      checkOnboardingStatus()
     }
   }, [user])
+
+  const checkOnboardingStatus = () => {
+    // Check if user has completed SOS onboarding
+    const hasCompletedOnboarding = localStorage.getItem('sos-onboarding-completed')
+    const hasEmergencyContacts = emergencyContacts.length > 0
+    
+    // Show onboarding if:
+    // 1. User hasn't completed it before
+    // 2. User has no emergency contacts (first time setup)
+    // 3. User explicitly wants to see it again
+    if (!hasCompletedOnboarding || (!hasEmergencyContacts && emergencyContacts.length === 0)) {
+      setShowOnboarding(true)
+    }
+  }
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('sos-onboarding-completed', 'true')
+    setShowOnboarding(false)
+    toast({
+      title: "SOS Setup Complete!",
+      description: "Your emergency system is ready to use. Press and hold the SOS button when needed.",
+    })
+  }
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false)
+    toast({
+      title: "Tutorial Skipped",
+      description: "You can access the SOS tutorial anytime from the help menu.",
+    })
+  }
+
+  // Utility function to reset onboarding (for testing)
+  const resetOnboarding = () => {
+    localStorage.removeItem('sos-onboarding-completed')
+    setShowOnboarding(true)
+  }
 
   const fetchContacts = async () => {
     try {
@@ -291,8 +331,12 @@ export default function SosPage() {
     setPressStartTime(Date.now())
     setPressProgress(0)
 
-    // Trigger haptic feedback
-    haptics.startContinuous()
+    // Trigger haptic feedback only after user interaction
+    try {
+      haptics.startContinuous()
+    } catch (error) {
+      console.log('Haptic feedback not available:', error)
+    }
 
     // Start progress animation
     progressIntervalRef.current = setInterval(() => {
@@ -317,7 +361,11 @@ export default function SosPage() {
     setPressProgress(0)
     
     // Stop haptic feedback
-    haptics.stopContinuous()
+    try {
+      haptics.stopContinuous()
+    } catch (error) {
+      console.log('Haptic feedback stop failed:', error)
+    }
     
     if (pressTimeoutRef.current) {
       clearTimeout(pressTimeoutRef.current)
@@ -336,7 +384,11 @@ export default function SosPage() {
     setIsTriggering(true)
     
     // Trigger SOS haptic pattern
-    haptics.triggerSOS()
+    try {
+      haptics.triggerSOS()
+    } catch (error) {
+      console.log('SOS haptic feedback not available:', error)
+    }
     
     try {
       // Get current location
@@ -346,13 +398,14 @@ export default function SosPage() {
         location_address: null as string | null
       }
 
+      // Try to get location with proper error handling
       if (navigator.geolocation) {
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 60000
+              enableHighAccuracy: false, // Reduced accuracy to avoid permissions issues
+              timeout: 5000, // Shorter timeout
+              maximumAge: 300000 // 5 minutes cache
             })
           })
 
@@ -369,11 +422,14 @@ export default function SosPage() {
               locationData.location_address = data.results[0].formatted_address
             }
           } catch (error) {
-            console.error('Error getting address:', error)
+            console.log('Could not get address from coordinates:', error)
           }
-        } catch (error) {
-          console.error('Error getting location:', error)
+        } catch (error: any) {
+          console.log('Location access denied or unavailable:', error.message)
+          // Don't retry - just continue without location
         }
+      } else {
+        console.log('Geolocation not supported')
       }
 
       // Create SOS alert
@@ -499,8 +555,22 @@ export default function SosPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
-        <p className="text-gray-600">Press and hold the SOS button to alert your emergency contacts</p>
+        <div className="flex items-center justify-between mb-4">
+          <div></div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
+            <p className="text-gray-600">Press and hold the SOS button to alert your emergency contacts</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowOnboarding(true)}
+            className="text-xs"
+          >
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Tutorial
+          </Button>
+        </div>
       </div>
 
       {/* Main SOS Button */}
@@ -647,7 +717,16 @@ export default function SosPage() {
             <div className="text-center py-8 text-gray-500">
               <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>No emergency contacts added yet</p>
-              <p className="text-sm">Add contacts to receive SOS notifications</p>
+              <p className="text-sm mb-4">Add contacts to receive SOS notifications</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowOnboarding(true)}
+                className="text-xs"
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Start Setup Tutorial
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -741,6 +820,14 @@ export default function SosPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* SOS Onboarding Tutorial */}
+      <SosOnboarding
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+        emergencyContactsCount={emergencyContacts.length}
+      />
     </div>
   )
 }

@@ -97,6 +97,9 @@ export default function RootLayout({
         
         {/* LinkedIn specific */}
         <meta property="og:image:url" content="https://sunrise-2025.com/og-image.png" />
+        
+        {/* Permissions Policy for PWA features */}
+        <meta httpEquiv="Permissions-Policy" content="geolocation=(self), vibrate=(self), camera=(), microphone=()" />
       </head>
       <body className={inter.className}>
         <SupabaseProvider>
