@@ -20,27 +20,54 @@ self.addEventListener('push', function(event) {
 
     // Special handling for SOS alerts
     if (data.type === 'sos_alert') {
-      options.body = `🚨 SOS Alert: ${data.user_name} needs immediate assistance!`;
-      options.vibrate = [500, 200, 500, 200, 500]; // More urgent vibration pattern
+      options.body = `🚨 URGENT SOS ALERT: ${data.user_name} needs IMMEDIATE assistance!`;
+      options.vibrate = [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000]; // Very urgent vibration pattern
       options.requireInteraction = true;
-      options.tag = 'sos-alert';
+      options.tag = `sos-alert-${Date.now()}`; // Unique tag for each SOS alert
+      options.silent = false; // Force sound for SOS
       options.actions = [
         {
           action: 'view',
-          title: 'View Details'
-          // Removed icon reference
+          title: '🚨 VIEW NOW'
         },
         {
           action: 'dismiss',
           title: 'Dismiss'
-          // Removed icon reference
         }
       ];
+      
+      // Play emergency sound for SOS alerts
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+        audio.volume = 1.0;
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      } catch (e) {
+        console.log('Audio creation failed:', e);
+      }
+      
+      // Show SOS notification multiple times to ensure it's not missed
+      event.waitUntil(
+        Promise.all([
+          self.registration.showNotification(data.title || '🚨 URGENT SOS ALERT', options),
+          // Show a second notification after 5 seconds if first one is dismissed
+          new Promise(resolve => setTimeout(resolve, 5000)).then(() => {
+            return self.registration.showNotification(
+              '🚨 SOS ALERT - Still Active',
+              {
+                ...options,
+                body: `🚨 ${data.user_name} still needs assistance! Please respond immediately!`,
+                tag: `sos-reminder-${Date.now()}`
+              }
+            );
+          })
+        ])
+      );
+    } else {
+      // Regular notifications
+      event.waitUntil(
+        self.registration.showNotification(data.title || 'Sunrise Notification', options)
+      );
     }
-
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'Sunrise Notification', options)
-    );
   }
 });
 
@@ -50,10 +77,20 @@ self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   
   if (event.action === 'view' || !event.action) {
-    // Open the app or specific page
-    event.waitUntil(
-      clients.openWindow('/dashboard/notifications')
-    );
+    // Open the app or specific page based on notification type
+    const data = event.notification.data;
+    
+    if (data && data.type === 'sos_alert') {
+      // For SOS alerts, open the SOS page directly
+      event.waitUntil(
+        clients.openWindow('/dashboard/sos')
+      );
+    } else {
+      // For other notifications, open the notifications page
+      event.waitUntil(
+        clients.openWindow('/dashboard/notifications')
+      );
+    }
   }
 });
 

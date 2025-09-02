@@ -41,7 +41,16 @@ export async function POST(request: Request) {
       data: payload.data || {},
       priority: payload.priority || 'normal',
       tag: payload.tag,
-      actions: payload.actions || []
+      actions: payload.actions || [],
+      // Add urgency indicators
+      urgent: payload.type === 'sos_alert' || payload.priority === 'urgent',
+      timestamp: Date.now(),
+      // Enhanced message for SOS alerts
+      ...(payload.type === 'sos_alert' && {
+        title: `🚨 URGENT SOS ALERT: ${payload.title}`,
+        message: `🚨 ${payload.message} - IMMEDIATE ACTION REQUIRED!`,
+        priority: 'urgent'
+      })
     })
 
     // Send the push notification
@@ -74,10 +83,11 @@ export async function POST(request: Request) {
           const cookieStore = cookies()
           const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
           
+          const requestBody = await request.json()
           await supabase
             .from('push_subscriptions')
             .update({ is_active: false })
-            .eq('endpoint', JSON.parse(request.body).subscription.endpoint)
+            .eq('endpoint', requestBody.subscription.endpoint)
         } catch (dbError) {
           console.error('Failed to update subscription status:', dbError)
         }

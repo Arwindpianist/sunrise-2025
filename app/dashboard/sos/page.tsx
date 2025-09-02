@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -35,22 +33,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import NotificationPermission from "@/components/notification-permission"
 import { 
   AlertTriangle, 
   Plus, 
   Trash2, 
   Phone, 
   Mail, 
-  User, 
-  Shield, 
-  MapPin,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Settings,
-  Bell
+  Shield
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import haptics from "@/lib/haptics"
@@ -77,24 +66,12 @@ interface EmergencyContact {
   contact: Contact
 }
 
-interface SosAlert {
-  id: string
-  status: string
-  location_lat: number | null
-  location_lng: number | null
-  location_address: string | null
-  triggered_at: string
-  resolved_at: string | null
-  notes: string | null
-  created_at: string
-}
+
 
 export default function SosPage() {
-  const router = useRouter()
   const { user, supabase } = useSupabase()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([])
-  const [sosAlerts, setSosAlerts] = useState<SosAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -113,7 +90,6 @@ export default function SosPage() {
     if (user) {
       fetchContacts()
       fetchEmergencyContacts()
-      fetchSosAlerts()
     }
   }, [user])
 
@@ -208,26 +184,12 @@ export default function SosPage() {
         description: "Failed to load emergency contacts",
         variant: "destructive",
       })
-    }
-  }
-
-  const fetchSosAlerts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sos_alerts')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('triggered_at', { ascending: false })
-        .limit(10)
-
-      if (error) throw error
-      setSosAlerts(data || [])
-    } catch (error) {
-      console.error('Error fetching SOS alerts:', error)
     } finally {
       setIsLoading(false)
     }
   }
+
+
 
   const handleAddEmergencyContact = async () => {
     if (!selectedContactId) {
@@ -434,8 +396,6 @@ export default function SosPage() {
         title: "SOS Alert Sent!",
         description: "Emergency contacts have been notified via Sunrise app",
       })
-
-      fetchSosAlerts()
     } catch (error: any) {
       console.error('Error triggering SOS:', error)
       toast({
@@ -524,59 +484,7 @@ export default function SosPage() {
     }
   }
 
-  const resolveSosAlert = async (sosAlertId: string) => {
-    try {
-      const { error } = await supabase
-        .from('sos_alerts')
-        .update({
-          status: 'resolved',
-          resolved_at: new Date().toISOString()
-        })
-        .eq('id', sosAlertId)
 
-      if (error) throw error
-
-      toast({
-        title: "Success",
-        description: "SOS alert resolved",
-      })
-
-      fetchSosAlerts()
-    } catch (error: any) {
-      console.error('Error resolving SOS alert:', error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to resolve SOS alert",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-red-500'
-      case 'resolved':
-        return 'bg-green-500'
-      case 'cancelled':
-        return 'bg-gray-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <AlertTriangle className="h-4 w-4" />
-      case 'resolved':
-        return <CheckCircle className="h-4 w-4" />
-      case 'cancelled':
-        return <XCircle className="h-4 w-4" />
-      default:
-        return <AlertCircle className="h-4 w-4" />
-    }
-  }
 
   if (isLoading) {
     return (
@@ -589,611 +497,244 @@ export default function SosPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">SOS Emergency System</h1>
-        <p className="text-gray-600">Manage your emergency contacts and send SOS alerts when needed.</p>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
+        <p className="text-gray-600">Press and hold the SOS button to alert your emergency contacts</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* SOS Button Section */}
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <AlertTriangle className="h-5 w-5" />
-              Emergency SOS Button
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Press and hold for 2 seconds to send an SOS alert to all your emergency contacts via Sunrise app
-              </p>
-              
-              <div className="relative inline-block">
-                <button
-                  className={cn(
-                    "relative w-32 h-32 rounded-full border-4 transition-all duration-200 ease-out",
-                    "focus:outline-none focus:ring-4 focus:ring-red-300",
-                    isPressed 
-                      ? "bg-red-600 border-red-700 scale-95 shadow-lg" 
-                      : "bg-red-500 border-red-600 hover:bg-red-600 hover:border-red-700 hover:scale-105 shadow-md"
-                  )}
-                  onMouseDown={handlePressStart}
-                  onMouseUp={handlePressEnd}
-                  onMouseLeave={handlePressEnd}
-                  onTouchStart={handlePressStart}
-                  onTouchEnd={handlePressEnd}
-                  disabled={isTriggering}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <AlertTriangle className="h-12 w-12 text-white" />
-                  </div>
-                  
-                  {/* Progress ring */}
-                  {isPressed && (
-                    <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="rgba(255, 255, 255, 0.3)"
-                        strokeWidth="4"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="4"
-                        strokeDasharray={`${2 * Math.PI * 45}`}
-                        strokeDashoffset={`${2 * Math.PI * 45 * (1 - pressProgress / 100)}`}
-                        strokeLinecap="round"
-                        className="transition-all duration-100 ease-out"
-                      />
-                    </svg>
-                  )}
-                </button>
-                
-                {isPressed && (
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                    <p className="text-sm font-medium text-red-700">
-                      {Math.round(pressProgress)}% - Keep holding...
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {isTriggering && (
-                <div className="mt-4 p-3 bg-red-100 rounded-lg">
-                  <p className="text-sm text-red-700 font-medium">
-                    Sending SOS alert...
-                  </p>
-                </div>
+      {/* Main SOS Button */}
+      <div className="flex justify-center mb-12">
+        <div className="text-center">
+          <div className="relative inline-block mb-4">
+            <button
+              className={cn(
+                "relative w-40 h-40 rounded-full border-4 transition-all duration-200 ease-out",
+                "focus:outline-none focus:ring-4 focus:ring-red-300",
+                isPressed 
+                  ? "bg-red-600 border-red-700 scale-95 shadow-lg" 
+                  : "bg-red-500 border-red-600 hover:bg-red-600 hover:border-red-700 hover:scale-105 shadow-md"
               )}
-
-              <div className="mt-6 text-xs text-gray-500 space-y-1">
-                <p>• Your location will be shared with emergency contacts</p>
-                <p>• Only Sunrise users will receive in-app notifications</p>
-                <p>• Notifications sent directly to the Sunrise app</p>
+              onMouseDown={handlePressStart}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
+              onTouchStart={handlePressStart}
+              onTouchEnd={handlePressEnd}
+              disabled={isTriggering}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <AlertTriangle className="h-16 w-16 text-white" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Notification Setup */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notification Setup
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NotificationPermission 
-              forceShow={true}
-              onPermissionGranted={() => {
-                toast({
-                  title: "Notifications Enabled!",
-                  description: "You'll now receive SOS alerts and other important notifications.",
-                })
-              }}
-            />
+              
+              {/* Progress ring */}
+              {isPressed && (
+                <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.3)"
+                    strokeWidth="4"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="4"
+                    strokeDasharray={`${2 * Math.PI * 45}`}
+                    strokeDashoffset={`${2 * Math.PI * 45 * (1 - pressProgress / 100)}`}
+                    strokeLinecap="round"
+                    className="transition-all duration-100 ease-out"
+                  />
+                </svg>
+              )}
+            </button>
             
-            {/* Test Buttons */}
-            <div className="mt-4 space-y-2">
-              <p className="text-sm text-gray-600 mb-3">Test the notification system:</p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/test-notification', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ test_type: 'in_app' })
-                      })
-                      const result = await response.json()
-                      if (response.ok) {
-                        toast({
-                          title: "Test Success!",
-                          description: "In-app notification created. Check your notifications page.",
-                        })
-                      } else {
-                        toast({
-                          title: "Test Failed",
-                          description: result.error || "Failed to create test notification",
-                          variant: "destructive"
-                        })
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "Test Error",
-                        description: "Failed to send test notification",
-                        variant: "destructive"
-                      })
-                    }
-                  }}
-                >
-                  Test In-App
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/test-notification', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ test_type: 'push' })
-                      })
-                      const result = await response.json()
-                      if (response.ok) {
-                        toast({
-                          title: "Test Success!",
-                          description: "Push notification sent. Check your device notifications.",
-                        })
-                      } else {
-                        toast({
-                          title: "Test Failed",
-                          description: result.error || "Failed to send push notification",
-                          variant: "destructive"
-                        })
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "Test Error",
-                        description: "Failed to send test notification",
-                        variant: "destructive"
-                      })
-                    }
-                  }}
-                >
-                  Test Push
-                </Button>
-                                 <Button 
-                   variant="outline" 
-                   size="sm"
-                   onClick={async () => {
-                     try {
-                       const response = await fetch('/api/check-vapid')
-                       const result = await response.json()
-                       if (response.ok) {
-                         toast({
-                           title: "VAPID Check",
-                           description: result.message,
-                         })
-                       } else {
-                         toast({
-                           title: "VAPID Check Failed",
-                           description: result.error || "Failed to check VAPID configuration",
-                           variant: "destructive"
-                         })
-                       }
-                     } catch (error) {
-                       toast({
-                         title: "VAPID Check Error",
-                         description: "Failed to check VAPID configuration",
-                         variant: "destructive"
-                       })
-                     }
-                   }}
-                 >
-                   Check VAPID
-                 </Button>
-                 <Button 
-                   variant="outline" 
-                   size="sm"
-                   onClick={async () => {
-                     try {
-                       const response = await fetch('/api/debug-subscriptions')
-                       const result = await response.json()
-                                               if (response.ok) {
-                          console.log('Debug subscriptions result:', result)
-                          console.log('VAPID configured:', result.vapid_configured)
-                          console.log('Subscriptions:', result.subscriptions)
-                          console.log('Environment:', result.environment)
-                          
-                          let description = `Found ${result.subscriptions.active} active subscriptions. `
-                          if (result.subscriptions.active === 0) {
-                            description += 'No active subscriptions found. Please enable notifications first.'
-                          } else {
-                            description += 'Subscriptions are active.'
-                          }
-                          
-                          if (!result.vapid_configured.has_public_key || !result.vapid_configured.has_private_key) {
-                            description += ' VAPID keys not configured.'
-                          }
-                          
-                          toast({
-                            title: "Debug Info",
-                            description: description,
-                          })
-                       } else {
-                         toast({
-                           title: "Debug Failed",
-                           description: result.error || "Failed to get debug info",
-                           variant: "destructive"
-                         })
-                       }
-                     } catch (error) {
-                       toast({
-                         title: "Debug Error",
-                         description: "Failed to get debug info",
-                         variant: "destructive"
-                       })
-                     }
-                   }}
-                                   >
-                    Debug Subscriptions
-                  </Button>
-                                     <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={async () => {
-                       try {
-                         // Force enable notifications
-                         const response = await fetch('/api/force-enable-notifications', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' }
-                         })
-                         const result = await response.json()
-                         if (response.ok) {
-                           toast({
-                             title: "Force Enable Success",
-                             description: "Attempted to force enable notifications. Check status.",
-                           })
-                           // Refresh the page to update the notification component
-                           window.location.reload()
-                         } else {
-                           toast({
-                             title: "Force Enable Failed",
-                             description: result.error || "Failed to force enable notifications",
-                             variant: "destructive"
-                           })
-                         }
-                       } catch (error) {
-                         toast({
-                           title: "Force Enable Error",
-                           description: "Failed to force enable notifications",
-                           variant: "destructive"
-                         })
-                       }
-                     }}
-                   >
-                     Force Enable
-                   </Button>
-                   <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={() => {
-                       // Manually trigger notification permission request
-                       if ('Notification' in window && Notification.permission === 'default') {
-                         Notification.requestPermission().then((permission) => {
-                           console.log('Manual permission result:', permission)
-                           if (permission === 'granted') {
-                             toast({
-                               title: "Permission Granted!",
-                               description: "Please refresh the page to complete setup.",
-                             })
-                           } else {
-                             toast({
-                               title: "Permission Denied",
-                               description: "Please enable notifications in browser settings.",
-                               variant: "destructive"
-                             })
-                           }
-                         })
-                       } else {
-                         toast({
-                           title: "Permission Status",
-                           description: `Current permission: ${Notification.permission}`,
-                         })
-                       }
-                     }}
-                   >
-                                           Manual Request
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          // Check service worker status
-                          if ('serviceWorker' in navigator) {
-                            const registration = await navigator.serviceWorker.getRegistration('/sw.js')
-                            if (registration) {
-                              console.log('Service Worker Registration:', {
-                                active: !!registration.active,
-                                waiting: !!registration.waiting,
-                                installing: !!registration.installing,
-                                scope: registration.scope
-                              })
-                              
-                              if (registration.active) {
-                                console.log('Active Service Worker:', registration.active)
-                                toast({
-                                  title: "Service Worker Active",
-                                  description: "Service worker is active and ready for push notifications.",
-                                })
-                              } else {
-                                toast({
-                                  title: "Service Worker Not Active",
-                                  description: "Service worker is registered but not active yet.",
-                                  variant: "destructive"
-                                })
-                              }
-                            } else {
-                              toast({
-                                title: "No Service Worker",
-                                description: "No service worker registration found.",
-                                variant: "destructive"
-                              })
-                            }
-                          } else {
-                            toast({
-                              title: "Service Workers Not Supported",
-                              description: "Service workers are not supported in this browser.",
-                              variant: "destructive"
-                            })
-                          }
-                        } catch (error) {
-                          console.error('Error checking service worker:', error)
-                          toast({
-                            title: "Service Worker Check Error",
-                            description: "Failed to check service worker status.",
-                            variant: "destructive"
-                          })
-                        }
-                      }}
-                    >
-                      Check SW Status
-                    </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Emergency Contacts Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Emergency Contacts
-            </CardTitle>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Contact
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Emergency Contact</DialogTitle>
-                  <DialogDescription>
-                    Select a contact from your contact list to add as an emergency contact. Only Sunrise users will receive notifications.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="contact">Contact</Label>
-                    <Select value={selectedContactId} onValueChange={setSelectedContactId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a contact" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contacts
-                          .filter(contact => !emergencyContacts.some(ec => ec.contact_id === contact.id))
-                          .map(contact => (
-                            <SelectItem key={contact.id} value={contact.id}>
-                              {contact.first_name} {contact.last_name} ({contact.email})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Highest Priority</SelectItem>
-                        <SelectItem value="2">2 - High Priority</SelectItem>
-                        <SelectItem value="3">3 - Medium Priority</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddEmergencyContact} disabled={isSubmitting}>
-                      {isSubmitting ? "Adding..." : "Add Contact"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent>
-            {emergencyContacts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No emergency contacts added yet</p>
-                <p className="text-sm">Add contacts to receive SOS notifications</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {emergencyContacts.map((emergencyContact) => (
-                  <div
-                    key={emergencyContact.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        <Badge variant="outline" className="text-xs">
-                          Priority {emergencyContact.priority}
-                        </Badge>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
-                            {emergencyContact.contact.first_name} {emergencyContact.contact.last_name}
-                          </p>
-                          {emergencyContact.contact.isSunriseUser ? (
-                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                              Sunrise User
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
-                              No Sunrise Account
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {emergencyContact.contact.email}
-                          </span>
-                          {emergencyContact.contact.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {emergencyContact.contact.phone}
-                            </span>
-                          )}
-                        </div>
-                        {!emergencyContact.contact.isSunriseUser && (
-                          <p className="text-xs text-orange-600 mt-1">
-                            ⚠️ This contact won't receive SOS notifications
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={emergencyContact.priority.toString()}
-                        onValueChange={(value) => handleUpdatePriority(emergencyContact.id, parseInt(value))}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1</SelectItem>
-                          <SelectItem value="2">2</SelectItem>
-                          <SelectItem value="3">3</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Emergency Contact</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to remove {emergencyContact.contact.first_name} from your emergency contacts?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleRemoveEmergencyContact(emergencyContact.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                ))}
+            {isPressed && (
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                <p className="text-sm font-medium text-red-700">
+                  {Math.round(pressProgress)}% - Keep holding...
+                </p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          {isTriggering && (
+            <div className="p-3 bg-red-100 rounded-lg max-w-sm mx-auto">
+              <p className="text-sm text-red-700 font-medium">
+                Sending SOS alert...
+              </p>
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500 space-y-1 max-w-md mx-auto">
+            <p>• Press and hold for 2 seconds to activate</p>
+            <p>• Your location will be shared with emergency contacts</p>
+            <p>• Only Sunrise users will receive notifications</p>
+          </div>
+        </div>
       </div>
 
-      {/* Recent SOS Alerts */}
-      <Card className="mt-8">
-        <CardHeader>
+      {/* Emergency Contacts Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent SOS Alerts
+            <Shield className="h-5 w-5" />
+            Emergency Contacts
           </CardTitle>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add Contact
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Emergency Contact</DialogTitle>
+                <DialogDescription>
+                  Select a contact from your contact list to add as an emergency contact. Only Sunrise users will receive notifications.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="contact">Contact</Label>
+                  <Select value={selectedContactId} onValueChange={setSelectedContactId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a contact" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contacts
+                        .filter(contact => !emergencyContacts.some(ec => ec.contact_id === contact.id))
+                        .map(contact => (
+                          <SelectItem key={contact.id} value={contact.id}>
+                            {contact.first_name} {contact.last_name} ({contact.email})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={priority} onValueChange={setPriority}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 - Highest Priority</SelectItem>
+                      <SelectItem value="2">2 - High Priority</SelectItem>
+                      <SelectItem value="3">3 - Medium Priority</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddEmergencyContact} disabled={isSubmitting}>
+                    {isSubmitting ? "Adding..." : "Add Contact"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
-          {sosAlerts.length === 0 ? (
+          {emergencyContacts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No SOS alerts yet</p>
+              <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No emergency contacts added yet</p>
+              <p className="text-sm">Add contacts to receive SOS notifications</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {sosAlerts.map((alert) => (
+              {emergencyContacts.map((emergencyContact) => (
                 <div
-                  key={alert.id}
+                  key={emergencyContact.id}
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full", getStatusColor(alert.status))}>
-                      {getStatusIcon(alert.status)}
+                    <div className="flex-shrink-0">
+                      <Badge variant="outline" className="text-xs">
+                        Priority {emergencyContact.priority}
+                      </Badge>
                     </div>
                     <div>
-                      <p className="font-medium">
-                        SOS Alert - {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">
+                          {emergencyContact.contact.first_name} {emergencyContact.contact.last_name}
+                        </p>
+                        {emergencyContact.contact.isSunriseUser ? (
+                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                            Sunrise User
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
+                            No Sunrise Account
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(alert.triggered_at).toLocaleString()}
+                          <Mail className="h-3 w-3" />
+                          {emergencyContact.contact.email}
                         </span>
-                        {alert.location_address && (
+                        {emergencyContact.contact.phone && (
                           <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {alert.location_address}
+                            <Phone className="h-3 w-3" />
+                            {emergencyContact.contact.phone}
                           </span>
                         )}
                       </div>
+                      {!emergencyContact.contact.isSunriseUser && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          ⚠️ This contact won't receive SOS notifications
+                        </p>
+                      )}
                     </div>
                   </div>
-                  {alert.status === 'active' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => resolveSosAlert(alert.id)}
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={emergencyContact.priority.toString()}
+                      onValueChange={(value) => handleUpdatePriority(emergencyContact.id, parseInt(value))}
                     >
-                      Resolve
-                    </Button>
-                  )}
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Emergency Contact</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to remove {emergencyContact.contact.first_name} from your emergency contacts?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleRemoveEmergencyContact(emergencyContact.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               ))}
             </div>

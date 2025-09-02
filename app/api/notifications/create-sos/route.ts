@@ -80,8 +80,8 @@ export async function POST(request: Request) {
                   }
                 },
                 payload: {
-                  title: '🚨 SOS Alert - Immediate Assistance Required',
-                  message: `${user_name || 'Unknown User'} has triggered an SOS alert and needs immediate assistance!`,
+                  title: '🚨 URGENT SOS ALERT',
+                  message: `🚨 ${user_name || 'Unknown User'} needs IMMEDIATE assistance! Location: ${location || 'Unknown'}`,
                   type: 'sos_alert',
                   data: {
                     sos_alert_id: sos_alert_id,
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
                   actions: [
                     {
                       action: 'view',
-                      title: 'View Details'
+                      title: '🚨 VIEW NOW'
                     },
                     {
                       action: 'dismiss',
