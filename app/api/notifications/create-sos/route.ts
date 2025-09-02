@@ -27,35 +27,29 @@ export async function POST(request: Request) {
       return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400 })
     }
 
-    // Create in-app notification
-    const { data: notificationData, error: notificationError } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: recipient_user_id,
-        type: 'sos_alert',
-        title: '🚨 SOS Alert - Immediate Assistance Required',
-        message: `${user_name} has triggered an SOS alert and needs immediate assistance.`,
-        data: {
-          sos_alert_id: sos_alert_id,
-          user_name: user_name,
-          location: location,
-          triggered_at: triggered_at,
-          notification_id: notification_id
-        },
-        is_read: false,
-        priority: 'urgent'
+    // Use the database function to create the notification (bypasses RLS)
+    const { data: notificationResult, error: functionError } = await supabase
+      .rpc('create_sos_notification', {
+        recipient_user_id: recipient_user_id,
+        sos_alert_id: sos_alert_id,
+        notification_id: notification_id,
+        user_name: user_name || 'Unknown User',
+        location_data: location || {},
+        triggered_at: triggered_at || new Date().toISOString()
       })
-      .select()
-      .single()
 
-    if (notificationError) {
+    if (functionError) {
+      console.error('Database function error:', functionError)
+      
+      // Update notification status to failed
       await supabase.from('sos_alert_notifications').update({ 
         status: 'failed', 
-        error_message: notificationError.message 
+        error_message: functionError.message 
       }).eq('id', notification_id)
+      
       return new NextResponse(JSON.stringify({ 
         error: "Failed to create in-app notification", 
-        details: notificationError.message 
+        details: functionError.message 
       }), { status: 500 })
     }
 
@@ -87,11 +81,11 @@ export async function POST(request: Request) {
                 },
                 payload: {
                   title: '🚨 SOS Alert - Immediate Assistance Required',
-                  message: `${user_name} has triggered an SOS alert and needs immediate assistance!`,
+                  message: `${user_name || 'Unknown User'} has triggered an SOS alert and needs immediate assistance!`,
                   type: 'sos_alert',
                   data: {
                     sos_alert_id: sos_alert_id,
-                    user_name: user_name,
+                    user_name: user_name || 'Unknown User',
                     location: location,
                     triggered_at: triggered_at,
                     notification_id: notification_id
@@ -125,15 +119,9 @@ export async function POST(request: Request) {
       // Don't fail the entire request if push notification fails
     }
 
-    // Update notification status to sent
-    await supabase.from('sos_alert_notifications').update({ 
-      status: 'sent', 
-      sent_at: new Date().toISOString() 
-    }).eq('id', notification_id)
-
     return new NextResponse(JSON.stringify({ 
       message: "SOS notification created and sent successfully", 
-      notification: notificationData 
+      notification_id: notificationResult 
     }), { status: 200 })
 
   } catch (error: any) {
