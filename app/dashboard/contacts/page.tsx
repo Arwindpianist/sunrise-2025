@@ -1315,17 +1315,17 @@ Your info will stay private and only be used if I need to contact you. Thank You
           </div>
         )}
 
-        {/* Edit Contact Dialog */}
+        {/* Edit Contact Dialog - Mobile Optimized */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
-            <DialogHeader className="px-4 sm:px-0">
+          <DialogContent className="w-[95vw] max-w-md max-h-[90vh] bg-white/95 backdrop-blur-sm mx-auto overflow-y-auto">
+            <DialogHeader className="px-4 sm:px-0 pb-2">
               <DialogTitle className="text-lg sm:text-xl">Edit Contact</DialogTitle>
               <DialogDescription className="text-sm">
                 Update the contact details below.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleEditContact} className="space-y-4 px-4 sm:px-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleEditContact} className="space-y-4 px-4 sm:px-0 pb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="edit_first_name" className="text-sm font-medium">
                     First Name *
@@ -1410,9 +1410,9 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 <label htmlFor="edit_categories" className="text-sm font-medium">
                   Categories
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-32 overflow-y-auto">
                   {categories.map((category) => (
-                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer py-1">
                       <Checkbox
                         checked={formData.categories.includes(category.id)}
                         onCheckedChange={(checked) => {
@@ -1431,7 +1431,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                       />
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         />
                         <span className="text-sm">{category.name}</span>
@@ -1453,16 +1453,17 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   name="notes"
                   value={formData.notes}
                   onChange={handleFormChange}
-                  rows={4}
+                  rows={3}
+                  className="resize-none"
                   placeholder="Add any additional notes about this contact..."
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 h-12 text-sm sm:text-base"
+                  className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base"
                   onClick={() => {
                     setIsEditDialogOpen(false)
                     setEditingContact(null)
@@ -1470,7 +1471,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 h-12 text-sm sm:text-base" disabled={isSubmitting}>
+                <Button type="submit" className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base" disabled={isSubmitting}>
                   {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -1478,17 +1479,17 @@ Your info will stay private and only be used if I need to contact you. Thank You
           </DialogContent>
         </Dialog>
 
-        {/* Batch Edit Category Dialog */}
+        {/* Batch Edit Category Dialog - Mobile Optimized */}
         <Dialog open={isBatchEditDialogOpen} onOpenChange={setIsBatchEditDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
-            <DialogHeader className="px-4 sm:px-0">
+          <DialogContent className="w-[95vw] max-w-md max-h-[90vh] bg-white/95 backdrop-blur-sm mx-auto overflow-y-auto">
+            <DialogHeader className="px-4 sm:px-0 pb-2">
               <DialogTitle className="text-lg sm:text-xl">Edit Category for {selectedContacts.size} Contact{selectedContacts.size > 1 ? 's' : ''}</DialogTitle>
               <DialogDescription className="text-sm">
                 Select a new category for the selected contacts.
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4 px-4 sm:px-0">
+            <div className="space-y-4 px-4 sm:px-0 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="batch_category">Category</Label>
                 <Select
@@ -1515,18 +1516,18 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 </Select>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 h-12 text-sm sm:text-base"
+                  className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base"
                   onClick={() => setIsBatchEditDialogOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleBatchEditCategory} 
-                  className="flex-1 h-12 text-sm sm:text-base"
+                  className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Updating..." : "Update Category"}
@@ -1536,17 +1537,17 @@ Your info will stay private and only be used if I need to contact you. Thank You
           </DialogContent>
         </Dialog>
 
-        {/* Add Contact Dialog */}
+        {/* Add Contact Dialog - Mobile Optimized */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm mx-auto">
-            <DialogHeader className="px-4 sm:px-0">
+          <DialogContent className="w-[95vw] max-w-md max-h-[90vh] bg-white/95 backdrop-blur-sm mx-auto overflow-y-auto">
+            <DialogHeader className="px-4 sm:px-0 pb-2">
               <DialogTitle className="text-lg sm:text-xl">Add New Contact</DialogTitle>
               <DialogDescription className="text-sm">
                 Enter the contact details below.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddContact} className="space-y-4 px-4 sm:px-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleAddContact} className="space-y-4 px-4 sm:px-0 pb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="add_first_name" className="text-sm font-medium">
                     First Name *
@@ -1622,7 +1623,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                 </label>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {categories.map((category) => (
-                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer">
+                    <label key={category.id} className="flex items-center space-x-2 cursor-pointer py-1">
                       <Checkbox
                         checked={formData.categories.includes(category.id)}
                         onCheckedChange={(checked) => {
@@ -1641,7 +1642,7 @@ Your info will stay private and only be used if I need to contact you. Thank You
                       />
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         />
                         <span className="text-sm">{category.name}</span>
@@ -1663,23 +1664,24 @@ Your info will stay private and only be used if I need to contact you. Thank You
                   name="notes"
                   value={formData.notes}
                   onChange={handleFormChange}
-                  rows={4}
+                  rows={3}
+                  className="resize-none"
                   placeholder="Add any additional notes about this contact..."
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 h-12 text-sm sm:text-base"
+                  className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base"
                   onClick={() => {
                     setIsAddDialogOpen(false)
                   }}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 h-12 text-sm sm:text-base" disabled={isSubmitting}>
+                <Button type="submit" className="w-full sm:flex-1 h-11 sm:h-12 text-sm sm:text-base" disabled={isSubmitting}>
                   {isSubmitting ? "Adding..." : "Add Contact"}
                 </Button>
               </div>
