@@ -774,36 +774,67 @@ export default function SosPage() {
                 >
                   Test Push
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/check-vapid')
-                      const result = await response.json()
-                      if (response.ok) {
-                        toast({
-                          title: "VAPID Check",
-                          description: result.message,
-                        })
-                      } else {
-                        toast({
-                          title: "VAPID Check Failed",
-                          description: result.error || "Failed to check VAPID configuration",
-                          variant: "destructive"
-                        })
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "VAPID Check Error",
-                        description: "Failed to check VAPID configuration",
-                        variant: "destructive"
-                      })
-                    }
-                  }}
-                >
-                  Check VAPID
-                </Button>
+                                 <Button 
+                   variant="outline" 
+                   size="sm"
+                   onClick={async () => {
+                     try {
+                       const response = await fetch('/api/check-vapid')
+                       const result = await response.json()
+                       if (response.ok) {
+                         toast({
+                           title: "VAPID Check",
+                           description: result.message,
+                         })
+                       } else {
+                         toast({
+                           title: "VAPID Check Failed",
+                           description: result.error || "Failed to check VAPID configuration",
+                           variant: "destructive"
+                         })
+                       }
+                     } catch (error) {
+                       toast({
+                         title: "VAPID Check Error",
+                         description: "Failed to check VAPID configuration",
+                         variant: "destructive"
+                       })
+                     }
+                   }}
+                 >
+                   Check VAPID
+                 </Button>
+                 <Button 
+                   variant="outline" 
+                   size="sm"
+                   onClick={async () => {
+                     try {
+                       const response = await fetch('/api/debug-subscriptions')
+                       const result = await response.json()
+                       if (response.ok) {
+                         console.log('Debug subscriptions result:', result)
+                         toast({
+                           title: "Debug Info",
+                           description: `Found ${result.subscriptions.active} active subscriptions. Check console for details.`,
+                         })
+                       } else {
+                         toast({
+                           title: "Debug Failed",
+                           description: result.error || "Failed to get debug info",
+                           variant: "destructive"
+                         })
+                       }
+                     } catch (error) {
+                       toast({
+                         title: "Debug Error",
+                         description: "Failed to get debug info",
+                         variant: "destructive"
+                       })
+                     }
+                   }}
+                 >
+                   Debug Subscriptions
+                 </Button>
               </div>
             </div>
           </CardContent>

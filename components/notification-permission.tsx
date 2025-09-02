@@ -28,12 +28,14 @@ export default function NotificationPermission({
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [hasShownPrompt, setHasShownPrompt] = useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('checking')
 
   useEffect(() => {
     checkSupport()
     checkPermission()
     checkInstallation()
     setupInstallListener()
+    checkSubscriptionStatus()
     
     // Auto-request permission after a short delay if not granted
     if (forceShow && !hasShownPrompt) {
@@ -85,6 +87,33 @@ export default function NotificationPermission({
     })
   }
 
+  const checkSubscriptionStatus = async () => {
+    if (!user) return
+    
+    try {
+      const { data: subscriptions, error } = await supabase
+        .from('push_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (error) {
+        console.error('Error checking subscription status:', error)
+        setSubscriptionStatus('error')
+        return
+      }
+
+      if (subscriptions && subscriptions.length > 0) {
+        setSubscriptionStatus('active')
+      } else {
+        setSubscriptionStatus('none')
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error)
+      setSubscriptionStatus('error')
+    }
+  }
+
   const handlePermissionRequest = async () => {
     try {
       setIsSubscribing(true)
@@ -128,6 +157,7 @@ export default function NotificationPermission({
               endpoint: subscriptionData.endpoint,
               p256dh_key: subscriptionData.keys.p256dh,
               auth_key: subscriptionData.keys.auth,
+              is_active: true,
               created_at: new Date().toISOString()
             })
 
@@ -140,6 +170,9 @@ export default function NotificationPermission({
             })
             return
           }
+
+          // Update subscription status
+          setSubscriptionStatus('active')
 
           toast({
             title: "Notifications Enabled!",
@@ -223,7 +256,7 @@ export default function NotificationPermission({
     )
   }
 
-  if (permission === 'granted' && isInstalled) {
+  if (permission === 'granted') {
     return (
       <Card className="border-green-200 bg-green-50">
         <CardContent className="p-4">
@@ -231,10 +264,15 @@ export default function NotificationPermission({
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-sm font-medium text-green-800">
-                Notifications enabled & App installed
+                Notifications enabled
               </p>
               <p className="text-xs text-green-700">
                 You'll receive push notifications for important updates.
+                {isInstalled && " App is also installed for better experience."}
+                {subscriptionStatus === 'active' && " Push subscription is active."}
+                {subscriptionStatus === 'none' && " No active push subscription found."}
+                {subscriptionStatus === 'checking' && " Checking subscription status..."}
+                {subscriptionStatus === 'error' && " Error checking subscription status."}
               </p>
             </div>
           </div>
