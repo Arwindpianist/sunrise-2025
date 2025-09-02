@@ -811,12 +811,27 @@ export default function SosPage() {
                      try {
                        const response = await fetch('/api/debug-subscriptions')
                        const result = await response.json()
-                       if (response.ok) {
-                         console.log('Debug subscriptions result:', result)
-                         toast({
-                           title: "Debug Info",
-                           description: `Found ${result.subscriptions.active} active subscriptions. Check console for details.`,
-                         })
+                                               if (response.ok) {
+                          console.log('Debug subscriptions result:', result)
+                          console.log('VAPID configured:', result.vapid_configured)
+                          console.log('Subscriptions:', result.subscriptions)
+                          console.log('Environment:', result.environment)
+                          
+                          let description = `Found ${result.subscriptions.active} active subscriptions. `
+                          if (result.subscriptions.active === 0) {
+                            description += 'No active subscriptions found. Please enable notifications first.'
+                          } else {
+                            description += 'Subscriptions are active.'
+                          }
+                          
+                          if (!result.vapid_configured.has_public_key || !result.vapid_configured.has_private_key) {
+                            description += ' VAPID keys not configured.'
+                          }
+                          
+                          toast({
+                            title: "Debug Info",
+                            description: description,
+                          })
                        } else {
                          toast({
                            title: "Debug Failed",
@@ -832,9 +847,131 @@ export default function SosPage() {
                        })
                      }
                    }}
-                 >
-                   Debug Subscriptions
-                 </Button>
+                                   >
+                    Debug Subscriptions
+                  </Button>
+                                     <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={async () => {
+                       try {
+                         // Force enable notifications
+                         const response = await fetch('/api/force-enable-notifications', {
+                           method: 'POST',
+                           headers: { 'Content-Type': 'application/json' }
+                         })
+                         const result = await response.json()
+                         if (response.ok) {
+                           toast({
+                             title: "Force Enable Success",
+                             description: "Attempted to force enable notifications. Check status.",
+                           })
+                           // Refresh the page to update the notification component
+                           window.location.reload()
+                         } else {
+                           toast({
+                             title: "Force Enable Failed",
+                             description: result.error || "Failed to force enable notifications",
+                             variant: "destructive"
+                           })
+                         }
+                       } catch (error) {
+                         toast({
+                           title: "Force Enable Error",
+                           description: "Failed to force enable notifications",
+                           variant: "destructive"
+                         })
+                       }
+                     }}
+                   >
+                     Force Enable
+                   </Button>
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => {
+                       // Manually trigger notification permission request
+                       if ('Notification' in window && Notification.permission === 'default') {
+                         Notification.requestPermission().then((permission) => {
+                           console.log('Manual permission result:', permission)
+                           if (permission === 'granted') {
+                             toast({
+                               title: "Permission Granted!",
+                               description: "Please refresh the page to complete setup.",
+                             })
+                           } else {
+                             toast({
+                               title: "Permission Denied",
+                               description: "Please enable notifications in browser settings.",
+                               variant: "destructive"
+                             })
+                           }
+                         })
+                       } else {
+                         toast({
+                           title: "Permission Status",
+                           description: `Current permission: ${Notification.permission}`,
+                         })
+                       }
+                     }}
+                   >
+                                           Manual Request
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          // Check service worker status
+                          if ('serviceWorker' in navigator) {
+                            const registration = await navigator.serviceWorker.getRegistration('/sw.js')
+                            if (registration) {
+                              console.log('Service Worker Registration:', {
+                                active: !!registration.active,
+                                waiting: !!registration.waiting,
+                                installing: !!registration.installing,
+                                scope: registration.scope
+                              })
+                              
+                              if (registration.active) {
+                                console.log('Active Service Worker:', registration.active)
+                                toast({
+                                  title: "Service Worker Active",
+                                  description: "Service worker is active and ready for push notifications.",
+                                })
+                              } else {
+                                toast({
+                                  title: "Service Worker Not Active",
+                                  description: "Service worker is registered but not active yet.",
+                                  variant: "destructive"
+                                })
+                              }
+                            } else {
+                              toast({
+                                title: "No Service Worker",
+                                description: "No service worker registration found.",
+                                variant: "destructive"
+                              })
+                            }
+                          } else {
+                            toast({
+                              title: "Service Workers Not Supported",
+                              description: "Service workers are not supported in this browser.",
+                              variant: "destructive"
+                            })
+                          }
+                        } catch (error) {
+                          console.error('Error checking service worker:', error)
+                          toast({
+                            title: "Service Worker Check Error",
+                            description: "Failed to check service worker status.",
+                            variant: "destructive"
+                          })
+                        }
+                      }}
+                    >
+                      Check SW Status
+                    </Button>
               </div>
             </div>
           </CardContent>

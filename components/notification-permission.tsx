@@ -134,8 +134,11 @@ export default function NotificationPermission({
       setPermission(newPermission)
 
       if (newPermission === 'granted') {
+        console.log('Permission granted, subscribing to push notifications...')
         // Subscribe to push notifications
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        console.log('VAPID public key available:', !!vapidPublicKey)
+        
         if (!vapidPublicKey) {
           console.error('VAPID public key not configured')
           toast({
@@ -146,7 +149,13 @@ export default function NotificationPermission({
           return
         }
 
+        // Add a small delay to ensure service worker is ready
+        console.log('Waiting for service worker to be ready...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        console.log('Subscribing to push notifications...')
         const subscriptionData = await pushNotificationManager.subscribeToPushNotifications(vapidPublicKey)
+        console.log('Subscription data received:', !!subscriptionData)
         
         if (subscriptionData && user) {
           // Save subscription to database
@@ -284,7 +293,7 @@ export default function NotificationPermission({
   return (
     <div className="space-y-4">
       {/* Notification Permission Request */}
-      {permission !== 'granted' && (
+      {(permission === 'default' || permission === 'denied') && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">

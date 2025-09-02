@@ -75,8 +75,28 @@ class PushNotificationManager {
         return null;
       }
 
+      // Ensure service worker is active before subscribing
+      if (!this.registration.active) {
+        console.log('Service worker not active, waiting...');
+        await new Promise<void>((resolve) => {
+          const checkActive = () => {
+            if (this.registration!.active) {
+              console.log('Service worker is now active, proceeding with subscription');
+              resolve();
+            } else {
+              setTimeout(checkActive, 100);
+            }
+          };
+          checkActive();
+        });
+      }
+
+      console.log('Service worker active, proceeding with push subscription...');
+      console.log('VAPID public key:', vapidPublicKey);
+
       // Convert VAPID public key to Uint8Array
       const vapidPublicKeyArray = this.urlBase64ToUint8Array(vapidPublicKey);
+      console.log('VAPID key converted to Uint8Array, length:', vapidPublicKeyArray.length);
 
       // Subscribe to push notifications
       this.subscription = await this.registration.pushManager.subscribe({
@@ -84,7 +104,7 @@ class PushNotificationManager {
         applicationServerKey: vapidPublicKeyArray
       });
 
-      console.log('Push subscription created:', this.subscription);
+      console.log('Push subscription created successfully:', this.subscription);
 
       // Extract subscription data
       const subscriptionData: PushSubscriptionData = {
@@ -95,9 +115,20 @@ class PushNotificationManager {
         }
       };
 
+      console.log('Subscription data extracted:', {
+        endpoint: subscriptionData.endpoint,
+        p256dhLength: subscriptionData.keys.p256dh.length,
+        authLength: subscriptionData.keys.auth.length
+      });
+
       return subscriptionData;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to subscribe to push notifications:', error);
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
       return null;
     }
   }
