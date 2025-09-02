@@ -85,8 +85,11 @@ export default function SosPage() {
   const [pressStartTime, setPressStartTime] = useState(0)
   const [pressProgress, setPressProgress] = useState(0)
   const [isTriggering, setIsTriggering] = useState(false)
+  const [lastSosTrigger, setLastSosTrigger] = useState(0)
+  const [cooldownTime, setCooldownTime] = useState(0)
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -95,6 +98,21 @@ export default function SosPage() {
       checkOnboardingStatus()
     }
   }, [user])
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (pressTimeoutRef.current) {
+        clearTimeout(pressTimeoutRef.current)
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current)
+      }
+    }
+  }, [])
 
   const checkOnboardingStatus = () => {
     // Check if user has completed SOS onboarding
@@ -131,6 +149,38 @@ export default function SosPage() {
   const resetOnboarding = () => {
     localStorage.removeItem('sos-onboarding-completed')
     setShowOnboarding(true)
+  }
+
+  // Cleanup duplicate SOS alerts
+  const cleanupDuplicates = async () => {
+    try {
+      const response = await fetch('/api/sos/cleanup-duplicates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        toast({
+          title: "Cleanup Complete!",
+          description: result.message,
+        })
+        // Refresh emergency contacts to show updated data
+        fetchEmergencyContacts()
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error: any) {
+      console.error('Error cleaning up duplicates:', error)
+      toast({
+        title: "Cleanup Failed",
+        description: error.message || "Failed to cleanup duplicate records",
+        variant: "destructive",
+      })
+    }
   }
 
   const fetchContacts = async () => {
@@ -381,7 +431,41 @@ export default function SosPage() {
   const triggerSOS = async () => {
     if (isTriggering) return
     
+    // Prevent multiple SOS triggers within 5 seconds
+    const now = Date.now()
+    if (cooldownTime > 0) {
+      console.log('SOS trigger blocked - system is in cooldown')
+      return
+    }
+    
+    // Clear all timers and intervals to prevent multiple triggers
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current)
+      pressTimeoutRef.current = null
+    }
+    
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = null
+    }
+    
     setIsTriggering(true)
+    setLastSosTrigger(now)
+    
+    // Start cooldown timer
+    setCooldownTime(5000)
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownTime(prev => {
+        if (prev <= 1000) {
+          if (cooldownIntervalRef.current) {
+            clearInterval(cooldownIntervalRef.current)
+            cooldownIntervalRef.current = null
+          }
+          return 0
+        }
+        return prev - 1000
+      })
+    }, 1000)
     
     // Trigger SOS haptic pattern
     try {
@@ -553,36 +637,57 @@ export default function SosPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8 text-center">
-        <div className="flex items-center justify-between mb-4">
-          <div></div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
-            <p className="text-gray-600">Press and hold the SOS button to alert your emergency contacts</p>
-          </div>
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
+      {/* Mobile-friendly header */}
+      <div className="mb-6 sm:mb-8">
+        <div className="text-center mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
+          <p className="text-sm sm:text-base text-gray-600 px-2">Press and hold the SOS button to alert your emergency contacts</p>
+          {isTriggering && (
+            <p className="text-sm text-orange-600 mt-2">Sending SOS alert...</p>
+          )}
+          {cooldownTime > 0 && !isTriggering && (
+            <p className="text-sm text-gray-500 mt-2">
+              SOS system cooling down... ({Math.ceil(cooldownTime / 1000)}s)
+            </p>
+          )}
+        </div>
+        
+        {/* Mobile-friendly action buttons */}
+        <div className="flex justify-center gap-2 mb-4">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => setShowOnboarding(true)}
-            className="text-xs"
+            className="text-xs px-3 py-2"
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Tutorial
           </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={cleanupDuplicates}
+            className="text-xs px-3 py-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Cleanup
+          </Button>
         </div>
       </div>
 
-      {/* Main SOS Button */}
-      <div className="flex justify-center mb-12">
+      {/* Main SOS Button - Mobile Responsive */}
+      <div className="flex justify-center mb-8 sm:mb-12">
         <div className="text-center">
           <div className="relative inline-block mb-4">
             <button
               className={cn(
-                "relative w-40 h-40 rounded-full border-4 transition-all duration-200 ease-out",
+                "relative w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 transition-all duration-200 ease-out",
                 "focus:outline-none focus:ring-4 focus:ring-red-300",
                 isPressed 
                   ? "bg-red-600 border-red-700 scale-95 shadow-lg" 
+                  : isTriggering || cooldownTime > 0
+                  ? "bg-gray-400 border-gray-500 cursor-not-allowed"
                   : "bg-red-500 border-red-600 hover:bg-red-600 hover:border-red-700 hover:scale-105 shadow-md"
               )}
               onMouseDown={handlePressStart}
@@ -590,10 +695,10 @@ export default function SosPage() {
               onMouseLeave={handlePressEnd}
               onTouchStart={handlePressStart}
               onTouchEnd={handlePressEnd}
-              disabled={isTriggering}
+              disabled={isTriggering || cooldownTime > 0}
             >
               <div className="absolute inset-0 flex items-center justify-center">
-                <AlertTriangle className="h-16 w-16 text-white" />
+                <AlertTriangle className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
               </div>
               
               {/* Progress ring */}
@@ -640,7 +745,7 @@ export default function SosPage() {
             </div>
           )}
 
-          <div className="text-xs text-gray-500 space-y-1 max-w-md mx-auto">
+          <div className="text-xs sm:text-sm text-gray-500 space-y-1 max-w-md mx-auto px-4">
             <p>• Press and hold for 2 seconds to activate</p>
             <p>• Your location will be shared with emergency contacts</p>
             <p>• Only Sunrise users will receive notifications</p>
@@ -648,24 +753,24 @@ export default function SosPage() {
         </div>
       </div>
 
-      {/* Emergency Contacts Section */}
+      {/* Emergency Contacts Section - Mobile Responsive */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Shield className="h-5 w-5" />
             Emergency Contacts
           </CardTitle>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="flex items-center gap-2">
+              <Button size="sm" className="flex items-center gap-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Add Contact
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] max-w-md mx-auto">
               <DialogHeader>
-                <DialogTitle>Add Emergency Contact</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg">Add Emergency Contact</DialogTitle>
+                <DialogDescription className="text-sm">
                   Select a contact from your contact list to add as an emergency contact. Only Sunrise users will receive notifications.
                 </DialogDescription>
               </DialogHeader>
@@ -733,7 +838,7 @@ export default function SosPage() {
               {emergencyContacts.map((emergencyContact) => (
                 <div
                   key={emergencyContact.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg space-y-2 sm:space-y-0"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -741,29 +846,29 @@ export default function SosPage() {
                         Priority {emergencyContact.priority}
                       </Badge>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <p className="font-medium text-sm sm:text-base">
                           {emergencyContact.contact.first_name} {emergencyContact.contact.last_name}
                         </p>
                         {emergencyContact.contact.isSunriseUser ? (
-                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 w-fit">
                             Sunrise User
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
+                          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 w-fit">
                             No Sunrise Account
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {emergencyContact.contact.email}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                        <span className="flex items-center gap-1 truncate">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{emergencyContact.contact.email}</span>
                         </span>
                         {emergencyContact.contact.phone && (
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-3 w-3 flex-shrink-0" />
                             {emergencyContact.contact.phone}
                           </span>
                         )}
@@ -775,12 +880,12 @@ export default function SosPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 sm:gap-2">
                     <Select
                       value={emergencyContact.priority.toString()}
                       onValueChange={(value) => handleUpdatePriority(emergencyContact.id, parseInt(value))}
                     >
-                      <SelectTrigger className="w-20">
+                      <SelectTrigger className="w-16 sm:w-20">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -791,7 +896,7 @@ export default function SosPage() {
                     </Select>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="p-2">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>

@@ -58,9 +58,9 @@ export default function SosOnboarding({
           <p className="text-gray-600">
             The SOS Emergency System allows you to quickly alert your emergency contacts when you need immediate assistance.
           </p>
-          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-            <h4 className="font-semibold text-red-800 mb-2">How it works:</h4>
-            <ul className="text-sm text-red-700 space-y-1">
+          <div className="bg-red-50 p-3 sm:p-4 rounded-lg border border-red-200">
+            <h4 className="font-semibold text-red-800 mb-2 text-sm sm:text-base">How it works:</h4>
+            <ul className="text-xs sm:text-sm text-red-700 space-y-1">
               <li>• Press and hold the red SOS button for 2 seconds</li>
               <li>• Your location will be shared with emergency contacts</li>
               <li>• They'll receive urgent notifications on their Sunrise app</li>
@@ -82,22 +82,22 @@ export default function SosOnboarding({
           
           <div className="space-y-3">
             {/* Notifications Permission */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg space-y-2 sm:space-y-0">
               <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="font-medium">Push Notifications</p>
-                  <p className="text-sm text-gray-500">Receive SOS alerts from emergency contacts</p>
+                <Bell className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-sm sm:text-base">Push Notifications</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Receive SOS alerts from emergency contacts</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-center">
                 {permissions.notifications ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Enabled
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
                     <XCircle className="h-3 w-3 mr-1" />
                     Required
                   </Badge>
@@ -106,22 +106,22 @@ export default function SosOnboarding({
             </div>
 
             {/* Geolocation Permission */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg space-y-2 sm:space-y-0">
               <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="font-medium">Location Access</p>
-                  <p className="text-sm text-gray-500">Share your location with emergency contacts</p>
+                <MapPin className="h-5 w-5 text-green-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-sm sm:text-base">Location Access</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Share your location with emergency contacts</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-center">
                 {permissions.geolocation ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Enabled
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
                     <XCircle className="h-3 w-3 mr-1" />
                     Required
                   </Badge>
@@ -130,22 +130,22 @@ export default function SosOnboarding({
             </div>
 
             {/* PWA Installation */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg space-y-2 sm:space-y-0">
               <div className="flex items-center gap-3">
-                <Download className="h-5 w-5 text-purple-500" />
-                <div>
-                  <p className="font-medium">Install as App</p>
-                  <p className="text-sm text-gray-500">Better notifications and offline access</p>
+                <Download className="h-5 w-5 text-purple-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-sm sm:text-base">Install as App</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Better notifications and offline access</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-center">
                 {permissions.pwaInstalled ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Installed
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
                     <Smartphone className="h-3 w-3 mr-1" />
                     Recommended
                   </Badge>
@@ -154,8 +154,8 @@ export default function SosOnboarding({
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-700">
+          <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+            <p className="text-xs sm:text-sm text-blue-700">
               <strong>Note:</strong> These permissions are essential for the SOS system to work properly. 
               You can change them later in your browser settings.
             </p>
@@ -174,23 +174,23 @@ export default function SosOnboarding({
           </p>
           
           {emergencyContactsCount === 0 ? (
-            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-                <p className="font-medium text-orange-800">No Emergency Contacts Added</p>
+                <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                <p className="font-medium text-orange-800 text-sm sm:text-base">No Emergency Contacts Added</p>
               </div>
-              <p className="text-sm text-orange-700">
+              <p className="text-xs sm:text-sm text-orange-700">
                 You need to add at least one emergency contact for the SOS system to work. 
                 Click "Add Contact" below to get started.
               </p>
             </div>
           ) : (
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <p className="font-medium text-green-800">Emergency Contacts Ready</p>
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                <p className="font-medium text-green-800 text-sm sm:text-base">Emergency Contacts Ready</p>
               </div>
-              <p className="text-sm text-green-700">
+              <p className="text-xs sm:text-sm text-green-700">
                 You have {emergencyContactsCount} emergency contact{emergencyContactsCount !== 1 ? 's' : ''} set up. 
                 They will receive SOS alerts when you activate the emergency button.
               </p>
@@ -198,8 +198,8 @@ export default function SosOnboarding({
           )}
 
           <div className="space-y-2">
-            <h4 className="font-medium">Tips for Emergency Contacts:</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
+            <h4 className="font-medium text-sm sm:text-base">Tips for Emergency Contacts:</h4>
+            <ul className="text-xs sm:text-sm text-gray-600 space-y-1">
               <li>• Choose people you trust and who can help in emergencies</li>
               <li>• Make sure they have Sunrise accounts to receive notifications</li>
               <li>• Set priority levels (1 = highest priority)</li>
@@ -387,13 +387,13 @@ export default function SosOnboarding({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto mx-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            {currentStepData.icon}
-            {currentStepData.title}
+          <DialogTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-lg sm:text-xl">
+            <div className="flex-shrink-0">{currentStepData.icon}</div>
+            <span className="text-base sm:text-lg">{currentStepData.title}</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Step {currentStep + 1} of {steps.length}
           </DialogDescription>
         </DialogHeader>
@@ -408,7 +408,7 @@ export default function SosOnboarding({
           </div>
 
           {/* Step Content */}
-          <div className="min-h-[300px]">
+          <div className="min-h-[250px] sm:min-h-[300px]">
             {currentStepData.content}
           </div>
 
@@ -429,23 +429,23 @@ export default function SosOnboarding({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <div className="flex gap-2">
+          {/* Action Buttons - Mobile Responsive */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center pt-4 border-t space-y-3 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row gap-2">
               {currentStep > 0 && (
-                <Button variant="outline" onClick={handlePrevious}>
+                <Button variant="outline" onClick={handlePrevious} className="w-full sm:w-auto">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Previous
                 </Button>
               )}
-              <Button variant="ghost" onClick={onSkip}>
+              <Button variant="ghost" onClick={onSkip} className="w-full sm:w-auto">
                 Skip Tutorial
               </Button>
             </div>
 
             <div className="flex gap-2">
               {currentStep === steps.length - 1 ? (
-                <Button onClick={onComplete} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={onComplete} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Complete Setup
                 </Button>
@@ -454,6 +454,7 @@ export default function SosOnboarding({
                   onClick={handleNext} 
                   disabled={!canProceed()}
                   className={cn(
+                    "w-full sm:w-auto",
                     !canProceed() && "opacity-50 cursor-not-allowed"
                   )}
                 >
