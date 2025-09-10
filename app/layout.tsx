@@ -99,7 +99,7 @@ export default function RootLayout({
         <meta property="og:image:url" content="https://sunrise-2025.com/og-image.png" />
         
         {/* Permissions Policy for PWA features */}
-        <meta httpEquiv="Permissions-Policy" content="geolocation=(self), vibrate=(self), camera=(), microphone=()" />
+        <meta httpEquiv="Permissions-Policy" content="geolocation=(self), camera=(), microphone=()" />
       </head>
       <body className={inter.className}>
         <SupabaseProvider>

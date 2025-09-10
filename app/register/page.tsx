@@ -118,7 +118,20 @@ export default function RegisterPage() {
             // Use the current user data
             authData = { user: currentUser }
           } else {
-            throw new Error('User was not created successfully')
+            // If we can't get the user from session, try to sign in with the same credentials
+            console.warn('User not found in session, attempting to sign in')
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: formData.email,
+              password: formData.password
+            })
+            
+            if (signInData?.user) {
+              authData = { user: signInData.user }
+              console.log('Successfully signed in user after trigger error')
+            } else {
+              console.error('Failed to sign in user:', signInError)
+              throw new Error('User was created but could not be accessed. Please try logging in manually.')
+            }
           }
         } else {
           throw new Error('No user data returned from signup')
