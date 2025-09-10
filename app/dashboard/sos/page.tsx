@@ -142,10 +142,18 @@ export default function SosPage() {
       e.preventDefault()
       setShowPWAInstallPrompt(true)
     })
+
+    // Listen for manual guide request from banner
+    const handleShowPWAGuide = () => {
+      setShowPWAInstallGuide(true)
+    }
+    
+    window.addEventListener('show-pwa-guide', handleShowPWAGuide)
     
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('show-pwa-guide', handleShowPWAGuide)
     }
   }, [])
 
@@ -1964,6 +1972,43 @@ export default function SosPage() {
         onSkip={handleOnboardingSkip}
         emergencyContactsCount={emergencyContacts.length}
       />
+
+      {/* Prominent PWA Install Warning for SOS Page */}
+      {!isPWAInstalled && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-800 mb-1">
+                ⚠️ Install App for Emergency Features
+              </h3>
+              <p className="text-sm text-orange-700 mb-3">
+                For reliable emergency alerts and push notifications, please install Sunrise as a PWA. 
+                This is especially important for emergency SOS features to work properly.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={handlePWAInstall}
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Install App Now
+                </Button>
+                <Button 
+                  onClick={() => setShowPWAInstallGuide(true)}
+                  variant="outline"
+                  size="sm"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  <Smartphone className="h-4 w-4 mr-1" />
+                  Manual Guide
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PWA Install Guide */}
       <PWAInstallGuide

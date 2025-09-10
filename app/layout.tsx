@@ -9,6 +9,7 @@ import FloatingHelpWrapper from "@/components/floating-help-wrapper"
 import FloatingSosButton from "@/components/floating-sos-button"
 import GDPRBanner from "@/components/gdpr-banner"
 import ServiceWorkerRegister from "@/components/service-worker-register"
+import PWAInstallBanner from "@/components/pwa-install-banner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -108,6 +109,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <PWAInstallBanner />
           <FloatingHelpWrapper />
           <FloatingSosButton />
           <Toaster />
