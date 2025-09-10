@@ -227,6 +227,73 @@ export default function SosPage() {
     }
   }
 
+  const testPushNotification = async () => {
+    try {
+      const response = await fetch('/api/sos/test-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Push Test Sent!",
+          description: "Check your device for the test push notification.",
+        })
+      } else {
+        toast({
+          title: "Push Test Failed",
+          description: result.error || "Failed to send test push notification",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error testing push notification:', error)
+      toast({
+        title: "Push Test Error",
+        description: "Could not send test push notification",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const debugSubscription = async () => {
+    try {
+      const response = await fetch('/api/sos/debug-subscription', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        console.log('Debug subscription result:', result)
+        toast({
+          title: "Debug Info Retrieved",
+          description: `Found ${result.subscriptions.active} active push subscriptions. Check console for details.`,
+        })
+      } else {
+        toast({
+          title: "Debug Failed",
+          description: result.error || "Failed to get debug information",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error getting debug info:', error)
+      toast({
+        title: "Debug Error",
+        description: "Could not get debug information",
+        variant: "destructive"
+      })
+    }
+  }
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -680,41 +747,108 @@ export default function SosPage() {
 
   const sendSosNotifications = async (sosAlertId: string, locationData: any) => {
     try {
-      // Send multi-channel emergency notifications
-      const multiChannelResponse = await fetch('/api/sos/send-multi-channel-emergency', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sos_alert_id: sosAlertId,
-          emergency_contacts: emergencyContacts,
-          user_name: user?.user_metadata?.full_name || user?.email,
-          user_email: user?.email,
-          user_phone: user?.user_metadata?.phone || 'Not provided',
-          location: locationData.location_address || 'Location not available',
-          location_lat: locationData.location_lat,
-          location_lng: locationData.location_lng,
-          triggered_at: new Date().toISOString()
-        }),
-      })
+      let totalSent = 0
+      let totalFailed = 0
+      const results = []
 
-      if (!multiChannelResponse.ok) {
-        const errorData = await multiChannelResponse.json()
-        throw new Error(errorData.message || 'Failed to send multi-channel emergency notifications')
+      // Send notifications to each emergency contact individually
+      for (const emergencyContact of emergencyContacts) {
+        const contact = emergencyContact.contact
+        
+        // Only send notifications to Sunrise users
+        if (!contact.isSunriseUser) {
+          console.log(`Skipping notification for ${contact.email} - not a Sunrise user`)
+          continue
+        }
+        
+        // Create notification record for emergency notification
+        const { data: notification, error: notificationError } = await supabase
+          .from('sos_alert_notifications')
+          .insert({
+            sos_alert_id: sosAlertId,
+            emergency_contact_id: emergencyContact.id,
+            notification_type: 'push',
+            status: 'pending'
+          })
+          .select()
+          .single()
+
+        if (notificationError) {
+          console.error('Error creating notification record:', notificationError)
+          totalFailed++
+          continue
+        }
+
+        // Send emergency push notification using the working single-channel API
+        try {
+          const emergencyResponse = await fetch('/api/sos/send-emergency-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sos_alert_id: sosAlertId,
+              recipient_user_id: contact.userId,
+              user_name: user?.user_metadata?.full_name || user?.email,
+              user_email: user?.email,
+              user_phone: user?.user_metadata?.phone || 'Not provided',
+              location: locationData.location_address || 'Location not available',
+              location_lat: locationData.location_lat,
+              location_lng: locationData.location_lng,
+              triggered_at: new Date().toISOString(),
+              emergency_contact_name: `${contact.first_name} ${contact.last_name || ''}`.trim(),
+              emergency_contact_priority: emergencyContact.priority
+            }),
+          })
+
+          if (emergencyResponse.ok) {
+            const result = await emergencyResponse.json()
+            console.log('Emergency notification sent successfully:', result)
+            totalSent++
+            
+            // Update notification status to sent
+            await supabase
+              .from('sos_alert_notifications')
+              .update({ 
+                status: 'sent',
+                sent_at: new Date().toISOString()
+              })
+              .eq('id', notification.id)
+          } else {
+            const errorData = await emergencyResponse.json()
+            console.error('Failed to send emergency notification:', errorData)
+            totalFailed++
+            
+            // Update notification status to failed
+            await supabase
+              .from('sos_alert_notifications')
+              .update({ 
+                status: 'failed',
+                error_message: errorData.message || 'Unknown error'
+              })
+              .eq('id', notification.id)
+          }
+
+        } catch (error) {
+          console.error('Error sending emergency notification:', error)
+          totalFailed++
+          
+          // Update notification status to failed
+          await supabase
+            .from('sos_alert_notifications')
+            .update({ 
+              status: 'failed',
+              error_message: error instanceof Error ? error.message : 'Unknown error'
+            })
+            .eq('id', notification.id)
+        }
       }
 
-      const result = await multiChannelResponse.json()
-      console.log('Multi-channel emergency notification results:', result)
-
       // Show success message with notification summary
-      const totalSent = result.results.total_sent
-      const totalFailed = result.results.total_failed
-      
       if (totalSent > 0) {
         toast({
           title: "Emergency Alert Sent!",
-          description: `Notified ${totalSent} emergency contacts via multiple channels${totalFailed > 0 ? ` (${totalFailed} failed)` : ''}`,
+          description: `Notified ${totalSent} emergency contacts${totalFailed > 0 ? ` (${totalFailed} failed)` : ''}`,
         })
       } else {
         toast({
@@ -853,6 +987,30 @@ export default function SosPage() {
               Test Alert
             </Button>
           )}
+
+          {/* Test Push Notification Button */}
+          {notificationPermission === 'granted' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={testPushNotification}
+              className="text-xs px-3 py-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Bell className="h-3 w-3 mr-1" />
+              Test Push
+            </Button>
+          )}
+
+          {/* Debug Subscription Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={debugSubscription}
+            className="text-xs px-3 py-2 text-gray-600 border-gray-200 hover:bg-gray-50"
+          >
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Debug
+          </Button>
           
           <Button 
             variant="outline" 
