@@ -66,53 +66,98 @@ export async function POST(request: Request) {
 
     // Step 2: Manually create user record in public.users
     console.log('Creating user record in public.users table')
+    console.log('Auth data:', {
+      id: authData.user.id,
+      email: authData.user.email,
+      created_at: authData.user.created_at
+    })
+    
+    let userData = null
     
     try {
-      const { data: userData, error: userError } = await supabase
+      // First, check if user already exists (in case trigger created it)
+      const { data: existingUser } = await supabase
         .from('users')
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email,
-          full_name: fullName || '',
-          subscription_plan: 'free',
-          token_balance: 0,
-          created_at: authData.user.created_at,
-          updated_at: authData.user.created_at
-        })
-        .select()
+        .select('*')
+        .eq('id', authData.user.id)
+        .single()
 
-      if (userError) {
-        console.error('Failed to create user record:', userError)
-        // Check if it's a duplicate key error (user already exists)
-        if (userError.code === '23505') {
-          console.log('User record already exists, continuing...')
-        } else {
-          // For other errors, we should still return success since auth user was created
-          console.warn('User record creation failed but auth user exists:', userError.message)
-        }
+      if (existingUser) {
+        console.log('User record already exists (likely created by trigger):', existingUser)
+        userData = existingUser
       } else {
-        console.log('User record created successfully:', userData[0])
+        // Create the user record manually
+        const { data: newUserData, error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email,
+            full_name: fullName || '',
+            subscription_plan: 'free',
+            token_balance: 0,
+            created_at: authData.user.created_at,
+            updated_at: authData.user.created_at
+          })
+          .select()
+
+        if (userError) {
+          console.error('Failed to create user record:', userError)
+          // Check if it's a duplicate key error (user already exists)
+          if (userError.code === '23505') {
+            console.log('User record already exists (duplicate key), fetching existing record...')
+            // Try to fetch the existing record
+            const { data: existingUserData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', authData.user.id)
+              .single()
+            userData = existingUserData
+          } else {
+            // For other errors, we should still return success since auth user was created
+            console.warn('User record creation failed but auth user exists:', userError.message)
+          }
+        } else {
+          console.log('User record created successfully:', newUserData[0])
+          userData = newUserData[0]
+        }
       }
     } catch (userCreationError) {
       console.error('Exception during user record creation:', userCreationError)
       // Don't fail the signup if user creation fails
       // The auth user was created successfully
     }
+    
+    // Ensure userData is always defined
+    if (!userData) {
+      userData = null
+    }
 
-    return NextResponse.json({
+    console.log('Returning success response with userData:', userData)
+    
+    const response = {
       success: true,
       user: authData.user,
-      userRecord: userData?.[0],
+      userRecord: userData || null,
       message: 'User created successfully via server-side signup'
-    })
+    }
+    
+    console.log('Final response:', response)
+    
+    return NextResponse.json(response)
 
   } catch (error: any) {
-    console.error('Server-side signup error:', error)
+    console.error('Server-side signup error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    })
     return NextResponse.json(
       { 
         success: false, 
         error: 'Server-side signup failed',
-        details: error.message 
+        details: error.message,
+        stack: error.stack
       },
       { status: 500 }
     )
