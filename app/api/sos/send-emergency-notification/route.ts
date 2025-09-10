@@ -31,8 +31,14 @@ export async function POST(request: Request) {
       sos_alert_id, 
       recipient_user_id, 
       user_name, 
+      user_email,
+      user_phone,
       location, 
-      triggered_at 
+      location_lat,
+      location_lng,
+      triggered_at,
+      emergency_contact_name,
+      emergency_contact_priority
     } = await request.json()
 
     if (!sos_alert_id || !recipient_user_id || !user_name) {
@@ -55,34 +61,81 @@ export async function POST(request: Request) {
       }), { status: 200 })
     }
 
-    // Create enhanced emergency notification payload
+    // Format timestamp for display
+    const alertTime = new Date(triggered_at || Date.now())
+    const formattedTime = alertTime.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    })
+
+    // Create comprehensive emergency notification payload
     const emergencyPayload = JSON.stringify({
-      title: '🚨 URGENT SOS ALERT',
-      message: `${user_name} needs IMMEDIATE assistance!`,
+      title: '🚨 EMERGENCY SOS ALERT',
+      message: `URGENT: ${user_name} needs IMMEDIATE assistance!`,
       type: 'sos_alert',
-      priority: 'urgent',
+      priority: 'critical',
       urgent: true,
       timestamp: Date.now(),
       data: {
         sos_alert_id,
         user_name,
+        user_email: user_email || 'Not provided',
+        user_phone: user_phone || 'Not provided',
         location: location || 'Location not available',
+        location_lat: location_lat || null,
+        location_lng: location_lng || null,
         triggered_at: triggered_at || new Date().toISOString(),
-        type: 'sos_alert'
+        formatted_time: formattedTime,
+        emergency_contact_name: emergency_contact_name || 'Emergency Contact',
+        emergency_contact_priority: emergency_contact_priority || 1,
+        type: 'sos_alert',
+        // Emergency-specific data
+        emergency_level: 'CRITICAL',
+        response_required: true,
+        time_elapsed: Math.floor((Date.now() - new Date(triggered_at || Date.now()).getTime()) / 1000),
+        location_url: location_lat && location_lng 
+          ? `https://www.google.com/maps?q=${location_lat},${location_lng}`
+          : null
       },
       actions: [
         {
           action: 'view',
-          title: '🚨 VIEW NOW'
+          title: '🚨 VIEW EMERGENCY'
         },
         {
           action: 'acknowledge',
-          title: '✓ ACKNOWLEDGE'
+          title: '✓ I\'M RESPONDING'
+        },
+        {
+          action: 'call',
+          title: '📞 CALL NOW'
         }
       ],
       tag: `sos-alert-${sos_alert_id}-${Date.now()}`,
       requireInteraction: true,
-      renotify: true
+      renotify: true,
+      // Enhanced notification options
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
+      image: null, // Could add emergency contact photo
+      sound: 'emergency-alert', // Custom emergency sound
+      vibrate: [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+      // Emergency-specific styling
+      color: '#dc2626', // Red color for emergency
+      background_color: '#fef2f2',
+      // Additional emergency context
+      emergency_context: {
+        alert_type: 'SOS',
+        severity: 'CRITICAL',
+        requires_immediate_response: true,
+        contact_priority: emergency_contact_priority || 1,
+        estimated_response_time: 'IMMEDIATE'
+      }
     })
 
     // Send the emergency push notification with retry logic

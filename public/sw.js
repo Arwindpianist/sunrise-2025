@@ -30,15 +30,15 @@ self.addEventListener('push', function(event) {
       options.actions = [
         {
           action: 'view',
-          title: '🚨 VIEW NOW'
+          title: '🚨 VIEW EMERGENCY'
         },
         {
           action: 'acknowledge',
-          title: '✓ ACKNOWLEDGE'
+          title: '✓ I\'M RESPONDING'
         },
         {
-          action: 'dismiss',
-          title: 'Dismiss'
+          action: 'call',
+          title: '📞 CALL NOW'
         }
       ];
       
@@ -187,6 +187,16 @@ self.addEventListener('notificationclick', function(event) {
         }).catch(error => {
           console.error('Error acknowledging SOS alert:', error);
         })
+      );
+    }
+  } else if (event.action === 'call') {
+    // Handle call action for SOS alerts
+    const data = event.notification.data;
+    
+    if (data && data.type === 'sos_alert' && data.user_phone) {
+      // Open phone dialer with the emergency contact's number
+      event.waitUntil(
+        clients.openWindow(`tel:${data.user_phone}`)
       );
     }
   }

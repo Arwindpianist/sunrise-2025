@@ -680,69 +680,57 @@ export default function SosPage() {
 
   const sendSosNotifications = async (sosAlertId: string, locationData: any) => {
     try {
-      for (const emergencyContact of emergencyContacts) {
-        const contact = emergencyContact.contact
-        
-        // Only send notifications to Sunrise users
-        if (!contact.isSunriseUser) {
-          console.log(`Skipping notification for ${contact.email} - not a Sunrise user`)
-          continue
-        }
-        
-        // Create notification record for emergency notification
-        const { data: notification, error: notificationError } = await supabase
-          .from('sos_alert_notifications')
-          .insert({
-            sos_alert_id: sosAlertId,
-            emergency_contact_id: emergencyContact.id,
-            notification_type: 'push',
-            status: 'pending'
-          })
-          .select()
-          .single()
+      // Send multi-channel emergency notifications
+      const multiChannelResponse = await fetch('/api/sos/send-multi-channel-emergency', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sos_alert_id: sosAlertId,
+          emergency_contacts: emergencyContacts,
+          user_name: user?.user_metadata?.full_name || user?.email,
+          user_email: user?.email,
+          user_phone: user?.user_metadata?.phone || 'Not provided',
+          location: locationData.location_address || 'Location not available',
+          location_lat: locationData.location_lat,
+          location_lng: locationData.location_lng,
+          triggered_at: new Date().toISOString()
+        }),
+      })
 
-        if (notificationError) {
-          console.error('Error creating notification record:', notificationError)
-          continue
-        }
-
-        // Send emergency push notification
-        try {
-          const emergencyResponse = await fetch('/api/sos/send-emergency-notification', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              sos_alert_id: sosAlertId,
-              recipient_user_id: contact.userId,
-              user_name: user?.user_metadata?.full_name || user?.email,
-              location: locationData.location_address || 'Location not available',
-              triggered_at: new Date().toISOString()
-            }),
-          })
-
-          if (!emergencyResponse.ok) {
-            const errorData = await emergencyResponse.json()
-            throw new Error(errorData.message || 'Failed to send emergency notification')
-          }
-
-          const result = await emergencyResponse.json()
-          console.log('Emergency notification result:', result)
-
-        } catch (error) {
-          console.error('Error sending emergency notification:', error)
-          await supabase
-            .from('sos_alert_notifications')
-            .update({ 
-              status: 'failed',
-              error_message: error instanceof Error ? error.message : 'Unknown error'
-            })
-            .eq('id', notification.id)
-        }
+      if (!multiChannelResponse.ok) {
+        const errorData = await multiChannelResponse.json()
+        throw new Error(errorData.message || 'Failed to send multi-channel emergency notifications')
       }
+
+      const result = await multiChannelResponse.json()
+      console.log('Multi-channel emergency notification results:', result)
+
+      // Show success message with notification summary
+      const totalSent = result.results.total_sent
+      const totalFailed = result.results.total_failed
+      
+      if (totalSent > 0) {
+        toast({
+          title: "Emergency Alert Sent!",
+          description: `Notified ${totalSent} emergency contacts via multiple channels${totalFailed > 0 ? ` (${totalFailed} failed)` : ''}`,
+        })
+      } else {
+        toast({
+          title: "Emergency Alert Failed",
+          description: "No emergency contacts could be notified. Please check your contact settings.",
+          variant: "destructive"
+        })
+      }
+
     } catch (error) {
       console.error('Error sending SOS notifications:', error)
+      toast({
+        title: "Emergency Alert Error",
+        description: error instanceof Error ? error.message : "Failed to send emergency notifications",
+        variant: "destructive"
+      })
     }
   }
 
