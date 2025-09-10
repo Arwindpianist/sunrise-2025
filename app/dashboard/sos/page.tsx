@@ -219,18 +219,48 @@ export default function SosPage() {
     }
 
     try {
-      // Test local notification
+      // Test local notification with enhanced options
       const testNotification = new Notification('🚨 TEST SOS ALERT', {
         body: 'This is a test emergency notification. In a real emergency, this would alert your contacts.',
         icon: '/favicon.svg',
         badge: '/favicon.svg',
         requireInteraction: true,
-        tag: 'test-sos-alert'
+        tag: 'test-sos-alert',
+        silent: false, // Force sound
+        data: {
+          type: 'test_sos_alert',
+          timestamp: Date.now()
+        }
       })
 
-      // Test vibration if available
+      // Test vibration if available (with fallback for mobile)
       if ('vibrate' in navigator) {
-        navigator.vibrate([1000, 500, 1000, 500, 1000])
+        try {
+          navigator.vibrate([1000, 500, 1000, 500, 1000])
+        } catch (vibrateError) {
+          console.log('Vibration not supported or blocked:', vibrateError)
+        }
+      }
+
+      // Test sound generation for mobile
+      if ('AudioContext' in window || 'webkitAudioContext' in window) {
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const oscillator = audioContext.createOscillator()
+          const gainNode = audioContext.createGain()
+          
+          oscillator.connect(gainNode)
+          gainNode.connect(audioContext.destination)
+          
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+          
+          oscillator.start(audioContext.currentTime)
+          oscillator.stop(audioContext.currentTime + 0.5)
+        } catch (audioError) {
+          console.log('Audio generation failed:', audioError)
+        }
       }
 
       toast({
@@ -239,9 +269,20 @@ export default function SosPage() {
       })
     } catch (error) {
       console.error('Error testing notification:', error)
+      
+      let errorMessage = "Could not send test notification. Please check your browser settings."
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = "Notifications are blocked. Please check your browser settings and allow notifications."
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = "Local notifications are not supported in this browser or context."
+        }
+      }
+      
       toast({
         title: "Test Failed",
-        description: "Could not send test notification. Please check your browser settings.",
+        description: errorMessage,
         variant: "destructive"
       })
     }
@@ -406,6 +447,80 @@ export default function SosPage() {
     }
   }
 
+  const testCrossDeviceSOS = async () => {
+    try {
+      // Check if we have emergency contacts set up
+      if (emergencyContacts.length === 0) {
+        toast({
+          title: "No Emergency Contacts",
+          description: "Please add emergency contacts first to test cross-device SOS.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Check if we have push subscriptions
+      const debugResponse = await fetch('/api/sos/debug-subscription')
+      const debugData = await debugResponse.json()
+      
+      if (debugData.subscriptions.active === 0) {
+        toast({
+          title: "No Push Subscriptions",
+          description: "Please set up push notifications first to test cross-device SOS.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Simulate SOS alert for testing
+      const testLocation = {
+        location_address: "Test Location - Cross Device Test",
+        location_lat: 0,
+        location_lng: 0
+      }
+
+      // Create a test SOS alert
+      const { data: sosAlert, error: sosError } = await supabase
+        .from('sos_alerts')
+        .insert({
+          user_id: user?.id,
+          location: testLocation.location_address,
+          location_lat: testLocation.location_lat,
+          location_lng: testLocation.location_lng,
+          triggered_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .select()
+        .single()
+
+      if (sosError) {
+        console.error('Error creating test SOS alert:', sosError)
+        toast({
+          title: "Test Failed",
+          description: "Could not create test SOS alert.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Send test notifications
+      await sendSosNotifications(sosAlert.id, testLocation)
+
+      toast({
+        title: "Cross-Device Test Sent",
+        description: `Test SOS alert sent to ${emergencyContacts.length} emergency contacts. Check their devices for notifications.`,
+      })
+
+    } catch (error) {
+      console.error('Error testing cross-device SOS:', error)
+      toast({
+        title: "Test Failed",
+        description: "Could not send cross-device test. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
   const setupPushNotifications = async () => {
     try {
       // Check if push notifications are supported
@@ -506,6 +621,11 @@ export default function SosPage() {
 
       while (retryCount < maxRetries) {
         try {
+          // Check if push manager is available
+          if (!registration.pushManager) {
+            throw new Error('PushManager not available in this browser')
+          }
+
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: vapidPublicKeyArray as BufferSource
@@ -516,12 +636,23 @@ export default function SosPage() {
           retryCount++
           console.error(`Push subscription attempt ${retryCount} failed:`, error)
           
+          // Check for specific error types
+          if (error instanceof Error) {
+            if (error.name === 'NotSupportedError') {
+              throw new Error('Push notifications are not supported in this browser or context')
+            } else if (error.name === 'NotAllowedError') {
+              throw new Error('Push notifications are blocked. Please check your browser settings')
+            } else if (error.name === 'AbortError') {
+              console.log('Push subscription aborted, retrying...')
+            }
+          }
+          
           if (retryCount >= maxRetries) {
             throw error
           }
           
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount))
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, retryCount - 1)))
         }
       }
 
@@ -1352,6 +1483,17 @@ export default function SosPage() {
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Diagnose
+          </Button>
+
+          {/* Cross-Device Test Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={testCrossDeviceSOS}
+            className="text-xs px-3 py-2 text-green-600 border-green-200 hover:bg-green-50"
+          >
+            <Phone className="h-3 w-3 mr-1" />
+            Test SOS
           </Button>
           
           <Button 
