@@ -101,10 +101,7 @@ export default function RegisterPage() {
       const authData = { user: result.user }
       const authError = null // No error from server-side signup
 
-      // Server-side signup handles all the complexity
-      // No need for complex error handling here
-
-      console.log('User created:', {
+      console.log('User created successfully:', {
         id: authData.user.id,
         email: authData.user.email,
         created_at: authData.user.created_at,

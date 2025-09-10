@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +11,25 @@ export async function POST(request: Request) {
         error: 'Email and password are required' 
       }, { status: 400 })
     }
+
+    // Create server-side Supabase client with service role key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    if (!supabaseServiceKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY is not set')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Server configuration error' 
+      }, { status: 500 })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     // Step 1: Try to sign up using server-side Supabase client
     console.log('Attempting server-side signup for:', email)
@@ -48,25 +67,36 @@ export async function POST(request: Request) {
     // Step 2: Manually create user record in public.users
     console.log('Creating user record in public.users table')
     
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: authData.user.email,
-        full_name: fullName || '',
-        subscription_plan: 'free',
-        token_balance: 0,
-        created_at: authData.user.created_at,
-        updated_at: authData.user.created_at
-      })
-      .select()
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: authData.user.email,
+          full_name: fullName || '',
+          subscription_plan: 'free',
+          token_balance: 0,
+          created_at: authData.user.created_at,
+          updated_at: authData.user.created_at
+        })
+        .select()
 
-    if (userError) {
-      console.error('Failed to create user record:', userError)
+      if (userError) {
+        console.error('Failed to create user record:', userError)
+        // Check if it's a duplicate key error (user already exists)
+        if (userError.code === '23505') {
+          console.log('User record already exists, continuing...')
+        } else {
+          // For other errors, we should still return success since auth user was created
+          console.warn('User record creation failed but auth user exists:', userError.message)
+        }
+      } else {
+        console.log('User record created successfully:', userData[0])
+      }
+    } catch (userCreationError) {
+      console.error('Exception during user record creation:', userCreationError)
       // Don't fail the signup if user creation fails
       // The auth user was created successfully
-    } else {
-      console.log('User record created successfully:', userData[0])
     }
 
     return NextResponse.json({
