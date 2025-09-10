@@ -111,6 +111,31 @@ export default function RegisterPage() {
         email_confirmed: authData.user.email_confirmed_at
       })
 
+      // Manually create user record in public.users table
+      try {
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email,
+            full_name: formData.fullName,
+            subscription_plan: 'free',
+            token_balance: 0,
+            created_at: authData.user.created_at,
+            updated_at: authData.user.created_at
+          })
+
+        if (userError) {
+          console.error('Error creating user record:', userError)
+          // Don't throw error here, just log it - the auth user was created successfully
+        } else {
+          console.log('User record created successfully in public.users table')
+        }
+      } catch (error) {
+        console.error('Error creating user record:', error)
+        // Don't throw error here, just log it - the auth user was created successfully
+      }
+
       // Track referral if referrerId exists
       if (referrerId) {
         try {
