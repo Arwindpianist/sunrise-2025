@@ -290,6 +290,8 @@ export default function SosPage() {
 
   const testPushNotification = async () => {
     try {
+      console.log('🧪 Starting test push notification...')
+      
       const response = await fetch('/api/sos/test-push', {
         method: 'POST',
         headers: {
@@ -297,14 +299,19 @@ export default function SosPage() {
         }
       })
 
+      console.log('📡 Test push API response status:', response.status)
+      
       const result = await response.json()
+      console.log('📊 Test push result:', result)
 
       if (response.ok) {
+        console.log('✅ Test push notification sent successfully:', result)
         toast({
           title: "Push Test Sent!",
           description: "Check your device for the test push notification.",
         })
       } else {
+        console.error('❌ Failed to send test push notification:', result)
         toast({
           title: "Push Test Failed",
           description: result.error || "Failed to send test push notification",
@@ -312,7 +319,7 @@ export default function SosPage() {
         })
       }
     } catch (error) {
-      console.error('Error testing push notification:', error)
+      console.error('💥 Error testing push notification:', error)
       toast({
         title: "Push Test Error",
         description: "Could not send test push notification",
@@ -323,6 +330,8 @@ export default function SosPage() {
 
   const debugSubscription = async () => {
     try {
+      console.log('🔍 Starting debug subscription check...')
+      
       const response = await fetch('/api/sos/debug-subscription', {
         method: 'GET',
         headers: {
@@ -330,15 +339,25 @@ export default function SosPage() {
         }
       })
 
+      console.log('📡 Debug API response status:', response.status)
+      
       const result = await response.json()
+      console.log('📊 Debug subscription result:', result)
 
       if (response.ok) {
-        console.log('Debug subscription result:', result)
+        console.log('✅ Debug subscription successful:', {
+          active: result.subscriptions.active,
+          total: result.subscriptions.total,
+          user_id: result.user_id,
+          subscriptions: result.subscriptions.subscriptions
+        })
+        
         toast({
           title: "Debug Info Retrieved",
           description: `Found ${result.subscriptions.active} active push subscriptions. Check console for details.`,
         })
       } else {
+        console.error('❌ Debug subscription failed:', result)
         toast({
           title: "Debug Failed",
           description: result.error || "Failed to get debug information",
@@ -346,7 +365,7 @@ export default function SosPage() {
         })
       }
     } catch (error) {
-      console.error('Error getting debug info:', error)
+      console.error('💥 Error getting debug info:', error)
       toast({
         title: "Debug Error",
         description: "Could not get debug information",
@@ -405,8 +424,11 @@ export default function SosPage() {
 
   const diagnosePushIssues = async () => {
     try {
+      console.log('🔬 Starting comprehensive push notification diagnostics...')
+      
       const diagnostics = {
         browser: navigator.userAgent,
+        isBrave: navigator.userAgent.includes('Brave') || (navigator as any).brave,
         hasServiceWorker: 'serviceWorker' in navigator,
         hasPushManager: 'PushManager' in window,
         hasNotification: 'Notification' in window,
@@ -415,18 +437,81 @@ export default function SosPage() {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled,
-        doNotTrack: navigator.doNotTrack
+        doNotTrack: navigator.doNotTrack,
+        isSecureContext: window.isSecureContext,
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+        isPWA: window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+      }
+
+      console.log('🌐 Browser Diagnostics:', diagnostics)
+
+      // Brave-specific checks
+      if (diagnostics.isBrave) {
+        console.log('🦁 Brave Browser detected - checking for specific issues...')
+        
+        // Check if Brave's privacy features are blocking notifications
+        if (diagnostics.notificationPermission === 'denied') {
+          console.warn('⚠️ Notifications denied in Brave - check Brave Shields settings')
+        }
+        
+        // Check if we're in PWA mode
+        if (diagnostics.isPWA) {
+          console.log('📱 Running as PWA in Brave')
+        } else {
+          console.warn('⚠️ Not running as PWA - Brave may have different behavior')
+        }
+        
+        // Check for Brave-specific privacy settings
+        console.log('🛡️ Brave privacy settings may affect push notifications')
       }
 
       // Check VAPID configuration
+      console.log('🔑 Checking VAPID configuration...')
       const vapidCheckResponse = await fetch('/api/check-vapid')
       const vapidCheck = await vapidCheckResponse.json()
+      console.log('🔑 VAPID Check Result:', vapidCheck)
 
       // Check existing subscriptions
+      console.log('📱 Checking existing subscriptions...')
       const debugResponse = await fetch('/api/sos/debug-subscription')
       const debugData = await debugResponse.json()
+      console.log('📱 Subscription Debug Result:', debugData)
 
-      console.log('Push Notification Diagnostics:', {
+      // Check service worker status
+      if ('serviceWorker' in navigator) {
+        console.log('⚙️ Checking service worker status...')
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        console.log('⚙️ Service Worker Registrations:', registrations.length)
+        
+        for (let i = 0; i < registrations.length; i++) {
+          const reg = registrations[i]
+          console.log(`⚙️ SW ${i + 1}:`, {
+            scope: reg.scope,
+            active: !!reg.active,
+            installing: !!reg.installing,
+            waiting: !!reg.waiting,
+            state: reg.active?.state || 'no active worker'
+          })
+        }
+      }
+
+      // Check push manager capabilities
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready
+          if (registration.pushManager) {
+            console.log('📡 Push Manager Capabilities:', {
+              supportedContentEncodings: registration.pushManager.supportedContentEncodings || 'not available',
+              hasPermission: await registration.pushManager.permissionState()
+            })
+          }
+        } catch (swError) {
+          console.error('⚙️ Service Worker Error:', swError)
+        }
+      }
+
+      console.log('📊 Complete Push Notification Diagnostics:', {
         ...diagnostics,
         vapid: vapidCheck,
         subscriptions: debugData
@@ -438,7 +523,7 @@ export default function SosPage() {
       })
 
     } catch (error) {
-      console.error('Error running diagnostics:', error)
+      console.error('💥 Error running diagnostics:', error)
       toast({
         title: "Diagnostics Failed",
         description: "Could not run diagnostics. Check console for errors.",
@@ -521,10 +606,43 @@ export default function SosPage() {
     }
   }
 
+  const showBraveTroubleshooting = () => {
+    const isBrave = navigator.userAgent.includes('Brave') || (navigator as any).brave
+    if (!isBrave) return
+
+    console.log('🦁 Brave Browser Troubleshooting Guide:')
+    console.log('1. Ensure you have installed the app as a PWA:')
+    console.log('   - Look for the install button in the address bar')
+    console.log('   - Or go to Menu > More tools > Create shortcut > Open as window')
+    console.log('2. Check Brave Shields settings:')
+    console.log('   - Click the Brave Shields icon in the address bar')
+    console.log('   - Set to "Standard" or "Allow all" for this site')
+    console.log('   - Ensure "Notifications" is allowed')
+    console.log('3. Check site permissions:')
+    console.log('   - Go to brave://settings/content/notifications')
+    console.log('   - Add this site to "Allow" list')
+    console.log('4. Try in a private window:')
+    console.log('   - Sometimes Brave blocks notifications in regular windows')
+    console.log('5. Check if you\'re in PWA mode:')
+    console.log('   - The app should open in its own window')
+    console.log('   - No browser UI should be visible')
+
+    toast({
+      title: "Brave Troubleshooting Guide",
+      description: "Check console for detailed Brave-specific troubleshooting steps.",
+    })
+  }
+
   const setupPushNotifications = async () => {
     try {
+      console.log('🚀 Starting push notification setup...')
+      
       // Check if push notifications are supported
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.error('❌ Push notifications not supported:', {
+          hasServiceWorker: 'serviceWorker' in navigator,
+          hasPushManager: 'PushManager' in window
+        })
         toast({
           title: "Not Supported",
           description: "Push notifications are not supported in this browser.",
@@ -532,27 +650,51 @@ export default function SosPage() {
         })
         return
       }
+      
+      console.log('✅ Push notifications supported in this browser')
+      
+      // Brave-specific warnings
+      const isBrave = navigator.userAgent.includes('Brave') || (navigator as any).brave
+      if (isBrave) {
+        console.log('🦁 Brave Browser detected - checking for potential issues...')
+        
+        // Check if we're in PWA mode
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+        if (!isPWA) {
+          console.warn('⚠️ Not running as PWA in Brave - push notifications may not work properly')
+          toast({
+            title: "Brave PWA Warning",
+            description: "For best results, install this app as a PWA in Brave browser.",
+            variant: "destructive"
+          })
+        }
+      }
 
       // First check VAPID configuration
+      console.log('🔑 Checking VAPID configuration...')
       const vapidCheckResponse = await fetch('/api/check-vapid')
       const vapidCheck = await vapidCheckResponse.json()
+      console.log('🔑 VAPID check result:', vapidCheck)
       
       if (!vapidCheck.isConfigured) {
+        console.error('❌ VAPID configuration check failed:', vapidCheck)
         toast({
           title: "Configuration Error",
           description: "Push notification configuration is incomplete. Please contact support.",
           variant: "destructive"
         })
-        console.error('VAPID configuration check failed:', vapidCheck)
         return
       }
 
-      console.log('VAPID configuration check passed:', vapidCheck)
+      console.log('✅ VAPID configuration check passed:', vapidCheck)
 
       // Request notification permission
+      console.log('🔔 Requesting notification permission...')
       const permission = await Notification.requestPermission()
+      console.log('🔔 Notification permission result:', permission)
       
       if (permission !== 'granted') {
+        console.error('❌ Notification permission denied:', permission)
         toast({
           title: "Permission Denied",
           description: "Please allow notifications to receive emergency alerts.",
@@ -560,39 +702,52 @@ export default function SosPage() {
         })
         return
       }
+      
+      console.log('✅ Notification permission granted')
 
       // Check if we already have a working service worker
+      console.log('⚙️ Checking service worker status...')
       let registration = await navigator.serviceWorker.getRegistration()
+      console.log('⚙️ Current service worker registration:', registration ? 'found' : 'not found')
       
       if (!registration || !registration.active) {
-        console.log('No active service worker found, registering new one...')
+        console.log('⚙️ No active service worker found, registering new one...')
         
         // Unregister any existing service workers first
         const existingRegistrations = await navigator.serviceWorker.getRegistrations()
+        console.log('⚙️ Found existing registrations:', existingRegistrations.length)
         for (const reg of existingRegistrations) {
-          console.log('Unregistering existing service worker:', reg.scope)
+          console.log('⚙️ Unregistering existing service worker:', reg.scope)
           await reg.unregister()
         }
 
         // Wait a moment for cleanup
+        console.log('⚙️ Waiting for cleanup...')
         await new Promise(resolve => setTimeout(resolve, 1000))
 
         // Register service worker
+        console.log('⚙️ Registering new service worker...')
         registration = await navigator.serviceWorker.register('/sw.js')
-        console.log('Service Worker registered:', registration)
+        console.log('⚙️ Service Worker registered:', registration)
       } else {
-        console.log('Using existing service worker:', registration.scope)
+        console.log('✅ Using existing service worker:', registration.scope)
       }
 
       // Wait for service worker to be ready and active
+      console.log('⚙️ Waiting for service worker to be ready...')
       await navigator.serviceWorker.ready
+      console.log('✅ Service worker is ready')
       
       // Additional wait to ensure service worker is fully active
+      console.log('⚙️ Waiting for service worker to be fully active...')
       await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('✅ Service worker should be fully active now')
 
       // Get VAPID public key
+      console.log('🔑 Getting VAPID public key...')
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidPublicKey) {
+        console.error('❌ VAPID public key not found in environment variables')
         toast({
           title: "Configuration Error",
           description: "Push notification configuration is incomplete.",
@@ -601,26 +756,34 @@ export default function SosPage() {
         return
       }
 
-      console.log('VAPID public key available, length:', vapidPublicKey.length)
+      console.log('✅ VAPID public key available, length:', vapidPublicKey.length)
 
       // Convert VAPID key
+      console.log('🔑 Converting VAPID key to Uint8Array...')
       const vapidPublicKeyArray = urlBase64ToUint8Array(vapidPublicKey) as Uint8Array
-      console.log('VAPID key converted to Uint8Array, length:', vapidPublicKeyArray.length)
+      console.log('✅ VAPID key converted to Uint8Array, length:', vapidPublicKeyArray.length)
 
       // Check if we already have a subscription and unsubscribe first
+      console.log('📱 Checking for existing push subscription...')
       const existingSubscription = await registration.pushManager.getSubscription()
       if (existingSubscription) {
-        console.log('Unsubscribing from existing subscription')
+        console.log('📱 Found existing subscription, unsubscribing...')
         await existingSubscription.unsubscribe()
+        console.log('✅ Existing subscription unsubscribed')
+      } else {
+        console.log('📱 No existing subscription found')
       }
 
       // Subscribe to push notifications with retry logic
+      console.log('📱 Starting push subscription creation...')
       let subscription
       let retryCount = 0
       const maxRetries = 3
 
       while (retryCount < maxRetries) {
         try {
+          console.log(`📱 Push subscription attempt ${retryCount + 1}/${maxRetries}...`)
+          
           // Check if push manager is available
           if (!registration.pushManager) {
             throw new Error('PushManager not available in this browser')
@@ -630,20 +793,27 @@ export default function SosPage() {
             userVisibleOnly: true,
             applicationServerKey: vapidPublicKeyArray as BufferSource
           })
-          console.log('Push subscription created successfully on attempt', retryCount + 1)
+          console.log('✅ Push subscription created successfully on attempt', retryCount + 1)
           break
         } catch (error) {
           retryCount++
-          console.error(`Push subscription attempt ${retryCount} failed:`, error)
+          console.error(`❌ Push subscription attempt ${retryCount} failed:`, error)
           
           // Check for specific error types
           if (error instanceof Error) {
             if (error.name === 'NotSupportedError') {
               throw new Error('Push notifications are not supported in this browser or context')
             } else if (error.name === 'NotAllowedError') {
-              throw new Error('Push notifications are blocked. Please check your browser settings')
+              if (isBrave) {
+                throw new Error('Push notifications are blocked by Brave. Please check Brave Shields settings and allow notifications for this site.')
+              } else {
+                throw new Error('Push notifications are blocked. Please check your browser settings')
+              }
             } else if (error.name === 'AbortError') {
-              console.log('Push subscription aborted, retrying...')
+              console.log('⚠️ Push subscription aborted, retrying...')
+              if (isBrave) {
+                console.log('🦁 Brave-specific: This may be due to Brave\'s privacy features or PWA mode issues')
+              }
             }
           }
           
@@ -652,7 +822,9 @@ export default function SosPage() {
           }
           
           // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, retryCount - 1)))
+          const waitTime = 2000 * Math.pow(2, retryCount - 1)
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
         }
       }
 
@@ -660,9 +832,10 @@ export default function SosPage() {
         throw new Error('Failed to create push subscription after all retries')
       }
 
-      console.log('Push subscription created:', subscription)
+      console.log('✅ Push subscription created successfully:', subscription)
 
       // Save subscription to database
+      console.log('💾 Preparing subscription data for database...')
       const subscriptionData = {
         endpoint: subscription.endpoint,
         keys: {
@@ -671,12 +844,14 @@ export default function SosPage() {
         }
       }
 
-      console.log('Saving subscription to database:', {
+      console.log('💾 Subscription data prepared:', {
         endpoint: subscriptionData.endpoint,
         p256dh_length: subscriptionData.keys.p256dh.length,
-        auth_length: subscriptionData.keys.auth.length
+        auth_length: subscriptionData.keys.auth.length,
+        user_id: user?.id
       })
 
+      console.log('💾 Saving subscription to database...')
       const { error } = await supabase
         .from('push_subscriptions')
         .upsert({
@@ -689,7 +864,7 @@ export default function SosPage() {
         })
 
       if (error) {
-        console.error('Failed to save subscription:', error)
+        console.error('❌ Failed to save subscription to database:', error)
         toast({
           title: "Error",
           description: "Failed to save notification settings.",
@@ -697,6 +872,8 @@ export default function SosPage() {
         })
         return
       }
+      
+      console.log('✅ Subscription saved to database successfully')
 
       // Update local state
       setNotificationPermission('granted')
@@ -1495,6 +1672,19 @@ export default function SosPage() {
             <Phone className="h-3 w-3 mr-1" />
             Test SOS
           </Button>
+
+          {/* Brave Troubleshooting Button */}
+          {navigator.userAgent.includes('Brave') && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={showBraveTroubleshooting}
+              className="text-xs px-3 py-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Brave Help
+            </Button>
+          )}
           
           <Button 
             variant="outline" 
