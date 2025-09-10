@@ -127,6 +127,35 @@ export async function POST(request: Request) {
       // The auth user was created successfully
     }
     
+    // Step 3: Create user balance record
+    console.log('Creating user balance record')
+    try {
+      const { data: balanceData, error: balanceError } = await supabase
+        .from('user_balances')
+        .insert({
+          user_id: authData.user.id,
+          balance: 15, // Free users start with 15 tokens
+          created_at: authData.user.created_at,
+          updated_at: authData.user.created_at
+        })
+        .select()
+
+      if (balanceError) {
+        console.error('Failed to create balance record:', balanceError)
+        // Check if it's a duplicate key error (balance already exists)
+        if (balanceError.code === '23505') {
+          console.log('Balance record already exists, continuing...')
+        } else {
+          console.warn('Balance record creation failed:', balanceError.message)
+        }
+      } else {
+        console.log('Balance record created successfully:', balanceData[0])
+      }
+    } catch (balanceCreationError) {
+      console.error('Exception during balance record creation:', balanceCreationError)
+      // Don't fail the signup if balance creation fails
+    }
+    
     // Ensure userData is always defined
     if (!userData) {
       userData = null
