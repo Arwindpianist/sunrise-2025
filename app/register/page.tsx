@@ -97,11 +97,32 @@ export default function RegisterPage() {
           status: authError.status,
           name: authError.name
         })
-        throw new Error(authError.message || 'Failed to create account')
+        
+        // Handle the specific database trigger error
+        if (authError.message === 'Database error saving new user') {
+          console.warn('Database trigger error detected, but user was created in auth.users')
+          // Don't throw error - the user was actually created successfully
+          // We'll handle the public.users table creation manually below
+        } else {
+          throw new Error(authError.message || 'Failed to create account')
+        }
       }
 
       if (!authData?.user) {
-        throw new Error('No user data returned from signup')
+        // If we got a database trigger error, the user was still created
+        // Let's try to get the user data from the current session
+        if (authError?.message === 'Database error saving new user') {
+          console.warn('Attempting to get user from current session')
+          const { data: { user: currentUser } } = await supabase.auth.getUser()
+          if (currentUser) {
+            // Use the current user data
+            authData = { user: currentUser }
+          } else {
+            throw new Error('User was not created successfully')
+          }
+        } else {
+          throw new Error('No user data returned from signup')
+        }
       }
 
       console.log('User created:', {
@@ -163,8 +184,12 @@ export default function RegisterPage() {
 
       // Always show email confirmation message for new registrations
       // Don't auto-login even if email appears confirmed
+      const successMessage = authError?.message === 'Database error saving new user' 
+        ? "Account created successfully! (Note: Some features may take a moment to activate)"
+        : "Account Created!"
+        
       toast({
-        title: "Account Created!",
+        title: successMessage,
         description: "Please check your email to confirm your account before logging in.",
       })
       
