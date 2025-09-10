@@ -72,71 +72,37 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // Sign up the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            consent_settings: {
-              marketing: formData.consentMarketing,
-              analytics: formData.consentAnalytics,
-              thirdParty: formData.consentThirdParty,
-              dataProcessing: formData.consentDataProcessing,
-              consentDate: new Date().toISOString(),
-            },
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+      // Use server-side signup to bypass database trigger issues
+      console.log('Attempting server-side signup for:', formData.email)
+      
+      const response = await fetch('/api/signup-server', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+        }),
       })
 
-      if (authError) {
-        console.error('Auth error:', {
-          message: authError.message,
-          status: authError.status,
-          name: authError.name
-        })
-        
-        // Handle the specific database trigger error
-        if (authError.message === 'Database error saving new user') {
-          console.warn('Database trigger error detected, but user was created in auth.users')
-          // Don't throw error - the user was actually created successfully
-          // We'll handle the public.users table creation manually below
-        } else {
-          throw new Error(authError.message || 'Failed to create account')
-        }
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Server-side signup failed')
       }
 
-      if (!authData?.user) {
-        // If we got a database trigger error, the user was still created
-        // Let's try to get the user data from the current session
-        if (authError?.message === 'Database error saving new user') {
-          console.warn('Attempting to get user from current session')
-          const { data: { user: currentUser } } = await supabase.auth.getUser()
-          if (currentUser) {
-            // Use the current user data
-            authData = { user: currentUser }
-          } else {
-            // If we can't get the user from session, try to sign in with the same credentials
-            console.warn('User not found in session, attempting to sign in')
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email: formData.email,
-              password: formData.password
-            })
-            
-            if (signInData?.user) {
-              authData = { user: signInData.user }
-              console.log('Successfully signed in user after trigger error')
-            } else {
-              console.error('Failed to sign in user:', signInError)
-              throw new Error('User was created but could not be accessed. Please try logging in manually.')
-            }
-          }
-        } else {
-          throw new Error('No user data returned from signup')
-        }
+      if (!result.success) {
+        throw new Error(result.error || 'Server-side signup failed')
       }
+
+      // Extract user data from server response
+      const authData = { user: result.user }
+      const authError = null // No error from server-side signup
+
+      // Server-side signup handles all the complexity
+      // No need for complex error handling here
 
       console.log('User created:', {
         id: authData.user.id,
@@ -145,30 +111,8 @@ export default function RegisterPage() {
         email_confirmed: authData.user.email_confirmed_at
       })
 
-      // Manually create user record in public.users table
-      try {
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: authData.user.email,
-            full_name: formData.fullName,
-            subscription_plan: 'free',
-            token_balance: 0,
-            created_at: authData.user.created_at,
-            updated_at: authData.user.created_at
-          })
-
-        if (userError) {
-          console.error('Error creating user record:', userError)
-          // Don't throw error here, just log it - the auth user was created successfully
-        } else {
-          console.log('User record created successfully in public.users table')
-        }
-      } catch (error) {
-        console.error('Error creating user record:', error)
-        // Don't throw error here, just log it - the auth user was created successfully
-      }
+      // User record creation is handled by server-side signup API
+      console.log('User record creation handled by server-side API')
 
       // Track referral if referrerId exists
       if (referrerId) {
@@ -195,14 +139,9 @@ export default function RegisterPage() {
         }
       }
 
-      // Always show email confirmation message for new registrations
-      // Don't auto-login even if email appears confirmed
-      const successMessage = authError?.message === 'Database error saving new user' 
-        ? "Account created successfully! (Note: Some features may take a moment to activate)"
-        : "Account Created!"
-        
+      // Show success message for server-side signup
       toast({
-        title: successMessage,
+        title: "Account Created Successfully!",
         description: "Please check your email to confirm your account before logging in.",
       })
       
