@@ -47,7 +47,8 @@ import {
   Bell,
   Smartphone,
   Wifi,
-  WifiOff
+  WifiOff,
+  X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import haptics from "@/lib/haptics"
@@ -114,6 +115,7 @@ export default function SosPage() {
       checkOnboardingStatus()
       checkPWAStatus()
       checkNotificationPermission()
+      checkPushSubscriptionStatus()
     }
   }, [user])
 
@@ -156,6 +158,23 @@ export default function SosPage() {
   const checkNotificationPermission = () => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission)
+    }
+  }
+
+  const checkPushSubscriptionStatus = async () => {
+    try {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        
+        if (subscription) {
+          console.log('Local push subscription found:', subscription.endpoint)
+        } else {
+          console.log('No local push subscription found')
+        }
+      }
+    } catch (error) {
+      console.error('Error checking push subscription status:', error)
     }
   }
 
@@ -295,6 +314,54 @@ export default function SosPage() {
     }
   }
 
+  const clearPushSubscriptions = async () => {
+    try {
+      // Clear local service worker subscriptions
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const registration of registrations) {
+          const subscription = await registration.pushManager.getSubscription()
+          if (subscription) {
+            console.log('Unsubscribing from local push subscription')
+            await subscription.unsubscribe()
+          }
+        }
+      }
+
+      // Clear database subscriptions
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .update({ is_active: false })
+        .eq('user_id', user?.id)
+
+      if (error) {
+        console.error('Failed to clear database subscriptions:', error)
+        toast({
+          title: "Error",
+          description: "Failed to clear some subscriptions from database.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Update local state
+      checkNotificationPermission()
+
+      toast({
+        title: "Subscriptions Cleared",
+        description: "All push subscriptions have been cleared. You can now set up fresh subscriptions.",
+      })
+
+    } catch (error) {
+      console.error('Error clearing subscriptions:', error)
+      toast({
+        title: "Clear Failed",
+        description: "Failed to clear subscriptions. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
   const setupPushNotifications = async () => {
     try {
       // Check if push notifications are supported
@@ -306,6 +373,22 @@ export default function SosPage() {
         })
         return
       }
+
+      // First check VAPID configuration
+      const vapidCheckResponse = await fetch('/api/check-vapid')
+      const vapidCheck = await vapidCheckResponse.json()
+      
+      if (!vapidCheck.isConfigured) {
+        toast({
+          title: "Configuration Error",
+          description: "Push notification configuration is incomplete. Please contact support.",
+          variant: "destructive"
+        })
+        console.error('VAPID configuration check failed:', vapidCheck)
+        return
+      }
+
+      console.log('VAPID configuration check passed:', vapidCheck)
 
       // Request notification permission
       const permission = await Notification.requestPermission()
@@ -319,12 +402,25 @@ export default function SosPage() {
         return
       }
 
+      // Unregister any existing service workers first
+      const existingRegistrations = await navigator.serviceWorker.getRegistrations()
+      for (const registration of existingRegistrations) {
+        console.log('Unregistering existing service worker:', registration.scope)
+        await registration.unregister()
+      }
+
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       // Register service worker
       const registration = await navigator.serviceWorker.register('/sw.js')
       console.log('Service Worker registered:', registration)
 
-      // Wait for service worker to be ready
+      // Wait for service worker to be ready and active
       await navigator.serviceWorker.ready
+      
+      // Additional wait to ensure service worker is fully active
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       // Get VAPID public key
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
@@ -337,14 +433,48 @@ export default function SosPage() {
         return
       }
 
-      // Convert VAPID key
-      const vapidPublicKeyArray = urlBase64ToUint8Array(vapidPublicKey)
+      console.log('VAPID public key available, length:', vapidPublicKey.length)
 
-      // Subscribe to push notifications
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidPublicKeyArray
-      })
+      // Convert VAPID key
+      const vapidPublicKeyArray = urlBase64ToUint8Array(vapidPublicKey) as Uint8Array
+      console.log('VAPID key converted to Uint8Array, length:', vapidPublicKeyArray.length)
+
+      // Check if we already have a subscription and unsubscribe first
+      const existingSubscription = await registration.pushManager.getSubscription()
+      if (existingSubscription) {
+        console.log('Unsubscribing from existing subscription')
+        await existingSubscription.unsubscribe()
+      }
+
+      // Subscribe to push notifications with retry logic
+      let subscription
+      let retryCount = 0
+      const maxRetries = 3
+
+      while (retryCount < maxRetries) {
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: vapidPublicKeyArray as BufferSource
+          })
+          console.log('Push subscription created successfully on attempt', retryCount + 1)
+          break
+        } catch (error) {
+          retryCount++
+          console.error(`Push subscription attempt ${retryCount} failed:`, error)
+          
+          if (retryCount >= maxRetries) {
+            throw error
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount))
+        }
+      }
+
+      if (!subscription) {
+        throw new Error('Failed to create push subscription after all retries')
+      }
 
       console.log('Push subscription created:', subscription)
 
@@ -356,6 +486,12 @@ export default function SosPage() {
           auth: arrayBufferToBase64(subscription.getKey('auth')!)
         }
       }
+
+      console.log('Saving subscription to database:', {
+        endpoint: subscriptionData.endpoint,
+        p256dh_length: subscriptionData.keys.p256dh.length,
+        auth_length: subscriptionData.keys.auth.length
+      })
 
       const { error } = await supabase
         .from('push_subscriptions')
@@ -389,9 +525,22 @@ export default function SosPage() {
 
     } catch (error) {
       console.error('Error setting up push notifications:', error)
+      
+      let errorMessage = "Failed to set up push notifications. Please try again."
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Push service error. Please try refreshing the page and setting up again."
+        } else if (error.message.includes('push service error')) {
+          errorMessage = "Push service unavailable. Please check your internet connection and try again."
+        } else if (error.message.includes('Registration failed')) {
+          errorMessage = "Service worker registration failed. Please try refreshing the page."
+        }
+      }
+      
       toast({
         title: "Setup Failed",
-        description: "Failed to set up push notifications. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       })
     }
@@ -1126,6 +1275,17 @@ export default function SosPage() {
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Debug
+          </Button>
+
+          {/* Clear Subscriptions Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={clearPushSubscriptions}
+            className="text-xs px-3 py-2 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear
           </Button>
           
           <Button 
