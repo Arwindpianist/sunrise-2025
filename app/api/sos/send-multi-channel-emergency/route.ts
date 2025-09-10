@@ -259,13 +259,17 @@ async function sendPushNotification(supabase: any, userId: string, sosAlertId: s
       vibrate: [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000]
     })
 
+    // Convert base64 keys to proper format
+    const p256dhKey = Buffer.from(subscription.p256dh_key, 'base64')
+    const authKey = Buffer.from(subscription.auth_key, 'base64')
+
     // Send push notification
     await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
-          p256dh: subscription.p256dh_key,
-          auth: subscription.auth_key
+          p256dh: p256dhKey,
+          auth: authKey
         }
       },
       emergencyPayload

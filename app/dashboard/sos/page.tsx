@@ -51,6 +51,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import haptics from "@/lib/haptics"
+import { urlBase64ToUint8Array, arrayBufferToBase64 } from "@/lib/push-subscription-utils"
 
 interface Contact {
   id: string
@@ -289,6 +290,108 @@ export default function SosPage() {
       toast({
         title: "Debug Error",
         description: "Could not get debug information",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const setupPushNotifications = async () => {
+    try {
+      // Check if push notifications are supported
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast({
+          title: "Not Supported",
+          description: "Push notifications are not supported in this browser.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Request notification permission
+      const permission = await Notification.requestPermission()
+      
+      if (permission !== 'granted') {
+        toast({
+          title: "Permission Denied",
+          description: "Please allow notifications to receive emergency alerts.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Register service worker
+      const registration = await navigator.serviceWorker.register('/sw.js')
+      console.log('Service Worker registered:', registration)
+
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready
+
+      // Get VAPID public key
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidPublicKey) {
+        toast({
+          title: "Configuration Error",
+          description: "Push notification configuration is incomplete.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Convert VAPID key
+      const vapidPublicKeyArray = urlBase64ToUint8Array(vapidPublicKey)
+
+      // Subscribe to push notifications
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidPublicKeyArray
+      })
+
+      console.log('Push subscription created:', subscription)
+
+      // Save subscription to database
+      const subscriptionData = {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: arrayBufferToBase64(subscription.getKey('p256dh')!),
+          auth: arrayBufferToBase64(subscription.getKey('auth')!)
+        }
+      }
+
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: user?.id,
+          endpoint: subscriptionData.endpoint,
+          p256dh_key: subscriptionData.keys.p256dh,
+          auth_key: subscriptionData.keys.auth,
+          is_active: true,
+          created_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('Failed to save subscription:', error)
+        toast({
+          title: "Error",
+          description: "Failed to save notification settings.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Update local state
+      setNotificationPermission('granted')
+      checkNotificationPermission()
+
+      toast({
+        title: "Push Notifications Enabled!",
+        description: "You'll now receive emergency SOS alerts on your device.",
+      })
+
+    } catch (error) {
+      console.error('Error setting up push notifications:', error)
+      toast({
+        title: "Setup Failed",
+        description: "Failed to set up push notifications. Please try again.",
         variant: "destructive"
       })
     }
@@ -972,6 +1075,19 @@ export default function SosPage() {
             >
               <Bell className="h-3 w-3 mr-1" />
               Enable Notifications
+            </Button>
+          )}
+
+          {/* Setup Push Notifications Button */}
+          {notificationPermission === 'granted' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={setupPushNotifications}
+              className="text-xs px-3 py-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+            >
+              <Bell className="h-3 w-3 mr-1" />
+              Setup Push
             </Button>
           )}
           

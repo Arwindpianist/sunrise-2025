@@ -138,6 +138,17 @@ export async function POST(request: Request) {
       }
     })
 
+    // Convert base64 keys to proper format
+    const p256dhKey = Buffer.from(subscription.p256dh_key, 'base64')
+    const authKey = Buffer.from(subscription.auth_key, 'base64')
+
+    console.log('Emergency notification key lengths:', {
+      p256dh_length: p256dhKey.length,
+      auth_length: authKey.length,
+      p256dh_expected: 65,
+      auth_expected: 16
+    })
+
     // Send the emergency push notification with retry logic
     let retryCount = 0
     const maxRetries = 3
@@ -149,8 +160,8 @@ export async function POST(request: Request) {
           {
             endpoint: subscription.endpoint,
             keys: {
-              p256dh: subscription.p256dh_key,
-              auth: subscription.auth_key
+              p256dh: p256dhKey,
+              auth: authKey
             }
           },
           emergencyPayload

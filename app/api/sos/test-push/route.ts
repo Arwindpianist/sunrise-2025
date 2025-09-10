@@ -87,13 +87,24 @@ export async function POST(request: Request) {
 
     console.log('Sending test push notification...')
 
+    // Convert base64 keys to proper format
+    const p256dhKey = Buffer.from(subscription.p256dh_key, 'base64')
+    const authKey = Buffer.from(subscription.auth_key, 'base64')
+
+    console.log('Key lengths:', {
+      p256dh_length: p256dhKey.length,
+      auth_length: authKey.length,
+      p256dh_expected: 65,
+      auth_expected: 16
+    })
+
     // Send push notification
     const result = await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
-          p256dh: subscription.p256dh_key,
-          auth: subscription.auth_key
+          p256dh: p256dhKey,
+          auth: authKey
         }
       },
       testPayload
