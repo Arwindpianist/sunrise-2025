@@ -8,8 +8,8 @@ self.addEventListener('push', function(event) {
     
     const options = {
       body: data.message || '',
-      icon: '/favicon.svg', // Use favicon instead of missing icon
-      badge: '/favicon.svg', // Use favicon instead of missing icon
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
       vibrate: [200, 100, 200],
       data: data.data || {},
       actions: data.actions || [],
@@ -20,15 +20,21 @@ self.addEventListener('push', function(event) {
 
     // Special handling for SOS alerts
     if (data.type === 'sos_alert') {
+      // Enhanced emergency notification options
       options.body = `🚨 URGENT SOS ALERT: ${data.user_name} needs IMMEDIATE assistance!`;
-      options.vibrate = [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000]; // Very urgent vibration pattern
+      options.vibrate = [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000]; // Extended urgent vibration pattern
       options.requireInteraction = true;
-      options.tag = `sos-alert-${Date.now()}`; // Unique tag for each SOS alert
+      options.tag = `sos-alert-${Date.now()}`;
       options.silent = false; // Force sound for SOS
+      options.renotify = true; // Allow renotifying
       options.actions = [
         {
           action: 'view',
           title: '🚨 VIEW NOW'
+        },
+        {
+          action: 'acknowledge',
+          title: '✓ ACKNOWLEDGE'
         },
         {
           action: 'dismiss',
@@ -36,27 +42,81 @@ self.addEventListener('push', function(event) {
         }
       ];
       
-      // Play emergency sound for SOS alerts
+      // Play emergency sounds for SOS alerts
       try {
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
-        audio.volume = 1.0;
-        audio.play().catch(e => console.log('Audio play failed:', e));
+        // Import and use emergency sound generator
+        importScripts('/emergency-sound.js');
+        
+        // Create emergency sound generator instance
+        const soundGenerator = new EmergencySoundGenerator();
+        
+        // Play SOS pattern immediately
+        soundGenerator.generateSOSPattern();
+        
+        // Play escalating pattern after 5 seconds
+        setTimeout(() => {
+          soundGenerator.generateEscalatingPattern();
+        }, 5000);
+        
+        // Play critical pattern after 15 seconds
+        setTimeout(() => {
+          soundGenerator.generateCriticalPattern();
+        }, 15000);
+        
       } catch (e) {
-        console.log('Audio creation failed:', e);
+        console.log('Emergency sound generation failed:', e);
+        
+        // Fallback to basic audio
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO+eizEIHWq+8+OWT');
+          audio.volume = 1.0;
+          audio.play().catch(e => console.log('Fallback audio play failed:', e));
+        } catch (fallbackError) {
+          console.log('Fallback audio creation failed:', fallbackError);
+        }
       }
       
-      // Show SOS notification multiple times to ensure it's not missed
+      // Show multiple SOS notifications with escalating urgency
       event.waitUntil(
         Promise.all([
+          // Immediate notification
           self.registration.showNotification(data.title || '🚨 URGENT SOS ALERT', options),
-          // Show a second notification after 5 seconds if first one is dismissed
-          new Promise(resolve => setTimeout(resolve, 5000)).then(() => {
+          
+          // First reminder after 10 seconds
+          new Promise(resolve => setTimeout(resolve, 10000)).then(() => {
             return self.registration.showNotification(
-              '🚨 SOS ALERT - Still Active',
+              '🚨 SOS ALERT - 10s Reminder',
               {
                 ...options,
                 body: `🚨 ${data.user_name} still needs assistance! Please respond immediately!`,
-                tag: `sos-reminder-${Date.now()}`
+                tag: `sos-reminder-10s-${Date.now()}`,
+                vibrate: [2000, 1000, 2000, 1000, 2000] // More intense vibration
+              }
+            );
+          }),
+          
+          // Second reminder after 30 seconds
+          new Promise(resolve => setTimeout(resolve, 30000)).then(() => {
+            return self.registration.showNotification(
+              '🚨 SOS ALERT - 30s URGENT',
+              {
+                ...options,
+                body: `🚨 CRITICAL: ${data.user_name} needs IMMEDIATE help! This is your final alert!`,
+                tag: `sos-reminder-30s-${Date.now()}`,
+                vibrate: [3000, 500, 3000, 500, 3000, 500, 3000] // Most intense vibration
+              }
+            );
+          }),
+          
+          // Final escalation after 60 seconds
+          new Promise(resolve => setTimeout(resolve, 60000)).then(() => {
+            return self.registration.showNotification(
+              '🚨 SOS ALERT - FINAL ESCALATION',
+              {
+                ...options,
+                body: `🚨 EMERGENCY: ${data.user_name} has been waiting for 1 minute! IMMEDIATE ACTION REQUIRED!`,
+                tag: `sos-escalation-60s-${Date.now()}`,
+                vibrate: [5000, 1000, 5000, 1000, 5000, 1000, 5000, 1000, 5000] // Maximum intensity
               }
             );
           })
@@ -89,6 +149,44 @@ self.addEventListener('notificationclick', function(event) {
       // For other notifications, open the notifications page
       event.waitUntil(
         clients.openWindow('/dashboard/notifications')
+      );
+    }
+  } else if (event.action === 'acknowledge') {
+    // Handle acknowledge action for SOS alerts
+    const data = event.notification.data;
+    
+    if (data && data.type === 'sos_alert') {
+      // Send acknowledgment to the server
+      event.waitUntil(
+        fetch('/api/sos/acknowledge', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sos_alert_id: data.sos_alert_id,
+            acknowledged_at: new Date().toISOString()
+          })
+        }).then(response => {
+          if (response.ok) {
+            console.log('SOS alert acknowledged successfully');
+            // Show confirmation notification
+            return self.registration.showNotification(
+              '✓ SOS Alert Acknowledged',
+              {
+                body: `You have acknowledged the SOS alert from ${data.user_name}`,
+                icon: '/favicon.svg',
+                badge: '/favicon.svg',
+                tag: 'sos-acknowledged',
+                silent: true
+              }
+            );
+          } else {
+            console.error('Failed to acknowledge SOS alert');
+          }
+        }).catch(error => {
+          console.error('Error acknowledging SOS alert:', error);
+        })
       );
     }
   }

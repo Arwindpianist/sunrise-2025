@@ -34,13 +34,20 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import SosOnboarding from "@/components/sos-onboarding"
+import NotificationPermission from "@/components/notification-permission"
+import PWAInstallGuide from "@/components/pwa-install-guide"
 import { 
   AlertTriangle, 
   Plus, 
   Trash2, 
   Phone, 
   Mail, 
-  Shield
+  Shield,
+  Download,
+  Bell,
+  Smartphone,
+  Wifi,
+  WifiOff
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import haptics from "@/lib/haptics"
@@ -90,14 +97,135 @@ export default function SosPage() {
   const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // PWA state
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false)
+  const [isOnline, setIsOnline] = useState(true)
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const [showPWAInstallPrompt, setShowPWAInstallPrompt] = useState(false)
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false)
+  const [showPWAInstallGuide, setShowPWAInstallGuide] = useState(false)
 
   useEffect(() => {
     if (user) {
       fetchContacts()
       fetchEmergencyContacts()
       checkOnboardingStatus()
+      checkPWAStatus()
+      checkNotificationPermission()
     }
   }, [user])
+
+  // PWA and notification setup
+  useEffect(() => {
+    // Check online status
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    
+    // Check PWA installation status
+    const checkPWAInstallation = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      const isInApp = (window.navigator as any).standalone === true
+      setIsPWAInstalled(isStandalone || isInApp)
+    }
+    
+    checkPWAInstallation()
+    
+    // Listen for PWA installation
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      setShowPWAInstallPrompt(true)
+    })
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  const checkPWAStatus = () => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    const isInApp = (window.navigator as any).standalone === true
+    setIsPWAInstalled(isStandalone || isInApp)
+  }
+
+  const checkNotificationPermission = () => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission)
+    }
+  }
+
+  const handlePWAInstall = async () => {
+    try {
+      // Show the PWA install guide
+      setShowPWAInstallGuide(true)
+    } catch (error) {
+      console.error('Error installing PWA:', error)
+    }
+  }
+
+  const handleNotificationPermissionRequest = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission()
+      setNotificationPermission(permission)
+      
+      if (permission === 'granted') {
+        setShowNotificationPrompt(false)
+        toast({
+          title: "Notifications Enabled!",
+          description: "You'll now receive emergency SOS alerts even when the app is closed.",
+        })
+      } else {
+        toast({
+          title: "Notifications Disabled",
+          description: "Emergency alerts may not work properly without notification permission.",
+          variant: "destructive"
+        })
+      }
+    }
+  }
+
+  const testEmergencyNotification = async () => {
+    if (notificationPermission !== 'granted') {
+      toast({
+        title: "Notifications Required",
+        description: "Please enable notifications first to test emergency alerts.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      // Test local notification
+      const testNotification = new Notification('🚨 TEST SOS ALERT', {
+        body: 'This is a test emergency notification. In a real emergency, this would alert your contacts.',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        requireInteraction: true,
+        tag: 'test-sos-alert'
+      })
+
+      // Test vibration if available
+      if ('vibrate' in navigator) {
+        navigator.vibrate([1000, 500, 1000, 500, 1000])
+      }
+
+      toast({
+        title: "Test Notification Sent",
+        description: "Check your notification panel to see the test emergency alert.",
+      })
+    } catch (error) {
+      console.error('Error testing notification:', error)
+      toast({
+        title: "Test Failed",
+        description: "Could not send test notification. Please check your browser settings.",
+        variant: "destructive"
+      })
+    }
+  }
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -561,13 +689,13 @@ export default function SosPage() {
           continue
         }
         
-        // Create notification record for in-app notification
+        // Create notification record for emergency notification
         const { data: notification, error: notificationError } = await supabase
           .from('sos_alert_notifications')
           .insert({
             sos_alert_id: sosAlertId,
             emergency_contact_id: emergencyContact.id,
-            notification_type: 'in_app',
+            notification_type: 'push',
             status: 'pending'
           })
           .select()
@@ -578,38 +706,32 @@ export default function SosPage() {
           continue
         }
 
-        // Create in-app notification for the Sunrise user
+        // Send emergency push notification
         try {
-          const notificationResponse = await fetch('/api/notifications/create-sos', {
+          const emergencyResponse = await fetch('/api/sos/send-emergency-notification', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              recipient_user_id: contact.userId, // This should be the Sunrise user's ID
               sos_alert_id: sosAlertId,
-              notification_id: notification.id,
+              recipient_user_id: contact.userId,
               user_name: user?.user_metadata?.full_name || user?.email,
               location: locationData.location_address || 'Location not available',
               triggered_at: new Date().toISOString()
             }),
           })
 
-          if (!notificationResponse.ok) {
-            throw new Error('Failed to create in-app notification')
+          if (!emergencyResponse.ok) {
+            const errorData = await emergencyResponse.json()
+            throw new Error(errorData.message || 'Failed to send emergency notification')
           }
 
-          // Update notification status to sent
-          await supabase
-            .from('sos_alert_notifications')
-            .update({ 
-              status: 'sent',
-              sent_at: new Date().toISOString()
-            })
-            .eq('id', notification.id)
+          const result = await emergencyResponse.json()
+          console.log('Emergency notification result:', result)
 
         } catch (error) {
-          console.error('Error creating in-app notification:', error)
+          console.error('Error sending emergency notification:', error)
           await supabase
             .from('sos_alert_notifications')
             .update({ 
@@ -643,6 +765,46 @@ export default function SosPage() {
         <div className="text-center mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Emergency SOS</h1>
           <p className="text-sm sm:text-base text-gray-600 px-2">Press and hold the SOS button to alert your emergency contacts</p>
+          
+          {/* PWA Status Indicators */}
+          <div className="flex justify-center gap-2 mt-3 mb-2">
+            {/* Online/Offline Status */}
+            <div className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+              isOnline 
+                ? "bg-green-100 text-green-700" 
+                : "bg-red-100 text-red-700"
+            )}>
+              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {isOnline ? "Online" : "Offline"}
+            </div>
+            
+            {/* PWA Installation Status */}
+            <div className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+              isPWAInstalled 
+                ? "bg-blue-100 text-blue-700" 
+                : "bg-orange-100 text-orange-700"
+            )}>
+              <Smartphone className="h-3 w-3" />
+              {isPWAInstalled ? "PWA Installed" : "Install PWA"}
+            </div>
+            
+            {/* Notification Permission Status */}
+            <div className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+              notificationPermission === 'granted'
+                ? "bg-green-100 text-green-700"
+                : notificationPermission === 'denied'
+                ? "bg-red-100 text-red-700"
+                : "bg-yellow-100 text-yellow-700"
+            )}>
+              <Bell className="h-3 w-3" />
+              {notificationPermission === 'granted' ? "Notifications On" : 
+               notificationPermission === 'denied' ? "Notifications Off" : "Enable Notifications"}
+            </div>
+          </div>
+          
           {isTriggering && (
             <p className="text-sm text-orange-600 mt-2">Sending SOS alert...</p>
           )}
@@ -654,7 +816,7 @@ export default function SosPage() {
         </div>
         
         {/* Mobile-friendly action buttons */}
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex justify-center gap-2 mb-4 flex-wrap">
           <Button 
             variant="outline" 
             size="sm"
@@ -664,6 +826,46 @@ export default function SosPage() {
             <AlertTriangle className="h-3 w-3 mr-1" />
             Tutorial
           </Button>
+          
+          {/* PWA Install Button */}
+          {!isPWAInstalled && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handlePWAInstall}
+              className="text-xs px-3 py-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Download className="h-3 w-3 mr-1" />
+              Install App
+            </Button>
+          )}
+          
+          {/* Notification Permission Button */}
+          {notificationPermission !== 'granted' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleNotificationPermissionRequest}
+              className="text-xs px-3 py-2 text-green-600 border-green-200 hover:bg-green-50"
+            >
+              <Bell className="h-3 w-3 mr-1" />
+              Enable Notifications
+            </Button>
+          )}
+          
+          {/* Test Notification Button */}
+          {notificationPermission === 'granted' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={testEmergencyNotification}
+              className="text-xs px-3 py-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+            >
+              <Bell className="h-3 w-3 mr-1" />
+              Test Alert
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
             size="sm"
@@ -749,6 +951,15 @@ export default function SosPage() {
             <p>• Press and hold for 2 seconds to activate</p>
             <p>• Your location will be shared with emergency contacts</p>
             <p>• Only Sunrise users will receive notifications</p>
+            {!isPWAInstalled && (
+              <p className="text-orange-600 font-medium">• Install as PWA for best emergency experience</p>
+            )}
+            {notificationPermission !== 'granted' && (
+              <p className="text-red-600 font-medium">• Enable notifications for emergency alerts</p>
+            )}
+            {!isOnline && (
+              <p className="text-red-600 font-medium">• Offline mode - alerts may be delayed</p>
+            )}
           </div>
         </div>
       </div>
@@ -932,6 +1143,14 @@ export default function SosPage() {
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
         emergencyContactsCount={emergencyContacts.length}
+      />
+
+      {/* PWA Install Guide */}
+      <PWAInstallGuide
+        isOpen={showPWAInstallGuide}
+        onClose={() => setShowPWAInstallGuide(false)}
+        isPWAInstalled={isPWAInstalled}
+        notificationPermission={notificationPermission}
       />
     </div>
   )
