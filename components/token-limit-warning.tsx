@@ -84,7 +84,7 @@ export function TokenLimitWarning({ tier, currentBalance, totalTokensPurchased =
           <Alert variant={getAlertVariant()}>
             <AlertDescription className="flex items-center justify-between">
               <span>
-                <strong>Recommended:</strong> Upgrade to {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} for unlimited tokens
+                <strong>Recommended:</strong> Upgrade to {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} for {limitInfo.recommendedUpgrade === 'pro' ? 'unlimited' : 'more'} tokens
               </span>
               {onUpgrade && (
                 <Button 
@@ -103,7 +103,7 @@ export function TokenLimitWarning({ tier, currentBalance, totalTokensPurchased =
           <p><strong>Current Plan:</strong> {tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'Unknown'}</p>
           <p><strong>Token Limit:</strong> {limitInfo.currentLimit} tokens</p>
           {limitInfo.recommendedUpgrade && (
-            <p><strong>Recommended:</strong> {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} (unlimited tokens)</p>
+            <p><strong>Recommended:</strong> {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} ({limitInfo.recommendedUpgrade === 'pro' ? 'unlimited' : 'more'} tokens)</p>
           )}
         </div>
       </CardContent>
@@ -167,7 +167,7 @@ export function TokenLimitInfo({ tier, currentBalance, totalTokensPurchased = 0 
 
         {limitInfo.recommendedUpgrade && (
           <div className="text-xs text-muted-foreground">
-            <p>💡 Consider upgrading to {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} for unlimited tokens</p>
+            <p>💡 Consider upgrading to {limitInfo.recommendedUpgrade.charAt(0).toUpperCase() + limitInfo.recommendedUpgrade.slice(1)} for {limitInfo.recommendedUpgrade === 'pro' ? 'unlimited' : 'more'} tokens</p>
           </div>
         )}
       </CardContent>

@@ -30,7 +30,8 @@ export function getTokensUsed(tier: SubscriptionTier, currentBalance: number, to
   if (tier === 'free') {
     // For free users, tokens used = initial balance (15) - current balance
     const initialBalance = SUBSCRIPTION_FEATURES.free.maxTokens
-    return Math.max(0, initialBalance - currentBalance)
+    const tokensUsed = Math.max(0, initialBalance - currentBalance)
+    return tokensUsed
   } else {
     // For paid tiers, use totalTokensPurchased
     return totalTokensPurchased
@@ -80,7 +81,18 @@ export function getTokenLimitInfo(tier: SubscriptionTier, currentBalance: number
   const limit = getTokenLimit(tier)
   const tokensUsed = getTokensUsed(tier, currentBalance, totalTokensPurchased)
   const remainingTokens = limit === -1 ? -1 : Math.max(0, limit - tokensUsed)
-  const percentageUsed = limit === -1 ? 0 : (tokensUsed / limit) * 100
+  
+  // Fix percentage calculation: for free tier, percentage should be based on tokens used vs limit
+  let percentageUsed = 0
+  if (limit !== -1) {
+    if (tier === 'free') {
+      // For free tier: percentage = (tokens used / total limit) * 100
+      percentageUsed = (tokensUsed / limit) * 100
+    } else {
+      // For paid tiers: percentage = (tokens purchased / limit) * 100
+      percentageUsed = (totalTokensPurchased / limit) * 100
+    }
+  }
   
   // Consider "near limit" when 80% or more is used
   const isNearLimit = limit !== -1 && percentageUsed >= 80
@@ -105,7 +117,7 @@ export function getRecommendedUpgrade(
   currentBalance: number, 
   limit: number
 ): SubscriptionTier | undefined {
-  if (tier === 'free') return 'basic'
+  if (tier === 'free') return 'pro' // Recommend Pro for unlimited tokens
   if (tier === 'basic' && (limit === -1 || currentBalance >= limit * 0.8)) return 'pro'
   if (tier === 'pro' && (limit === -1 || currentBalance >= limit * 0.8)) return 'enterprise'
   return undefined
@@ -178,6 +190,11 @@ export function getUpgradePromptMessage(
   
   switch (reason) {
     case 'limit_reached':
+      if (tier === 'free') {
+        return `You've reached your free plan token limit of ${limit} tokens. Upgrade to Pro for unlimited tokens!`
+      } else if (tier === 'basic') {
+        return `You've reached your Basic plan token limit of ${limit} tokens. Upgrade to Pro for unlimited tokens!`
+      }
       return `You've reached your ${tier} plan token limit of ${limit} tokens. Upgrade to Pro for unlimited tokens!`
     
     case 'near_limit':
