@@ -362,6 +362,50 @@ export default function SosPage() {
     }
   }
 
+  const diagnosePushIssues = async () => {
+    try {
+      const diagnostics = {
+        browser: navigator.userAgent,
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasPushManager: 'PushManager' in window,
+        hasNotification: 'Notification' in window,
+        notificationPermission: Notification.permission,
+        isOnline: navigator.onLine,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack
+      }
+
+      // Check VAPID configuration
+      const vapidCheckResponse = await fetch('/api/check-vapid')
+      const vapidCheck = await vapidCheckResponse.json()
+
+      // Check existing subscriptions
+      const debugResponse = await fetch('/api/sos/debug-subscription')
+      const debugData = await debugResponse.json()
+
+      console.log('Push Notification Diagnostics:', {
+        ...diagnostics,
+        vapid: vapidCheck,
+        subscriptions: debugData
+      })
+
+      toast({
+        title: "Diagnostics Complete",
+        description: "Check console for detailed push notification diagnostics. This will help identify the issue.",
+      })
+
+    } catch (error) {
+      console.error('Error running diagnostics:', error)
+      toast({
+        title: "Diagnostics Failed",
+        description: "Could not run diagnostics. Check console for errors.",
+        variant: "destructive"
+      })
+    }
+  }
+
   const setupPushNotifications = async () => {
     try {
       // Check if push notifications are supported
@@ -402,25 +446,34 @@ export default function SosPage() {
         return
       }
 
-      // Unregister any existing service workers first
-      const existingRegistrations = await navigator.serviceWorker.getRegistrations()
-      for (const registration of existingRegistrations) {
-        console.log('Unregistering existing service worker:', registration.scope)
-        await registration.unregister()
+      // Check if we already have a working service worker
+      let registration = await navigator.serviceWorker.getRegistration()
+      
+      if (!registration || !registration.active) {
+        console.log('No active service worker found, registering new one...')
+        
+        // Unregister any existing service workers first
+        const existingRegistrations = await navigator.serviceWorker.getRegistrations()
+        for (const reg of existingRegistrations) {
+          console.log('Unregistering existing service worker:', reg.scope)
+          await reg.unregister()
+        }
+
+        // Wait a moment for cleanup
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // Register service worker
+        registration = await navigator.serviceWorker.register('/sw.js')
+        console.log('Service Worker registered:', registration)
+      } else {
+        console.log('Using existing service worker:', registration.scope)
       }
-
-      // Wait a moment for cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js')
-      console.log('Service Worker registered:', registration)
 
       // Wait for service worker to be ready and active
       await navigator.serviceWorker.ready
       
       // Additional wait to ensure service worker is fully active
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Get VAPID public key
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
@@ -529,12 +582,14 @@ export default function SosPage() {
       let errorMessage = "Failed to set up push notifications. Please try again."
       
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = "Push service error. Please try refreshing the page and setting up again."
-        } else if (error.message.includes('push service error')) {
-          errorMessage = "Push service unavailable. Please check your internet connection and try again."
+        if (error.name === 'AbortError' || error.message.includes('push service error')) {
+          errorMessage = "Push service error detected. This can happen due to:\n• Browser compatibility issues\n• Network connectivity problems\n• VAPID key configuration issues\n\nTry: 1) Refresh the page, 2) Clear browser cache, 3) Try a different browser"
         } else if (error.message.includes('Registration failed')) {
           errorMessage = "Service worker registration failed. Please try refreshing the page."
+        } else if (error.message.includes('NotSupportedError')) {
+          errorMessage = "Push notifications are not supported in this browser or context."
+        } else if (error.message.includes('NotAllowedError')) {
+          errorMessage = "Push notifications are blocked. Please check your browser settings."
         }
       }
       
@@ -1286,6 +1341,17 @@ export default function SosPage() {
           >
             <X className="h-3 w-3 mr-1" />
             Clear
+          </Button>
+
+          {/* Diagnostics Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={diagnosePushIssues}
+            className="text-xs px-3 py-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+          >
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Diagnose
           </Button>
           
           <Button 

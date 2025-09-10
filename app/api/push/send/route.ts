@@ -53,17 +53,14 @@ export async function POST(request: Request) {
       })
     })
 
-    // Convert base64 keys to proper format
-    const p256dhKey = Buffer.from(subscription.keys.p256dh, 'base64')
-    const authKey = Buffer.from(subscription.keys.auth, 'base64')
-
+    // Use keys as strings (webpush library expects base64 strings)
     // Send the push notification
     const result = await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
-          p256dh: p256dhKey,
-          auth: authKey
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth
         }
       },
       pushPayload
