@@ -83,6 +83,19 @@ export default function RootLayout({
       <head>
         <meta name="google-adsense-account" content="ca-pub-8770781309940232" />
         
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZRH1W3BS"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-FNZRH1W3BS');
+            `,
+          }}
+        />
+        
         {/* Favicon */}
         <link rel="icon" type="image/x-icon" href="/favicon.svg" />
         <link rel="shortcut icon" type="image/x-icon" href="/favicon.svg" />
