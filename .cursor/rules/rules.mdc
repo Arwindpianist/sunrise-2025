@@ -1,0 +1,61 @@
+---
+alwaysApply: true
+---
+
+# Avoid em dash in text
+
+# Product and Platform Rulebook
+
+## Design System Direction
+- Prefer cohesive section-based layouts over repetitive card-heavy blocks.
+- Use depth through spacing rhythm, gradients, and layered backgrounds instead of dense borders.
+- Add subtle, purposeful motion (hover lift, fade/slide transitions, animated emphasis) without harming readability.
+- Keep mobile-first hierarchy: clear headings, short paragraphs, obvious CTAs, and touch-friendly controls.
+- Preserve Sunrise brand tone (warm, celebratory, premium-friendly) across home, features, and pricing.
+
+## Pricing and Financial Modeling Standards
+- Treat token economics as channel-weighted; do not assume one flat per-channel token cost.
+- Enforce a minimum 55% gross margin target on usage-based messaging economics.
+- Recompute token burn/multipliers when provider costs change (Twilio, email delivery, Stripe fee impact).
+- Forecast in RM and provide:
+  - 12-month base case
+  - conservative and upside scenarios
+  - monthly run-rate snapshot
+- Always separate fixed costs (infra/domains/tools) from variable COGS (message delivery and payment leakage).
+
+## Subscription and Token Product Rules
+- Keep one wallet and one token ledger per customer account.
+- Apply channel multipliers behind the scenes; keep customer UX simple and transparent.
+- Subscription plans must include:
+  - clear monthly included tokens
+  - explicit top-up rates
+  - no ambiguous "unlimited" claims without fair-use policy
+- Pricing updates must include customer-facing explanation and migration notes.
+
+## Feature Prioritization
+- Focus core value loops first:
+  - Event creation flow
+  - Audience/contact selection
+  - Template quality and consistency
+  - Reliable send pipeline and delivery visibility
+- De-prioritize non-core features when reliability or margin controls need attention.
+- Any new feature should state expected effect on conversion, retention, reliability, or margin.
+
+## Sunrise + Sunset Platform Architecture Direction
+- Sunrise and Sunset operate as one product system under Sunrise Sunset Services.
+- Keep domains separate for brand/tone positioning only; backend and account model remain shared.
+- Plan domain separation at hosting/routing layer, not by splitting core data and business logic.
+- Ensure pricing, balances, subscriptions, and usage policies stay consistent across both domains.
+- Any domain-specific UX differences must not fragment billing, auth, or token accounting.
+
+## Operational Governance
+- Track weekly:
+  - Gross revenue, net revenue (after Stripe), variable COGS, contribution margin
+  - Channel mix and effective revenue/message by channel
+  - Token burn/message distribution by tier
+- Alert thresholds:
+  - Any channel margin under 45% for 2 consecutive weeks
+  - Blended margin under 55% for one full billing cycle
+- Decision cadence:
+  - Monthly operational review
+  - Quarterly repricing review using updated vendor invoices

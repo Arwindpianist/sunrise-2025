@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      "@repo/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@repo/config": ["../../packages/config/src/index.ts"],
+      "@repo/db": ["../../packages/db/src/index.ts"],
+      "@repo/auth": ["../../packages/auth/src/index.ts"],
+      "@repo/billing": ["../../packages/billing/src/index.ts"],
+      "@repo/email": ["../../packages/email/src/index.ts"],
+      "@repo/notifications": ["../../packages/notifications/src/index.ts"],
+      "@repo/core": ["../../packages/core/src/index.ts"],
+      "@repo/ui": ["../../packages/ui/src/index.ts"],
+      "@supabase/auth-helpers-nextjs": [
+        "./lib/compat/supabase-auth-helpers-nextjs"
+      ],
+      "@supabase/supabase-js": ["./lib/compat/supabase-js"],
+      "@/components/ui/sidebar": ["./components/ui/sidebar.tsx"],
+      "@/components/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

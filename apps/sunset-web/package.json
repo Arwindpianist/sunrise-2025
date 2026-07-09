@@ -1,0 +1,7 @@
+{
+  "name": "sunset-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Deprecated shell; Sunset is deployed from apps/sunrise-web. See README.md.",
+  "scripts": {}
+}

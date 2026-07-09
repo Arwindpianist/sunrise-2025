@@ -1,0 +1,19 @@
+{
+  "name": "@repo/billing",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
