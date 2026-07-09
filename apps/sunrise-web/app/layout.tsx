@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadataBase = new URL(siteOrigin)
   const faviconPath = brand === "sunset" ? "/favicon-sunset.svg" : "/favicon.svg"
   const ogImagePath =
-    brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
+    brand === "sunset" ? "/og-image-sunset.png?v=20260709" : "/og-image-sunrise-v2.png"
   const title = `${reg.displayName} - ${reg.seoTagline}`
   const keywords =
     brand === "sunset"
@@ -113,7 +113,7 @@ export default async function RootLayout({
   const reg = getBrandRegistry(brand)
   const faviconPath = brand === "sunset" ? "/favicon-sunset.svg" : "/favicon.svg"
   const ogImagePath =
-    brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
+    brand === "sunset" ? "/og-image-sunset.png?v=20260709" : "/og-image-sunrise-v2.png"
   const ogImageAbs = new URL(ogImagePath, reg.siteOriginDefault).href
   return (
     <html lang="en" data-brand={brand}>
