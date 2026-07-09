@@ -60,3 +60,4 @@ db_cluster*/
 *.backup.gz
 .env*.backup
 xjahtacchdamjafbbfud.storage.zip
+.env*
