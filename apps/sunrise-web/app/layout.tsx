@@ -25,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const reg = getBrandRegistry(brand)
   const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? reg.siteOriginDefault
   const metadataBase = new URL(siteOrigin)
+  const faviconPath = brand === "sunset" ? "/favicon-sunset.svg" : "/favicon.svg"
   const ogImagePath =
     brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
   const title = `${reg.displayName} - ${reg.seoTagline}`
@@ -95,9 +96,9 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     },
     icons: {
-      icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-      apple: "/favicon.svg",
-      shortcut: "/favicon.svg",
+      icon: [{ url: faviconPath, type: "image/svg+xml" }],
+      apple: faviconPath,
+      shortcut: faviconPath,
     },
     manifest: "/manifest.json",
   }
@@ -110,6 +111,7 @@ export default async function RootLayout({
 }) {
   const brand = await resolveEffectiveBrandId("sunrise")
   const reg = getBrandRegistry(brand)
+  const faviconPath = brand === "sunset" ? "/favicon-sunset.svg" : "/favicon.svg"
   const ogImagePath =
     brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
   const ogImageAbs = new URL(ogImagePath, reg.siteOriginDefault).href
@@ -136,8 +138,8 @@ export default async function RootLayout({
         )}
         
         {/* Favicon */}
-        <link rel="icon" type="image/x-icon" href="/favicon.svg" />
-        <link rel="shortcut icon" type="image/x-icon" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href={faviconPath} />
+        <link rel="shortcut icon" type="image/svg+xml" href={faviconPath} />
         
         {/* Additional Social Media Meta Tags */}
         <meta property="og:image:width" content="1200" />
