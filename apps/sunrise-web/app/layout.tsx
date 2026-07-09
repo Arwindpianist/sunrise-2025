@@ -25,6 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const reg = getBrandRegistry(brand)
   const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? reg.siteOriginDefault
   const metadataBase = new URL(siteOrigin)
+  const ogImagePath =
+    brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
   const title = `${reg.displayName} - ${reg.seoTagline}`
   const keywords =
     brand === "sunset"
@@ -65,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: reg.displayName,
       images: [
         {
-          url: "/og-image.png",
+          url: ogImagePath,
           width: 1200,
           height: 630,
           alt: `${title} - ${reg.displayName}`,
@@ -78,7 +80,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title,
       description: reg.seoDescription,
-      images: ["/og-image.png"],
+      images: [ogImagePath],
       creator: "@sunrise2025",
     },
     robots: {
@@ -108,7 +110,9 @@ export default async function RootLayout({
 }) {
   const brand = await resolveEffectiveBrandId("sunrise")
   const reg = getBrandRegistry(brand)
-  const ogImageAbs = new URL("/og-image.png", reg.siteOriginDefault).href
+  const ogImagePath =
+    brand === "sunset" ? "/og-image-sunset.png" : "/og-image-sunrise.png"
+  const ogImageAbs = new URL(ogImagePath, reg.siteOriginDefault).href
   return (
     <html lang="en" data-brand={brand}>
       <head>
