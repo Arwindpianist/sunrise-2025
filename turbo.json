@@ -3,7 +3,33 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "DATABASE_URL",
+        "RESEND_API_KEY",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "RESEND_FROM_EMAIL",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_BASIC_PRICE_ID",
+        "STRIPE_PRO_PRICE_ID",
+        "STRIPE_ENTERPRISE_PRICE_ID",
+        "STRIPE_PRODUCT_MINI_PACK",
+        "STRIPE_PRODUCT_PLUS_PACK",
+        "STRIPE_PRODUCT_PRO_PACK",
+        "STRIPE_PRODUCT_BUSINESS_PACK",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ZOHO_EMAIL_PASSWORD",
+        "ZOHO_SMTP_HOST",
+        "ZOHO_SMTP_PORT",
+        "ZOHO_EMAIL_USER",
+        "MAINTENANCE_MODE",
+        "MAINTENANCE_BYPASS_SECRET",
+        "VAPID_PRIVATE_KEY"
+      ]
     },
     "lint": {
       "outputs": []
